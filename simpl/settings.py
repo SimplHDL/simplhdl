@@ -1,4 +1,5 @@
 # global config
-specname = 'spec.py'
+manifest = 'manifest.py'
 workspace = 'workspace.py'
+objectdir = '.'
 components = []
