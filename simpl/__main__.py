@@ -4,27 +4,70 @@ import sys
 import re
 import traceback
 import copy
+import argparse
 
 from .__version__ import __version__
 from .settings import *
 from .file import file
 from .component import component
+from .environment import environment
 
 
 def main():
-    global specname
+    global manifest
     global workspace
 
-    print 'This is Simpl version',__version__
+    e = environment()
+    # print e._searchUp(workspace)
+    # sys.exit(0)
+    args = parseArgs()
+
+    if args.version:
+        print 'SimplHDL - version ',__version__
+        sys.exit(0)
+    if args.list_components:
+        listComponents()
+        sys.exit(0)
+    if args.list_files:
+        listFiles()
+        sys.exit(0)
+    if args.print_environment:
+        printEnv()
+        sys.exit(0)
+
+
+def listComponents():
     parseSpecs([os.getcwd()])
+    print '-------'
     for c in components:
         print c.name
         for f in c.files:
-            print f.name
-            print f.type
-            print f.abspath
+            print "  ",f.abspath
             print '-------'
-            print os.path.splitext(f.name)
+
+def listFiles():
+    parseSpecs([os.getcwd()])
+    for c in reversed(components):
+        for f in c.files:
+            print f.abspath
+
+def printEnv():
+    print "SimplHDL Environment"
+
+
+def parseArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--version", action='store_true',
+                        help='Shows the applications version')
+    parser.add_argument("--list-files", action='store_true',
+                        help='Print list of files in the order they are compiled')
+    parser.add_argument('--list-components', action='store_true',
+                        help='Print list of components')
+    parser.add_argument('--print-environment', action='store_true',
+                        help='Print environment')
+    args = parser.parse_args()
+    return args
+
 
 def parseSpecs(componentpathlist):
     known = []
@@ -33,33 +76,11 @@ def parseSpecs(componentpathlist):
             known.append(componentpath)
             result = parseComponentSpec(componentpath)
             if result != None:
-                print result
                 parseSpecs(result)
-
-def fileType(filename):
-    name, ext = os.path.splitext(filename)
-    if re.match('\.v', ext):
-        return 'verilog'
-    if re.match('\.sv', ext):
-        return 'systemverilog'
-    if re.match('\.vhdl{0,1}', ext):
-        return 'vhdl'
-    if re.match('\.pl', ext):
-        return 'perl'
-    if re.match('\.tcl', ext):
-        return 'tcl'
-    if re.match('\.py', ext):
-        return 'python'
-    if re.match('\.xdc', ext):
-        return 'constraint'
-    if re.match('\.sdc', ext):
-        return 'constraint'
-    if re.match('\.sh', ext):
-        return 'shell'
 
 def parseComponentSpec(path):
     global components
-    spec = os.path.join(path,specname)
+    spec = os.path.join(path,manifest)
     c = component(os.path.basename(path))
     try:
         local_dict = locals()
@@ -75,18 +96,27 @@ def parseComponentSpec(path):
                         item = os.path.join(path,item)
                 f = file(os.path.basename(item))
                 f.abspath = os.path.abspath(item)
-                f.type = fileType(item)
                 if 'library' in local_dict:
                     f.library = local_dict['library']
                 c.files.append(f)
         if 'includes' in local_dict:
-            c.includes.append(os.path.abspath(local_dict['includes']))
-        if 'modules' in local_dict:
-            for child in local_dict['modules']:
+            if not type(local_dict['includes']) is list:
+                print "The includes variable must be assigned a list type [] in file: "+spec
+                sys.exit(1)
+            for include in local_dict['includes']:
+                if os.path.isdir(include):
+                    c.includes.append(os.path.abspath(include))
+                else:
+                    print "NOT A DIR "+include
+                    sys.exit(1)
+        if 'imports' in local_dict:
+            if not type(local_dict['imports']) is list:
+                print "The import variable must be assigned a list type [] in file: "+spec
+                sys.exit(1)
+            for child in local_dict['imports']:
                 if not os.path.isabs(child):
                     if os.path.isdir(os.path.join(path,child)):
                         child = os.path.abspath(os.path.join(path,child))
-                        print 'IS DIR '+child
                     else:
                         print "NOT A DIR "+child
                         sys.exit(1)
