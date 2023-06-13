@@ -16,7 +16,7 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages('src'),
     entry_points={
-        'console_scripts': ['simpl=simplehdl.__main__:main'],
+        'console_scripts': ['simpl=simplhdl.__main__:main'],
     },
     install_requires=[],
     extras_require={
