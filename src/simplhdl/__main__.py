@@ -9,6 +9,10 @@ def parse_arguments():
         description="Simple framework for simulation and implementation of HDL designs"
     )
     parser.add_argument(
+        'filespec',
+        help="Project specification file"
+    )
+    parser.add_argument(
         '--version',
         action='version',
         version=f"SimplHDL version {__version__}"
@@ -17,8 +21,9 @@ def parse_arguments():
 
 
 def main():
-    _ = parse_arguments()
+    args = parse_arguments()
     simpl = Simplhdl()
+    simpl.create_project(args.filespec)
     simpl.run()
 
 
