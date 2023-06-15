@@ -18,7 +18,10 @@ setup(
     entry_points={
         'console_scripts': ['simpl=simplhdl.__main__:main'],
     },
-    install_requires=['pyEDAA.ProjectModel'],
+    install_requires=[
+        'pyEDAA.ProjectModel',
+        'pyyaml'
+    ],
     extras_require={
         'dev': ['tox', 'pytest', 'flake8'],
     },
