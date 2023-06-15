@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from . import __version__
 from .simplhdl import Simplhdl
 
@@ -10,6 +11,7 @@ def parse_arguments():
     )
     parser.add_argument(
         'filespec',
+        type=Path,
         help="Project specification file"
     )
     parser.add_argument(

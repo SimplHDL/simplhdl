@@ -9,6 +9,10 @@ class ParserBase(metaclass=ABCMeta):
         self.filename = filename
 
     @abstractmethod
+    def is_valid_format(self):
+        pass
+
+    @abstractmethod
     def parse(self):
         pass
 
