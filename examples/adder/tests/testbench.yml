@@ -1,9 +1,0 @@
-#% SimplHDL 1.0
----
-top: testbench
-files:
-  - ../adder.yml:
-    filetype: Spec
-  - testbench.sv:
-    filesets: [sim]
-    filetype: SystemVerilog
