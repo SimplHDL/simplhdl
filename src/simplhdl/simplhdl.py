@@ -19,7 +19,7 @@ class Simplhdl:
         project = Project("default")
         project.DefaultDesign.AddFileSet(fileset)
         for file in [f for f in project.DefaultDesign.Files() if issubclass(f.FileType, SystemVerilogSourceFile)]:
-            logger.debug(file.Path.absolute())
+            logger.info(file.Path.absolute())
         self._project = project
 
     def run(self):
