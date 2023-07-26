@@ -1,10 +1,10 @@
 from pathlib import Path
 from pyEDAA.ProjectModel import FileSet, SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile  # type: ignore
-from ..parser import ParserFactory, ParserBase
+from simplhdl.parser import ParserFactory, ParserBase
 
 
 @ParserFactory.register()
-class SimpleListParser(ParserBase):
+class SimpleParser(ParserBase):
 
     _format_id: str = '#% simplelist 1.0'
 
