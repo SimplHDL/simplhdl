@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 from . import __version__
 from .simplhdl import Simplhdl
+from .plugins import load_plugins
 
 
 def parse_arguments():
@@ -24,6 +25,7 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
+    load_plugins()
     simpl = Simplhdl()
     simpl.create_project(args.filespec)
     simpl.run()

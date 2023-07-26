@@ -1,16 +1,11 @@
-import os
+import logging
 
-from importlib import import_module
 from pathlib import Path
 from pyEDAA.ProjectModel import Project, SystemVerilogSourceFile  # type: ignore
 
 from .parser import ParserFactory
-# Import all parser modules to register them in the ParserFactory
-for module in os.listdir(os.path.join(os.path.dirname(__file__), 'parsers')):
-    if module == '__init__.py' or not module.endswith('.py'):
-        continue
-    import_module(f".{module[:-3]}", "simplhdl.parsers")
-del module
+
+logger = logging.getLogger(__name__)
 
 
 class Simplhdl:
@@ -24,7 +19,7 @@ class Simplhdl:
         project = Project("default")
         project.DefaultDesign.AddFileSet(fileset)
         for file in [f for f in project.DefaultDesign.Files() if issubclass(f.FileType, SystemVerilogSourceFile)]:
-            print(file.Path.absolute())
+            logger.debug(file.Path.absolute())
         self._project = project
 
     def run(self):
