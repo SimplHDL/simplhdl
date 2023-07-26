@@ -1,5 +1,5 @@
 from pathlib import Path
-from pyEDAA.ProjectModel import FileSet, SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile
+from pyEDAA.ProjectModel import FileSet, SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile  # type: ignore
 from ..parser import ParserFactory, ParserBase
 
 

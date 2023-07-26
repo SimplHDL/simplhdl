@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Callable
 from abc import ABCMeta, abstractmethod
-from pyEDAA.ProjectModel import FileSet
+from pyEDAA.ProjectModel import FileSet  # type: ignore
 
 
 class ParserBase(metaclass=ABCMeta):
@@ -10,7 +10,7 @@ class ParserBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def is_valid_format(self):
+    def is_valid_format(self, filename: Path) -> bool:
         pass
 
     @abstractmethod
@@ -23,13 +23,13 @@ class ParserFactory:
     Factory for creating parsers
     """
 
-    registry = {}
+    registry: dict = {}
 
     @classmethod
     def register(cls) -> Callable:
 
-        def inner_wrapper(wrapped_class: ParserBase) -> Callable:
-            name = wrapped_class.__name__
+        def inner_wrapper(wrapped_class: ParserBase) -> 'ParserBase':
+            name = wrapped_class.__name__  # type: ignore
             if name in cls.registry:
                 raise Exception(f"Parser {name} already exists.")
             cls.registry[name] = wrapped_class
