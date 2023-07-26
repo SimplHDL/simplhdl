@@ -1,5 +1,5 @@
 from pathlib import Path
-from pyEDAA.ProjectModel import FileSet
+from pyEDAA.ProjectModel import FileSet  # type: ignore
 from ..parser import ParserFactory, ParserBase
 
 
@@ -10,7 +10,7 @@ class ImportListParser(ParserBase):
         super().__init__()
 
     def is_valid_format(self, filename: Path) -> bool:
-        if self.filename.name == "import_list":
+        if filename.name == "import_list":
             return True
         else:
             return False
