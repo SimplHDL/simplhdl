@@ -20,7 +20,8 @@ setup(
     },
     install_requires=[
         'pyEDAA.ProjectModel',
-        'pyyaml'
+        'pyyaml',
+        'types-PyYAML'
     ],
     extras_require={
         'dev': ['tox', 'pytest', 'flake8'],

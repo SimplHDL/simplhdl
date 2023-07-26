@@ -1,6 +1,6 @@
 import yaml
 from pathlib import Path
-from pyEDAA.ProjectModel import FileSet
+from pyEDAA.ProjectModel import FileSet  # type: ignore
 
 from ..parser import ParserFactory, ParserBase
 
@@ -20,8 +20,8 @@ class FuseSocParser(ParserBase):
             else:
                 return False
 
-    def parse(self, filemame: str) -> FileSet:
-        with open(self.filename, 'r') as fp:
+    def parse(self, filename: Path) -> FileSet:
+        with open(filename, 'r') as fp:
             try:
                 spec = yaml.safe_load(fp)
             except yaml.YAMLError as e:

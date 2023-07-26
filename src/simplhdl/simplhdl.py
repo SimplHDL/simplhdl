@@ -2,7 +2,7 @@ import os
 
 from importlib import import_module
 from pathlib import Path
-from pyEDAA.ProjectModel import Project, HDLSourceFile, SystemVerilogSourceFile
+from pyEDAA.ProjectModel import Project, SystemVerilogSourceFile  # type: ignore
 
 from .parser import ParserFactory
 # Import all parser modules to register them in the ParserFactory
