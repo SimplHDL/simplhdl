@@ -2,7 +2,7 @@ import os
 
 from importlib import import_module
 from pathlib import Path
-from pyEDAA.ProjectModel import Project
+from pyEDAA.ProjectModel import Project, HDLSourceFile, SystemVerilogSourceFile
 
 from .parser import ParserFactory
 # Import all parser modules to register them in the ParserFactory
@@ -16,13 +16,16 @@ del module
 class Simplhdl:
 
     def __init__(self):
-        self.project = None
+        self._project = None
 
     def create_project(self, filename: Path) -> None:
-        name = "ProjectName"
-        self.project = Project(name)
         parser = ParserFactory().get_parser(filename)
-        parser.parse()
+        fileset = parser.parse(filename)
+        project = Project("default")
+        project.DefaultDesign.AddFileSet(fileset)
+        for file in [f for f in project.DefaultDesign.Files() if issubclass(f.FileType, SystemVerilogSourceFile)]:
+            print(file.Path.absolute())
+        self._project = project
 
     def run(self):
-        print("Hello SimplHDL")
+        print(self._project)
