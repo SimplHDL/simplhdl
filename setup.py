@@ -27,15 +27,11 @@ setup(
         'dev': ['tox', 'pytest', 'flake8'],
     },
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 3 - Alpha',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3 :: Only',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent',
     ],
-    project_urls={
-        'Source': 'https://github.com/RasmusGOlsen/SimplHDL',
-        'Tracker': 'https://github.com/RasmusGOlsen/SimplHDL/issues',
-    },
 )
