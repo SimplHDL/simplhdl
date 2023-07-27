@@ -36,10 +36,15 @@ def main():
     levels = [logging.WARNING, logging.INFO, logging.DEBUG, logging.NOTSET]
     level = levels[min(args.verbose, len(levels)-1)]
     logging.basicConfig(level=level)
-    load_plugins()
-    simpl = Simplhdl()
-    simpl.create_project(args.filespec)
-    simpl.run()
+    logger = logging.getLogger(__name__)
+    try:
+        load_plugins()
+        simpl = Simplhdl()
+        simpl.create_project(args.filespec)
+        simpl.run()
+    except NotImplementedError as e:
+        logger.error(e)
+        return 1
 
 
 if __name__ == '__main__':
