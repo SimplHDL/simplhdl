@@ -9,7 +9,6 @@ setup(
     name='SimplHDL',
     description='A framework for simulating and implementing HDL designs',
     long_description=long_description,
-    url='https://github.com/RasmusGOlsen/SimplHDL',
     author=__author__,
     author_email=__email__,
     version=__version__,
@@ -21,11 +20,9 @@ setup(
     install_requires=[
         'pyEDAA.ProjectModel',
         'pyyaml',
-        'types-PyYAML'
+        'types-PyYAML',
+        'edalize'
     ],
-    extras_require={
-        'dev': ['tox', 'pytest', 'flake8'],
-    },
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python',
