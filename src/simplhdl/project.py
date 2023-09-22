@@ -7,6 +7,7 @@ from .utils import sh
 
 logger = logging.getLogger(__name__)
 
+cocotb = True
 
 def get_lib_name_path(interface: str, simulator: str) -> str:
     lib_name_path = sh(['cocotb-config', '--lib-name-path', interface, simulator]).strip()
@@ -14,17 +15,23 @@ def get_lib_name_path(interface: str, simulator: str) -> str:
 
 class Project(pm.Project):
 
+    def is_cocotb(self) -> bool:
+        if [True for f in self.DefaultDesign.Files() if f.FileType == pm.CocotbPythonFile]:
+            return True
+        return False
+
     def export_edam(self, tool: str) -> Dict:
         """
         Convert the project object to the Edam format used
         by Edialize.
         """
-        libpython = sh(['cocotb-config', '--libpython']).strip()
-        os.environ['LIBPYTHON_LOC'] = libpython
-        # os.environ['GPI_EXTRA'] = f"{get_lib_name_path('fli', 'questa')}:cocotbfli_entry_point"
-        os.environ['MODULE'] = 'test_adder'
-        os.environ['PYTHONPATH'] = '/home/rgo/devel/cocotb-example/cores/adder.core/verif/cocotb'
-        os.environ['RANDOM_SEED'] = '1'
+        if self.is_cocotb():
+            libpython = sh(['cocotb-config', '--libpython']).strip()
+            os.environ['LIBPYTHON_LOC'] = libpython
+            os.environ['GPI_EXTRA'] = f"{get_lib_name_path('fli', 'questa')}:cocotbfli_entry_point"
+            os.environ['MODULE'] = 'test_adder'
+            os.environ['PYTHONPATH'] = '/home/rgo/devel/cocotb-example/cores/adder.core/verif/cocotb'
+            os.environ['RANDOM_SEED'] = '1'
         files = [file_to_edam(f) for f in self.DefaultDesign.Files()]
         name = self.DefaultDesign.Name
         hooks = dict()
@@ -42,20 +49,17 @@ class Project(pm.Project):
         }
 
     def _get_edam_tool_options(self, tool) -> Dict:
+        options = dict()
         if tool in ['modelsim', 'questa']:
-            return {
-                'modelsim': {'vsim_options': ['-no_autoacc', '-pli', get_lib_name_path('vpi', 'modelsim')]},
-            }
+            if self.is_cocotb():
+                options = {
+                    'modelsim': {'vsim_options': ['-no_autoacc', '-pli', get_lib_name_path('vpi', 'modelsim')]},
+                }
         if tool == "quartus":
-            return {
+            options = {
                 'quartus': {'family': "Agilex", 'device': "AGFB014R24A2E2V"},
             }
-        if tool == "vivado":
-            return dict()
-        if tool == "icarus":
-            return dict()
-        if tool == "xsim":
-            return dict()
+        return options
 
 
 class IPSpecificationFile(pm.File, pm.XMLContent):
