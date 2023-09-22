@@ -2,11 +2,12 @@ from pathlib import Path
 from typing import Callable
 from abc import ABCMeta, abstractmethod
 from pyEDAA.ProjectModel import FileSet  # type: ignore
+from .project import Project
 
 
 class ParserBase(metaclass=ABCMeta):
 
-    def __init__(self, **kwargs):
+    def __init__(self):
         pass
 
     @abstractmethod
@@ -14,7 +15,7 @@ class ParserBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def parse(self, filename: Path) -> 'FileSet':
+    def parse(self, filename: Path, project: Project) -> 'FileSet':
         pass
 
 
@@ -38,9 +39,9 @@ class ParserFactory:
         return inner_wrapper
 
     @classmethod
-    def get_parser(cls, filename: Path, **kwargs) -> 'ParserBase':
+    def get_parser(cls, filename: Path) -> 'ParserBase':
         for parser_class in cls.registry.values():
-            parser = parser_class(**kwargs)
+            parser = parser_class()
             if parser.is_valid_format(filename):
                 return parser
         raise Exception(f"Couldn't find Parser for parsing {filename}")
