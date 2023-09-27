@@ -18,10 +18,12 @@ setup(
         'console_scripts': ['simpl=simplhdl.__main__:main'],
     },
     install_requires=[
-        'pyEDAA.ProjectModel',
+        'pySVModel==0.3.5',
+        'pyEDAA.ProjectModel==0.4.3',
         'pyyaml',
         'types-PyYAML',
-        'edalize'
+        'edalize',
+        'argcomplete',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

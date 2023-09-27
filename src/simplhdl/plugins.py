@@ -2,10 +2,13 @@ import sys
 import logging
 
 import simplhdl.parsers
+import simplhdl.flows
+import simplhdl.generators
 
 from typing import Iterator
 from pkgutil import iter_modules, ModuleInfo
 from importlib import import_module
+from itertools import chain
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +22,12 @@ def load_builtin_plugins() -> None:
     """
     Loads builtin plugins.
     """
+    packages = chain(
+        iter_namespace(simplhdl.parsers),
+        iter_namespace(simplhdl.flows),
+        iter_namespace(simplhdl.generators))
     plugins = {
-        name: import_module(name) for finder, name, ispkg in iter_namespace(simplhdl.parsers)
+        name: import_module(name) for _, name, _ in packages
     }
     logger.debug(plugins)
 

@@ -1,42 +1,23 @@
-import os
 import logging
 import pyEDAA.ProjectModel as pm  # type: ignore
 
 from typing import Dict
-from .utils import sh
 
 logger = logging.getLogger(__name__)
 
-cocotb = True
-
-def get_lib_name_path(interface: str, simulator: str) -> str:
-    lib_name_path = sh(['cocotb-config', '--lib-name-path', interface, simulator]).strip()
-    return lib_name_path
 
 class Project(pm.Project):
 
-    def is_cocotb(self) -> bool:
-        if [True for f in self.DefaultDesign.Files() if f.FileType == pm.CocotbPythonFile]:
-            return True
-        return False
-
-    def export_edam(self, tool: str) -> Dict:
+    def export_edam(self) -> Dict:
         """
         Convert the project object to the Edam format used
         by Edialize.
         """
-        if self.is_cocotb():
-            libpython = sh(['cocotb-config', '--libpython']).strip()
-            os.environ['LIBPYTHON_LOC'] = libpython
-            os.environ['GPI_EXTRA'] = f"{get_lib_name_path('fli', 'questa')}:cocotbfli_entry_point"
-            os.environ['MODULE'] = 'test_adder'
-            os.environ['PYTHONPATH'] = '/home/rgo/devel/cocotb-example/cores/adder.core/verif/cocotb'
-            os.environ['RANDOM_SEED'] = '1'
         files = [file_to_edam(f) for f in self.DefaultDesign.Files()]
         name = self.DefaultDesign.Name
-        hooks = dict()
-        tool_options = self._get_edam_tool_options(tool)
-        parameters = dict()
+        hooks: Dict = dict()
+        tool_options: Dict = dict()
+        parameters: Dict = dict()
         toplevel = self.DefaultDesign.TopLevel
 
         return {
@@ -47,19 +28,6 @@ class Project(pm.Project):
             'parameters': parameters,
             'toplevel': toplevel,
         }
-
-    def _get_edam_tool_options(self, tool) -> Dict:
-        options = dict()
-        if tool in ['modelsim', 'questa']:
-            if self.is_cocotb():
-                options = {
-                    'modelsim': {'vsim_options': ['-no_autoacc', '-pli', get_lib_name_path('vpi', 'modelsim')]},
-                }
-        if tool == "quartus":
-            options = {
-                'quartus': {'family': "Agilex", 'device': "AGFB014R24A2E2V"},
-            }
-        return options
 
 
 class IPSpecificationFile(pm.File, pm.XMLContent):
@@ -85,7 +53,7 @@ def file_to_edam(file_obj: pm.File) -> Dict:
     }
 
 
-def filetype_to_edam(file_obj: pm.File) -> str:
+def filetype_to_edam(file_obj: pm.File) -> str:  # noqa C901
     if file_obj.FileType == pm.SystemVerilogSourceFile:
         return 'systemVerilogSource'
     elif file_obj.FileType == pm.VerilogSourceFile:

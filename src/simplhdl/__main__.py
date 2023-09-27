@@ -1,18 +1,24 @@
+import sys
 import argparse
+import argcomplete
 import logging
 from pathlib import Path
 from . import __version__
 from .simplhdl import Simplhdl
 from .plugins import load_plugins
+from .flow import FlowFactory
+
+logger = logging.getLogger(__name__)
 
 
 def parse_arguments():
+
     parser = argparse.ArgumentParser(
         prog="simpl",
         description="Simple framework for simulation and implementation of HDL designs"
     )
     parser.add_argument(
-        'filespec',
+        '--projectspec',
         type=Path,
         help="Project specification file"
     )
@@ -28,24 +34,36 @@ def parse_arguments():
         help="Increase verbosity"
 
     )
+    subparsers = parser.add_subparsers(
+        title="Flows",
+        description="""Different work flows for simulation and implementation
+                       of HDL designs""",
+        dest='flow'
+    )
+    for name, flow_class in FlowFactory.get_flows().items():
+        flow_class.parse_args(subparsers)
+
+    argcomplete.autocomplete(parser)
     return parser.parse_args()
 
 
 def main():
+    load_plugins()
     args = parse_arguments()
     levels = [logging.WARNING, logging.INFO, logging.DEBUG, logging.NOTSET]
     level = levels[min(args.verbose, len(levels)-1)]
     logging.basicConfig(level=level)
-    logger = logging.getLogger(__name__)
     try:
-        load_plugins()
         simpl = Simplhdl()
-        simpl.create_project(args.filespec)
-        simpl.run()
+        simpl.create_project(args.projectspec)
+        simpl.run(args)
     except NotImplementedError as e:
+        logger.error(e)
+        return 1
+    except Exception as e:
         logger.error(e)
         return 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

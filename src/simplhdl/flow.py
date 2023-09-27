@@ -1,0 +1,51 @@
+from argparse import Namespace
+from pathlib import Path
+from typing import Callable, Dict
+from abc import ABCMeta, abstractmethod
+
+from .project import Project
+
+
+class FlowBase(metaclass=ABCMeta):
+
+    def __init__(self, name):
+        self.name = name
+
+    @classmethod
+    @abstractmethod
+    def parse_args(self, parser) -> None:
+        pass
+
+    @abstractmethod
+    def run(self, args: Namespace, project: Project, builddir: Path) -> None:
+        pass
+
+
+class FlowFactory:
+    """
+    Factory for creating flows
+    """
+
+    registry: dict[str, FlowBase] = {}
+
+    @classmethod
+    def register(cls, name: str) -> Callable:
+
+        def inner_wrapper(wrapped_class: FlowBase) -> 'FlowBase':
+            if name in cls.registry:
+                raise Exception(f"Flow {name} already exists.")
+            cls.registry[name] = wrapped_class
+            return wrapped_class
+
+        return inner_wrapper
+
+    @classmethod
+    def get_flow(cls, name: str) -> 'FlowBase':
+        for flow_class in cls.registry.values():
+            flow = flow_class(name)
+            return flow
+        raise Exception(f"Couldn't find Flow named {name}")
+
+    @classmethod
+    def get_flows(cls) -> Dict[str, 'FlowBase']:
+        return cls.registry
