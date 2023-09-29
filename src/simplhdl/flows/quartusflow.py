@@ -1,3 +1,7 @@
+try:
+    from importlib.resources import files as resources_files
+except ImportError:
+    from importlib_resources import files as resources_files
 import os
 import shutil
 import logging
@@ -5,7 +9,6 @@ import logging
 from argparse import Namespace
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
-from importlib import resources
 import pyEDAA.ProjectModel as pm
 
 
@@ -51,7 +54,7 @@ class QuartusFlow(FlowBase):
         pass
 
     def generate(self):
-        templatedir = resources.files(templates)
+        templatedir = resources_files(templates)
         environment = Environment(
             loader=FileSystemLoader(templatedir),
             trim_blocks=True)

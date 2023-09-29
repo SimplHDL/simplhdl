@@ -26,7 +26,7 @@ class FlowFactory:
     Factory for creating flows
     """
 
-    registry: dict[str, FlowBase] = {}
+    registry: Dict[str, FlowBase] = dict()
 
     @classmethod
     def register(cls, name: str) -> Callable:

@@ -1,3 +1,7 @@
+try:
+    from importlib.resources import files as resources_files
+except ImportError:
+    from importlib_resources import files as resources_files
 import os
 import shutil
 import logging
@@ -6,7 +10,6 @@ import json
 from argparse import Namespace
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
-from importlib import resources
 from typing import Dict, List
 import pyEDAA.ProjectModel as pm
 
@@ -59,7 +62,7 @@ class VivadoFlow(FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
 
     def generate(self):
-        templatedir = resources.files(templates)
+        templatedir = resources_files(templates)
         environment = Environment(
             loader=FileSystemLoader(templatedir),
             trim_blocks=True)

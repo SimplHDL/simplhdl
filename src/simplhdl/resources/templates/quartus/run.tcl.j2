@@ -22,8 +22,6 @@ if {[catch {execute_module -tool syn -args "--quick_elab"} result]} {
    puts "\nINFO: SYN generation was successful.\n"
 }
 
-exit 0
-
 if {[catch {execute_module -tool qtlg } result]} {
    puts "\nResult: $result\n"
    puts "ERROR: Support-Logic generation failed\n"
