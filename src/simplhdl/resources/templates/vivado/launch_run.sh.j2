@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+trap 'kill $pid; exit' INT
+
+script=$1
+log=$(dirname $1)/runme.log
+
+touch $log
+${script} &
+pid=$!
+tail --follow --pid $pid $log
+

@@ -1,0 +1,74 @@
+package require Vivado
+
+proc set_hooks {filename} {
+    foreach run [get_runs -filter {IS_SYNTHESIS==true}] {
+        set_property STEPS.SYNTH_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.SYNTH_DESIGN.TCL.POST $filename $run
+    }
+    foreach run [get_runs -filter {IS_IMPLEMENTATION==true}] {
+        set_property STEPS.INIT_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.INIT_DESIGN.TCL.POST $filename $run
+        set_property STEPS.OPT_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.OPT_DESIGN.TCL.POST $filename $run
+        set_property STEPS.POWER_OPT_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.POWER_OPT_DESIGN.TCL.POST $filename $run
+        set_property STEPS.PLACE_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.PLACE_DESIGN.TCL.POST $filename $run
+        set_property STEPS.POST_PLACE_POWER_OPT_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.POST_PLACE_POWER_OPT_DESIGN.TCL.POST $filename $run
+        set_property STEPS.PHYS_OPT_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.PHYS_OPT_DESIGN.TCL.POST $filename $run
+        set_property STEPS.ROUTE_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.ROUTE_DESIGN.TCL.POST $filename $run
+        set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.PRE $filename $run
+        set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST $filename $run
+        set_property STEPS.WRITE_BITSTREAM.TCL.PRE $filename $run
+        set_property STEPS.WRITE_BITSTREAM.TCL.POST $filename $run
+    }
+}
+
+proc add_reports {} {
+    foreach run [get_runs -filter {IS_IMPLEMENTATION==true}] {
+        set reportName "${run}__route_report_cdc"
+        create_report_config -report_name $reportName -step route_design -report_type report_cdc -run $run
+        set_property DISPLAY_NAME {CDC - Route Design} [get_report_configs -of_objects $run $reportName]
+        set reportName "${run}__post_route_phys_opt_report_cdc"
+        create_report_config -report_name $reportName -step post_route_phys_opt_design -report_type report_cdc -run $run
+        set_property DISPLAY_NAME {CDC - Route Design} [get_report_configs -of_objects $run $reportName]
+    }
+}
+
+
+create_project -force -part {{project.Part}} {{project.DefaultDesign.Name}} [pwd]
+add_reports
+
+{% for file in project.DefaultDesign.Files() %}
+{% if file.FileType == pm.SystemVerilogSourceFile %}
+read_verilog -sv "{{file.Path}}"
+{% endif %}
+{% if file.FileType == pm.VerilogSourceFile %}
+read_verilog "{{file.Path}}"
+{% endif %}
+{% if file.FileType == pm.VHDLSourceFile %}
+read_vhdl -vhdl2008 "{{file.Path}}"
+{% endif %}
+{% if file.FileType == pm.ConstraintFile %}
+read_xdc "{{file.Path}}"
+{% endif %}
+{% if file.FileType == pm.IPSpecificationFile %}
+read_ip "{{file.Path}}"
+{% endif %}
+{% if file.Path.suffix == '.dcp' %}
+read_ip "{{file.Path}}"
+{% endif %}
+{% if file.Path.suffix in ['.edif', '.ngc'] %}
+read_edif "{{file.Path}}"
+{% endif %}
+{% if file.Path.suffix == '.bd' %}
+reaad_bd "{{file.Path}}"
+{% endif %}
+{% if str(file.Path).endswith == '.bd.tcl' %}
+send_msg_id {SDK PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path}}: this might take some time."
+source "{{file.Path}}"
+{% endif %}
+{% endfor %}
