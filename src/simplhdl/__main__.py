@@ -60,7 +60,7 @@ def main():
     except NotImplementedError as e:
         logger.error(e)
         return 1
-    except Exception as e:
+    except FileNotFoundError as e:
         logger.error(e)
         return 1
 

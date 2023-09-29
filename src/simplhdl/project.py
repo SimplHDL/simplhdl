@@ -8,6 +8,16 @@ logger = logging.getLogger(__name__)
 
 class Project(pm.Project):
 
+    _part: str = ''
+
+    @property
+    def Part(self) -> str:
+        return self._part
+
+    @Part.setter
+    def Part(self, value: str) -> None:
+        self._part = value
+
     def export_edam(self) -> Dict:
         """
         Convert the project object to the Edam format used
@@ -64,6 +74,10 @@ def filetype_to_edam(file_obj: pm.File) -> str:  # noqa C901
         return 'xdc'
     elif file_obj.FileType == pm.ConstraintFile and file_obj.Path.suffix == '.sdc':
         return 'SDC'
+    elif file_obj.FileType == pm.SettingFile and file_obj.Path.suffix == '.qsf':
+        # TODO: edalize don't have a QSF file type
+        logger.warning('qsf files are not support')
+        return 'user'
     elif file_obj.FileType == pm.TCLSourceFile:
         return 'tclSource'
     elif file_obj.FileType == IPSpecificationFile and file_obj.Path.suffix == '.ip':

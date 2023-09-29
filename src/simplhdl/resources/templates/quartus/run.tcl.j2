@@ -1,0 +1,103 @@
+package require ::quartus::misc
+package require ::quartus::project
+package require ::quartus::flow
+
+project_open {{project.DefaultDesign.Name}}
+
+if {[catch {execute_module -tool ipg -args "--generate_project_ip_files --clear_ip_generation_dirs --parallel=off"} result]} {
+   puts "$result"
+   post_message -type error "IP generation failed. See the report file."
+   exit 1
+} else {
+   post_message -type info "IP generation was successful."
+}
+
+
+# The syn and quartus support-logic tile generation steps are needed with f-tile designs.
+if {[catch {execute_module -tool syn -args "--quick_elab"} result]} {
+   puts "$result"
+   post_message -type error "SYN generation failed. See the report file."
+   exit 1
+} else {
+   puts "\nINFO: SYN generation was successful.\n"
+}
+
+exit 0
+
+if {[catch {execute_module -tool qtlg } result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Support-Logic generation failed\n"
+   exit 1
+} else {
+   puts "\nINFO: Support-Logic generation was successful.\n"
+}
+
+
+if {[catch {execute_module -tool map} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Analysis & Synthesis failed. See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Analysis & Synthesis was successful.\n"
+}
+
+# execute_module -tool fit -args "--plan"
+if {[catch {execute_module -tool fit -args "--plan"} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Plan stage failed. See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Plan stage was successful.\n"
+}
+
+# execute_module -tool fit -args "--place"
+if {[catch {execute_module -tool fit -args "--place"} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Place stage failed. See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Place stage was successful.\n"
+}
+#project_archive -include_outputs post_place.qar -overwrite
+
+if {[catch {execute_module -tool fit -args "--route"} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Route stage failed. See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Route stage was successful.\n"
+}
+#project_archive -include_outputs post_route.qar -overwrite
+
+if {[catch {execute_module -tool fit -args "--retime"} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Retime stage failed. See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Retime stage was successful.\n"
+}
+
+if {[catch {execute_module -tool fit -args "--final"} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Final stage failed. See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Final stage was successful.\n"
+}
+#project_archive -include_outputs final.qar -overwrite
+
+if {[catch {execute_module -tool sta} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Static timing analysis failed See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Static timing analysis was successful.\n"
+}
+
+if {[catch {execute_module -tool asm} result]} {
+   puts "\nResult: $result\n"
+   puts "ERROR: Writing bitstream failed See the report file.\n"
+   exit 1
+} else {
+   puts "\nINFO: Writing bitstream was successful.\n"
+}

@@ -14,7 +14,7 @@ from ..flow import FlowFactory, FlowBase
 logger = logging.getLogger(__name__)
 
 
-@FlowFactory.register('questasim')
+@FlowFactory.register('questa')
 class QuestaFlow(FlowBase):
 
     @classmethod

@@ -41,9 +41,8 @@ class FlowFactory:
 
     @classmethod
     def get_flow(cls, name: str) -> 'FlowBase':
-        for flow_class in cls.registry.values():
-            flow = flow_class(name)
-            return flow
+        if name in cls.registry:
+            return cls.registry[name](name)
         raise Exception(f"Couldn't find Flow named {name}")
 
     @classmethod

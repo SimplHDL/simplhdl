@@ -14,6 +14,10 @@ setup(
     version=__version__,
     package_dir={'': 'src'},
     packages=find_packages('src'),
+    package_data={
+        'simpl.resources.templates.quartus': ['*'],
+    },
+    include_package_data=True,
     entry_points={
         'console_scripts': ['simpl=simplhdl.__main__:main'],
     },
@@ -24,6 +28,7 @@ setup(
         'types-PyYAML',
         'edalize',
         'argcomplete',
+        'jinja2',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
