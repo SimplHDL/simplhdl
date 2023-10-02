@@ -15,8 +15,8 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages('src'),
     package_data={
-        'simpl.resources.templates.quartus': ['*'],
-        'simpl.resources.templates.vivado': ['*'],
+        'simplhdl.resources.templates.quartus': ['*'],
+        'simplhdl.resources.templates.vivado': ['*'],
     },
     include_package_data=True,
     entry_points={

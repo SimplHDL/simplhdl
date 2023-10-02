@@ -30,8 +30,8 @@ class QuartusFlow(FlowBase):
             '-s',
             '--step',
             action='store',
-            choices=['synthsis', 'place', 'route', 'bitstream'],
-            default='bitstream',
+            choices=['synthesis', 'implement', 'finalize', 'compile'],
+            default='compile',
             help="flow step to run"
         )
         parser.add_argument(
@@ -44,14 +44,13 @@ class QuartusFlow(FlowBase):
         self.project = project
         self.builddir = builddir
         self.args = args
-        shutil.rmtree(builddir, ignore_errors=True)
-        os.makedirs(builddir, exist_ok=True)
         self.configure()
         self.generate()
         self.execute(args.step)
 
     def configure(self):
-        pass
+        os.makedirs(self.builddir, exist_ok=True)
+        self.is_tool_setup()
 
     def generate(self):
         templatedir = resources_files(templates)
@@ -77,8 +76,7 @@ class QuartusFlow(FlowBase):
             sh(['quartus', name], cwd=self.builddir)
             return
 
-        command = f"quartus_sh -t run.tcl -project {name}".split()
-        self.is_tool_setup()
+        command = f"quartus_sh -t run.tcl {step} -project {name}".split()
         sh(command, cwd=self.builddir, output=True)
 
     def is_tool_setup(self) -> None:

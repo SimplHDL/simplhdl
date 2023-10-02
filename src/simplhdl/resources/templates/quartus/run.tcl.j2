@@ -2,7 +2,49 @@ package require ::quartus::misc
 package require ::quartus::project
 package require ::quartus::flow
 
+set step [lindex $argv 0]
 project_open {{project.DefaultDesign.Name}}
+
+switch $step {
+   compile {
+      if {[catch {execute_flow -compile} result]} {
+      	puts "\nResult: $result\n"
+      	puts "ERROR: Compilation failed. See report files.\n"
+      } else {
+      	puts "\nINFO: Compilation was successful.\n"
+      }
+   }
+   synthesis {
+      if {[catch {execute_flow -analysis_and_elaboration} result]} {
+      	puts "\nResult: $result\n"
+      	puts "ERROR: Analysis and Elaboraion failed. See report files.\n"
+      } else {
+      	puts "\nINFO: Analysis and Elaboraion was successful.\n"
+      }
+   }
+   implement {
+      if {[catch {execute_flow -implement} result]} {
+      	puts "\nResult: $result\n"
+      	puts "ERROR: Implement failed. See report files.\n"
+      } else {
+      	puts "\nINFO: Implement was successful.\n"
+      }
+   }
+   finalize {
+      if {[catch {execute_flow -finalize} result]} {
+      	puts "\nResult: $result\n"
+      	puts "ERROR: Finalize failed. See report files.\n"
+      } else {
+      	puts "\nINFO: Finalize was successful.\n"
+      }
+   }
+
+}
+
+exit 0
+
+
+
 
 if {[catch {execute_module -tool ipg -args "--generate_project_ip_files --clear_ip_generation_dirs --parallel=off"} result]} {
    puts "$result"
@@ -11,7 +53,6 @@ if {[catch {execute_module -tool ipg -args "--generate_project_ip_files --clear_
 } else {
    post_message -type info "IP generation was successful."
 }
-
 
 # The syn and quartus support-logic tile generation steps are needed with f-tile designs.
 if {[catch {execute_module -tool syn -args "--quick_elab"} result]} {
