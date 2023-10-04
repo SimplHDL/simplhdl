@@ -1,0 +1,69 @@
+VLOGAN := vlogan
+VHDLAN := vhdlan
+VCSLIB := mkdir -p
+VCSMAP := echo
+VCS := vcs
+SIMV := ./simv
+DVE := dve
+VERDI := verdi
+
+UVM_VERSION := -ntb_opts uvm-ieee
+
+
+VLOGAN_FLAGS := -full64 $(UVM_VERSION)
+VHDLAN_FLAGS := -full64
+VCS_FLAGS := -full64 $(UVM_VERSION)
+SIMV_FLAGS :=
+DVE_FLAGS := -full64
+VERDI_FLAGS := -full64
+
+include project.mk
+
+.PHONY: clean compile elaborate simulate gui
+
+
+simulate: elaborate
+	$(SIMV) $(SIMV_FLAGS)
+
+
+gui: compile
+	$(DVE) $(DVE_FLAGS) $(TOPLEVELS)
+
+
+elaborate $(SIMV): compile
+	$(VCS) $(VCS_FLAGS) -o $(SIMV) $(TOPLEVELS)
+
+
+compile: $(LIBRARIES) | compile-uvm $(FILESETS)
+
+
+compile-uvm:
+	$(VLOGAN) -full64 $(UVM_VERSION)
+	@touch $@
+
+
+$(LIBRARIES):
+	$(VCSLIB) $@
+	$(VCSMAP) $@ $@
+
+
+include *.files
+
+
+%.vhdl.fileset.com: %.vhdl.fileset %.vhdl.files
+	$(VHDLAN) $(VHDLAN_FLAGS) -f $<
+	@touch $@
+
+
+%.verilog.fileset.com: %.verilog.fileset %.verilog.files
+	$(VLOGAN) $(VLOGAN_FLAGS) -f $<
+	@touch $@
+
+
+%.systemverilog.fileset.com: %.systemverilog.fileset %.systemverilog.files
+	$(VLOGAN) $(VLOGAN_FLAGS) -f $<
+	@touch $@
+
+
+clean:
+	rm -rf $(LIBRARIES) transcript *.wlf *.vcd *.com modelsim.ini
