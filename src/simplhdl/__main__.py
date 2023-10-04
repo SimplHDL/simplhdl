@@ -2,6 +2,8 @@ import sys
 import argparse
 import argcomplete
 import logging
+import traceback
+
 from pathlib import Path
 from . import __version__
 from .simplhdl import Simplhdl
@@ -57,10 +59,8 @@ def main():
         simpl = Simplhdl()
         simpl.create_project(args.projectspec)
         simpl.run(args)
-    except NotImplementedError as e:
-        logger.error(e)
-        return 1
-    except FileNotFoundError as e:
+    except (NotImplementedError, FileNotFoundError) as e:
+        logger.debug(traceback.format_exc())
         logger.error(e)
         return 1
 

@@ -21,9 +21,7 @@ class FileSet(pm.FileSet):
         elif self._parent is not None:
             return self._parent.VHDLLibrary
         elif self._design is not None:
-            # WORKAROUND: This needs to be solved, for now just return the
-            #             first item.
-            for key, value in self._design.VHDLLibraries.items():
-                return value
+            # WORKAROUND: This needs to be solved, for now just return the first item.
+            return next(iter(self._design.VHDLLibraries.values()))
         else:
             raise Exception("VHDLLibrary was neither set locally nor globally.")

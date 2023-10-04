@@ -17,6 +17,7 @@ setup(
     package_data={
         'simplhdl.resources.templates.quartus': ['*'],
         'simplhdl.resources.templates.vivado': ['*'],
+        'simplhdl.resources.templates.questa': ['*'],
     },
     include_package_data=True,
     entry_points={

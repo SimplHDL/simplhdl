@@ -2,6 +2,8 @@ import logging
 import pyEDAA.ProjectModel as pm  # type: ignore
 
 from typing import Dict
+from .design import Design
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,10 @@ class Project(pm.Project):
     @Part.setter
     def Part(self, value: str) -> None:
         self._part = value
+
+    @pm.Project.DefaultDesign.setter
+    def DefaultDesign(self, design: Design):
+        self._defaultDesign = design
 
     def export_edam(self) -> Dict:
         """

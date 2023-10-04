@@ -1,6 +1,7 @@
 import sys
 import logging
 
+import simplhdl
 import simplhdl.parsers
 import simplhdl.flows
 import simplhdl.generators
@@ -22,6 +23,7 @@ def load_builtin_plugins() -> None:
     """
     Loads builtin plugins.
     """
+    import_module('simplhdl.info')
     packages = chain(
         iter_namespace(simplhdl.parsers),
         iter_namespace(simplhdl.flows),

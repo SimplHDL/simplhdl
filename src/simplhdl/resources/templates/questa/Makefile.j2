@@ -1,0 +1,53 @@
+VLIB := vlib
+VMAP := vmap
+VCOM := vcom
+VLOG := vlog
+VSIM := vsim
+
+VLIB_FLAGS := -quiet
+VMAP_FLAGS := -quiet
+VCOM_FLAGS := -quiet
+VLOG_FLAGS := -quiet
+VSIM_FLAGS := -quiet
+
+include project.mk
+
+.PHONY: clean compile simulate gui
+
+
+simulate: compile
+	$(VSIM) $(VSIM_FLAGS) $(TOPLEVELS) -c -do "run -all"
+
+
+gui: compile
+	$(VSIM) $(VSIM_FLAGS) $(TOPLEVELS)
+
+
+compile: $(FILESETS) | $(LIBRARIES)
+
+
+$(LIBRARIES):
+	$(VLIB) $@
+	$(VMAP) $@ $@
+
+
+include *.files
+
+
+%.vhdl.fileset.com: %.vhdl.fileset %.vhdl.files
+	$(VCOM) $(VCOM_FLAGS) -f $<
+	@touch $@
+
+
+%.verilog.fileset.com: %.verilog.fileset %.verilog.files
+	$(VLOG) $(VLOG_FLAGS) -f $<
+	@touch $@
+
+
+%.systemverilog.fileset.com: %.systemverilog.fileset %.systemverilog.files
+	$(VLOG) $(VLOG_FLAGS) -f $<
+	@touch $@
+
+
+clean:
+	rm -rf $(LIBRARIES) transcript *.wlf *.vcd *.com modelsim.ini

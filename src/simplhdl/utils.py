@@ -1,9 +1,12 @@
 import sys
 import subprocess
+import logging
 
 from typing import List, Optional
 from pathlib import Path
 from jinja2 import Template
+
+logger = logging.getLogger(__name__)
 
 
 def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False):
@@ -25,13 +28,20 @@ def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False
     return stdout
 
 
-def generate_from_template(template: Template, outputdir: Path, *args, **kwargs) -> None:
+def generate_from_template(template: Template, output: Path, *args, **kwargs) -> None:
     templatefile = Path(template.filename)
-    filename = outputdir.joinpath(templatefile.name)
-    if filename.suffix == '.j2':
-        output = filename.with_suffix('')
-    else:
-        output = filename
+    if output.is_dir():
+        filename = output.joinpath(templatefile.name)
+        if filename.suffix == '.j2':
+            output = filename.with_suffix('')
+        else:
+            output = filename
     text = template.render(*args, **kwargs)
+    if output.exists():
+        with output.open() as f:
+            old_text = f.read()
+        if old_text == text:
+            logger.debug(f"{output.absolute()}: is already up to date")
+            return
     with output.open('w') as f:
         f.write(text)
