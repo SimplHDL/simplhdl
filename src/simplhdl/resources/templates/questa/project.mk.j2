@@ -1,3 +1,4 @@
 TOPLEVELS := {{toplevels}}
 LIBRARIES := {{libraries}}
-FILESETS := $(addsuffix .com,$(wildcard *.fileset))
+VHDL_FILESETS := $(addsuffix .com,$(wildcard *.vhdl.fileset))
+VERILOG_FILESETS := $(addsuffix .com,$(wildcard *verilog.fileset))

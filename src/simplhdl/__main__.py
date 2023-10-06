@@ -42,7 +42,7 @@ def parse_arguments():
                        of HDL designs""",
         dest='flow'
     )
-    for name, flow_class in FlowFactory.get_flows().items():
+    for flow_class in FlowFactory.get_flows().values():
         flow_class.parse_args(subparsers)
 
     argcomplete.autocomplete(parser)
@@ -50,12 +50,12 @@ def parse_arguments():
 
 
 def main():
-    load_plugins()
-    args = parse_arguments()
-    levels = [logging.WARNING, logging.INFO, logging.DEBUG, logging.NOTSET]
-    level = levels[min(args.verbose, len(levels)-1)]
-    logging.basicConfig(level=level)
     try:
+        load_plugins()
+        args = parse_arguments()
+        levels = [logging.WARNING, logging.INFO, logging.DEBUG, logging.NOTSET]
+        level = levels[min(args.verbose, len(levels)-1)]
+        logging.basicConfig(level=level)
         simpl = Simplhdl()
         simpl.create_project(args.projectspec)
         simpl.run(args)

@@ -30,7 +30,7 @@ class Simplhdl:
         project.DefaultDesign.DefaultFileSet = fileset.Name
 
         # TODO: Need some more understading of the project and design classes
-        project.DefaultDesign.TopLevel = fileset.TopLevel
+        # project.DefaultDesign.TopLevel = fileset.TopLevel
         self._project = project
 
     def run(self, args):

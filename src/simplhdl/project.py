@@ -1,7 +1,8 @@
 import logging
 import pyEDAA.ProjectModel as pm  # type: ignore
 
-from typing import Dict
+from typing import Dict, List
+from pathlib import Path
 from .design import Design
 
 
@@ -10,7 +11,65 @@ logger = logging.getLogger(__name__)
 
 class Project(pm.Project):
 
-    _part: str = ''
+    _part: str
+    _vhdlGenerics: Dict[str, str]
+    _verilogParameters: Dict[str, str]
+    _verilogDefines: Dict[str, str]
+    _verilogPlusArgs: Dict[str, str]
+    _hooks: Dict[str, List[str]]
+
+    def __init__(
+        self,
+        name: str,
+        rootDirectory: Path = Path("."),
+        vhdlVersion: pm.VHDLVersion = None,
+        verilogVersion: pm.VerilogVersion = None,
+        svVersion: pm.SystemVerilogVersion = None
+    ):
+        super().__init__(name, rootDirectory, vhdlVersion, verilogVersion, svVersion)
+        self._vhdlGenerics = dict()
+        self._verilogParameters = dict()
+        self._verilogDefines = dict()
+        self._verilogPlusArgs = dict()
+        self._hooks = dict()
+
+    @property
+    def Hooks(self) -> Dict[str, List[str]]:
+        return self._hooks
+
+    def AddHook(self, name, command) -> None:
+        try:
+            self._hooks[name].append(command)
+        except KeyError:
+            self._hooks[name] = [command]
+
+    @property
+    def PlusArgs(self) -> dict[str, str]:
+        return self._verilogPlusArgs
+
+    def AddPlusArg(self, name: str, value: str) -> None:
+        self._verilogPlusArgs[name] = value
+
+    @property
+    def Parameters(self) -> Dict[str, str]:
+        return self._verilogParameters
+
+    def AddParameter(self, name: str, value: str) -> None:
+        self._verilogParameters[name] = value
+
+    @property
+    def Generics(self) -> Dict[str, str]:
+        return self._vhdlGenerics
+
+    def AddGeneric(self, name: str, value: str) -> None:
+        self._vhdlGenerics[name] = value
+
+    @property
+    def Defines(self) -> Dict[str, str]:
+        return self._verilogDefines
+
+    def AddDefine(self, name: str, value: str) -> None:
+        self._verilogDefines[name] = value
 
     @property
     def Part(self) -> str:

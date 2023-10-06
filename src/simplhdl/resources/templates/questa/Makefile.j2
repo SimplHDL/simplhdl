@@ -4,26 +4,31 @@ VCOM := vcom
 VLOG := vlog
 VSIM := vsim
 
-VLIB_FLAGS := -quiet
-VMAP_FLAGS := -quiet
-VCOM_FLAGS := -quiet
-VLOG_FLAGS := -quiet
-VSIM_FLAGS := -quiet
+VLIB_FLAGS :=
+VMAP_FLAGS :=
+VCOM_FLAGS :=
+VLOG_FLAGS :=
+VSIM_FLAGS := {{vsim_flags}}
 
 include project.mk
 
 .PHONY: clean compile simulate gui
 
+ifeq ($(DO_CMD),)
+DO_CMD := -do "run -all; quit"
+else
+GUI_DO_CMD := $(DO_CMD)
+endif
 
 simulate: compile
-	$(VSIM) $(VSIM_FLAGS) $(TOPLEVELS) -c -do "run -all"
+	$(VSIM) $(VSIM_FLAGS) $(TOPLEVELS) -c $(DO_CMD)
 
 
 gui: compile
-	$(VSIM) $(VSIM_FLAGS) $(TOPLEVELS)
+	$(VSIM) $(VSIM_FLAGS) $(TOPLEVELS) $(GUI_DO_CMD)
 
 
-compile: $(FILESETS) | $(LIBRARIES)
+compile: $(VERILOG_FILESETS) $(VHDL_FILESETS) | $(LIBRARIES)
 
 
 $(LIBRARIES):

@@ -1,5 +1,7 @@
 import pyEDAA.ProjectModel as pm  # type: ignore
 
+from typing import Generator
+
 
 class FileSet(pm.FileSet):
 
@@ -25,3 +27,7 @@ class FileSet(pm.FileSet):
             return next(iter(self._design.VHDLLibraries.values()))
         else:
             raise Exception("VHDLLibrary was neither set locally nor globally.")
+
+    def GetFiles(self) -> Generator[pm.File, None, None]:
+        for file in self._files:
+            yield file

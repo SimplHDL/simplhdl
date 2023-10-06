@@ -71,7 +71,8 @@ class QuestaFlow(FlowBase):
         )
         parser.add_argument(
             '--seed',
-            default='1',
+            type=int,
+            default=1,
             action='store',
             help="Seed to initialize random generator"
         )
@@ -79,6 +80,12 @@ class QuestaFlow(FlowBase):
             '--random-seed',
             action='store_true',
             help="Generate a random seed to initialize random generator"
+        )
+        parser.add_argument(
+            '--do',
+            metavar='COMMAND',
+            action='store',
+            help="Do command to start simulation"
         )
 
     def run(self, args: Namespace, project: Project, builddir: Path) -> None:
@@ -100,7 +107,7 @@ class QuestaFlow(FlowBase):
             trim_blocks=True)
 
         template = environment.get_template('Makefile.j2')
-        generate_from_template(template, self.builddir)
+        generate_from_template(template, self.builddir, vsim_flags=self.vsim_flags)
 
         template = environment.get_template('project.mk.j2')
         generate_from_template(
@@ -111,7 +118,6 @@ class QuestaFlow(FlowBase):
 
         for fileset in self.project.DefaultDesign.FileSets.values():
             name = md5(fileset.Name.encode()).hexdigest()
-            files = [f.Path for f in fileset.Files() if f.FileType == pm.VerilogSourceFile]
             try:
                 library = fileset.VHDLLibrary.Name
             except AttributeError:
@@ -119,38 +125,76 @@ class QuestaFlow(FlowBase):
                 #       which is bugged. Because it is empty we don't need it
                 #       anyway and can just ignore it.
                 library = ''
+
+            files = [f for f in fileset.Files() if f.FileType == pm.VerilogSourceFile]
             if files:
+                template = environment.get_template('files.j2')
+                output = self.builddir.joinpath(f"{name}.verilog.files")
+                generate_from_template(
+                    template,
+                    output,
+                    target=f"{name}.verilog.fileset",
+                    files=[f.Path.absolute() for f in files])
                 template = environment.get_template('fileset.j2')
                 output = self.builddir.joinpath(f"{name}.verilog.fileset")
                 flags = f"-work {library} {self.args.vlog_flags}"
-                generate_from_template(template, output, flags=flags, files=files)
-                template = environment.get_template('files.j2')
-                output = self.builddir.joinpath(f"{name}.verilog.files")
-                generate_from_template(template, output, target=f"{name}.verilog.fileset", files=files)
-            files = [f.Path for f in fileset.Files() if f.FileType == pm.SystemVerilogSourceFile]
+                includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
+                files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
+                generate_from_template(template, output, flags=flags, includes=includes, files=files)
+
+            files = [f for f in fileset.Files() if f.FileType == pm.SystemVerilogSourceFile]
             if files:
+                template = environment.get_template('files.j2')
+                output = self.builddir.joinpath(f"{name}.systemverilog.files")
+                generate_from_template(
+                    template,
+                    output,
+                    target=f"{name}.systemverilog.fileset",
+                    files=[f.Path.absolute() for f in files])
                 template = environment.get_template('fileset.j2')
                 output = self.builddir.joinpath(f"{name}.systemverilog.fileset")
                 flags = f"-sv -work {library} {self.args.vlog_flags}"
-                generate_from_template(template, output, flags=flags, files=files)
-                template = environment.get_template('files.j2')
-                output = self.builddir.joinpath(f"{name}.systemverilog.files")
-                generate_from_template(template, output, target=f"{name}.systemverilog.fileset", files=files)
-            files = [f.Path for f in fileset.Files() if f.FileType == pm.VHDLSourceFile]
+                includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
+                files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
+                generate_from_template(template, output, flags=flags, includes=includes, files=files)
+
+            files = [f for f in fileset.Files() if f.FileType == pm.VHDLSourceFile]
             if files:
+                template = environment.get_template('files.j2')
+                output = self.builddir.joinpath(f"{name}.vhdl.files")
+                generate_from_template(
+                    template,
+                    output,
+                    target=f"{name}.vhdl.fileset",
+                    files=[f.Path.absolute() for f in files])
                 template = environment.get_template('fileset.j2')
                 output = self.builddir.joinpath(f"{name}.vhdl.fileset")
                 flags = f"-2008 -work {library} {self.args.vcom_flags}"
-                generate_from_template(template, output, flags=flags, files=files)
-                template = environment.get_template('files.j2')
-                output = self.builddir.joinpath(f"{name}.vhdl.files")
-                generate_from_template(template, output, target=f"{name}.vhdl.fileset", files=files)
+                includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
+                files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
+                generate_from_template(template, output, flags=flags, includes=includes, files=files)
 
     def execute(self, step: str) -> None:
+        self.run_hooks('pre')
         if self.args.gui:
-            sh(['make', 'gui'], cwd=self.builddir)
-            return
-        sh(['make', step], cwd=self.builddir, output=True)
+            command = ['make', 'gui']
+        else:
+            command = ['make', step]
+        if self.args.do:
+            if Path(self.args.do).exists():
+                os.environ['DO_CMD'] = f"-do {Path(self.args.do).absolute()}"
+            else:
+                os.environ['DO_CMD'] = f"-do '{self.args.do}'"
+        sh(command, cwd=self.builddir, output=True)
+        self.run_hooks('post')
+
+    def run_hooks(self, name):
+        try:
+            for command in self.project.Hooks[name]:
+                logger.info(f"Running {name} hook: {command}")
+                sh(command.split(), cwd=self.builddir, output=True)
+        except KeyError:
+            pass
 
     def cocotb(self):
         if self.is_cocotb():
@@ -173,6 +217,20 @@ class QuestaFlow(FlowBase):
                 shutil.which('vlib') is None or
                 shutil.which('vmap') is None):
             raise Exception("Questa is not setup correctly")
+
+    @property
+    def vsim_flags(self) -> str:
+        flags = set()
+        flags.add('-quiet')
+        for name, value in self.project.Generics.items():
+            flags.add(f"-g{name}={value}")
+        for name, value in self.project.Parameters.items():
+            flags.add(f"-g{name}={value}")
+        for name, value in self.project.Defines.items():
+            flags.add(f"+define+{name}={value}")
+        for name, value in self.project.PlusArgs.items():
+            flags.add(f"+{name}={value}")
+        return ' '.join(list(flags) + [self.args.vsim_flags])
 
 
 def get_lib_name_path(interface: str, simulator: str) -> str:
