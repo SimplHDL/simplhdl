@@ -8,11 +8,14 @@ import shutil
 
 from argparse import Namespace
 from pathlib import Path
+from typing import Callable, List, Dict, Tuple
 from jinja2 import Environment, FileSystemLoader
 from hashlib import md5
 import pyEDAA.ProjectModel as pm  # type: ignore
+from pyEDAA.ProjectModel import File, CocotbPythonFile
 
 from ..project import Project
+from ..fileset import FileSet
 from ..utils import sh, generate_from_template
 from ..flow import FlowFactory, FlowBase
 from ..resources.templates import questa as templates
@@ -87,11 +90,17 @@ class QuestaFlow(FlowBase):
             action='store',
             help="Do command to start simulation"
         )
+        parser.add_argument(
+            '--timescale',
+            action='store',
+            help="Set the simulator timescale for Verilog"
+        )
 
     def run(self, args: Namespace, project: Project, builddir: Path) -> None:
         self.project = project
         self.builddir = builddir
         self.args = args
+        self.hdl_language = None
         self.configure()
         self.generate()
         self.execute(args.step)
@@ -99,6 +108,19 @@ class QuestaFlow(FlowBase):
     def configure(self):
         os.makedirs(self.builddir, exist_ok=True)
         self.is_tool_setup()
+        os.environ['RANDOM_SEED'] = str(self.args.seed)
+        if self.cocotb_files():
+            cocotb_module = set()
+            for toplevel in self.project.DefaultDesign.TopLevel.split():
+                if self.is_cocotb_module(toplevel):
+                    # TODO: What if more than one module match?
+                    cocotb_module.add(toplevel)
+            if not cocotb_module:
+                raise Exception(f"No CocoTB module found in {self.project.DefaultDesign.TopLevel}")
+            elif len(cocotb_module) == 1:
+                os.environ['MODULE'] = next(iter(cocotb_module))
+            else:
+                raise NotImplementedError(f"More than one CocoTB module found: {cocotb_module}")
 
     def generate(self):
         templatedir = resources_files(templates)
@@ -107,121 +129,75 @@ class QuestaFlow(FlowBase):
             trim_blocks=True)
 
         template = environment.get_template('Makefile.j2')
-        generate_from_template(template, self.builddir, vsim_flags=self.vsim_flags)
+        generate_from_template(template, self.builddir, vsim_flags=self.vsim_flags())
 
         template = environment.get_template('project.mk.j2')
+        toplevels = ' '.join([t for t in self.project.DefaultDesign.TopLevel.split() if not self.is_cocotb_module(t)])
         generate_from_template(
             template,
             self.builddir,
-            toplevels=self.project.DefaultDesign.TopLevel,
+            toplevels=toplevels,
             libraries=' '.join([lib.Name for lib in self.project.DefaultDesign.VHDLLibraries.values()]))
 
+        if self.cocotb_files():
+            directories = {str(f.Path.parent.absolute()) for f in self.cocotb_files()}
+            template = environment.get_template('cocotb.mk.j2')
+            generate_from_template(template, self.builddir, directories=':'.join(directories))
+
         for fileset in self.project.DefaultDesign.FileSets.values():
-            name = md5(fileset.Name.encode()).hexdigest()
-            try:
-                library = fileset.VHDLLibrary.Name
-            except AttributeError:
-                # TODO: This is a workaround The default fileset is pm.FileSet
-                #       which is bugged. Because it is empty we don't need it
-                #       anyway and can just ignore it.
-                library = ''
+            for language in ['verilog', 'systemverilog', 'vhdl']:
+                self.generate_fileset_makefiles(environment, language, fileset)
 
-            files = [f for f in fileset.Files() if f.FileType == pm.VerilogSourceFile]
-            if files:
-                template = environment.get_template('files.j2')
-                output = self.builddir.joinpath(f"{name}.verilog.files")
-                generate_from_template(
-                    template,
-                    output,
-                    target=f"{name}.verilog.fileset",
-                    files=[f.Path.absolute() for f in files])
-                template = environment.get_template('fileset.j2')
-                output = self.builddir.joinpath(f"{name}.verilog.fileset")
-                flags = f"-work {library} {self.args.vlog_flags}"
-                includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
-                files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
-                generate_from_template(template, output, flags=flags, includes=includes, files=files)
+    def generate_fileset_makefiles(self, environment: Environment, language: str, fileset: FileSet):
+        table: Dict[str, Tuple[List[File], Callable]] = {
+            'verilog': ([pm.VerilogSourceFile], self.vlog_flags),
+            'systemverilog': ([pm.SystemVerilogSourceFile], self.svlog_flags),
+            'vhdl': ([pm.VHDLSourceFile], self.vcom_flags),
+        }
+        filetypes, flags = table[language]
+        files = [f for f in fileset.Files() if f.FileType in filetypes]
+        name = md5(fileset.Name.encode()).hexdigest()
+        base = self.builddir.joinpath(f"{name}-{language}")
+        if files:
+            template = environment.get_template('files.j2')
+            generate_from_template(
+                template,
+                base.with_suffix('.files'),
+                target=base.with_suffix('.fileset'),
+                files=[f.Path.absolute() for f in files])
+            template = environment.get_template('fileset.j2')
+            output = base.with_suffix('.fileset')
+            includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
+            files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
+            generate_from_template(template, output, flags=flags(fileset), includes=includes, files=files)
 
-            files = [f for f in fileset.Files() if f.FileType == pm.SystemVerilogSourceFile]
-            if files:
-                template = environment.get_template('files.j2')
-                output = self.builddir.joinpath(f"{name}.systemverilog.files")
-                generate_from_template(
-                    template,
-                    output,
-                    target=f"{name}.systemverilog.fileset",
-                    files=[f.Path.absolute() for f in files])
-                template = environment.get_template('fileset.j2')
-                output = self.builddir.joinpath(f"{name}.systemverilog.fileset")
-                flags = f"-sv -work {library} {self.args.vlog_flags}"
-                includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
-                files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
-                generate_from_template(template, output, flags=flags, includes=includes, files=files)
+    def svlog_flags(self, fileset: FileSet) -> str:
+        library = self.get_library(fileset)
+        quiet = '-quiet' if self.args.verbose == 0 else ''
+        return f"-sv {quiet} -work {library} {self.args.vlog_flags}".strip()
 
-            files = [f for f in fileset.Files() if f.FileType == pm.VHDLSourceFile]
-            if files:
-                template = environment.get_template('files.j2')
-                output = self.builddir.joinpath(f"{name}.vhdl.files")
-                generate_from_template(
-                    template,
-                    output,
-                    target=f"{name}.vhdl.fileset",
-                    files=[f.Path.absolute() for f in files])
-                template = environment.get_template('fileset.j2')
-                output = self.builddir.joinpath(f"{name}.vhdl.fileset")
-                flags = f"-2008 -work {library} {self.args.vcom_flags}"
-                includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
-                files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
-                generate_from_template(template, output, flags=flags, includes=includes, files=files)
+    def vlog_flags(self, fileset: FileSet) -> str:
+        library = self.get_library(fileset)
+        quiet = '-quiet' if self.args.verbose == 0 else ''
+        return f"{quiet} -work {library} {self.args.vlog_flags}".strip()
 
-    def execute(self, step: str) -> None:
-        self.run_hooks('pre')
-        if self.args.gui:
-            command = ['make', 'gui']
-        else:
-            command = ['make', step]
-        if self.args.do:
-            if Path(self.args.do).exists():
-                os.environ['DO_CMD'] = f"-do {Path(self.args.do).absolute()}"
-            else:
-                os.environ['DO_CMD'] = f"-do '{self.args.do}'"
-        sh(command, cwd=self.builddir, output=True)
-        self.run_hooks('post')
+    def vcom_flags(self, fileset: FileSet) -> str:
+        library = self.get_library(fileset)
+        quiet = '-quiet' if self.args.verbose == 0 else ''
+        return f"-2008 {quiet} -work {library} {self.args.vcom_flags}".strip()
 
-    def run_hooks(self, name):
-        try:
-            for command in self.project.Hooks[name]:
-                logger.info(f"Running {name} hook: {command}")
-                sh(command.split(), cwd=self.builddir, output=True)
-        except KeyError:
-            pass
-
-    def cocotb(self):
-        if self.is_cocotb():
-            libpython = sh(['cocotb-config', '--libpython']).strip()
-            os.environ['LIBPYTHON_LOC'] = libpython
-            os.environ['GPI_EXTRA'] = f"{get_lib_name_path('fli', 'questa')}:cocotbfli_entry_point"
-            os.environ['MODULE'] = 'test_adder'
-            os.environ['PYTHONPATH'] = '/home/rgo/devel/cocotb-example/cores/adder.core/verif/cocotb'
-            os.environ['RANDOM_SEED'] = '1'
-
-    def is_cocotb(self) -> bool:
-        if [True for f in self.project.DefaultDesign.Files() if f.FileType == pm.CocotbPythonFile]:
-            return True
-        return False
-
-    def is_tool_setup(self) -> None:
-        if (shutil.which('vlog') is None or
-                shutil.which('vsim') is None or
-                shutil.which('vcom') is None or
-                shutil.which('vlib') is None or
-                shutil.which('vmap') is None):
-            raise Exception("Questa is not setup correctly")
-
-    @property
     def vsim_flags(self) -> str:
         flags = set()
-        flags.add('-quiet')
+        if self.args.verbose == 0:
+            flags.add('-quiet')
+        if self.args.timescale:
+            flags.add(f"-timescale {self.args.timescale}")
+        if self.cocotb_files():
+            if self.hdl_language == 'vhdl':
+                flags.add(f"-foreign {get_lib_name_path('fli', 'questa')}")
+            else:
+                flags.add(f"-pli {get_lib_name_path('vpi', 'questa')}")
+            flags.add("-no_autoacc")
         for name, value in self.project.Generics.items():
             flags.add(f"-g{name}={value}")
         for name, value in self.project.Parameters.items():
@@ -232,7 +208,87 @@ class QuestaFlow(FlowBase):
             flags.add(f"+{name}={value}")
         return ' '.join(list(flags) + [self.args.vsim_flags])
 
+    def get_library(self, fileset: FileSet) -> str:
+        try:
+            library = fileset.VHDLLibrary.Name
+        except AttributeError:
+            # TODO: This is a workaround The default fileset is pm.FileSet
+            #       which is bugged. Because it is empty we don't need it
+            #       anyway and can just ignore it.
+            library = ''
+        return library
+
+    def execute(self, step: str) -> None:
+        self.run_hooks('pre')
+        if self.args.gui:
+            command = ['make', 'gui']
+        else:
+            sh(['make', 'compile'], cwd=self.builddir, output=True)
+            if step == 'compile':
+                return
+
+        if self.cocotb_files():
+            for toplevel in [t for t in self.project.DefaultDesign.TopLevel.split() if not self.is_cocotb_module(t)]:
+                # TODO: what should happend if no top or both a Verilog and VHDL top
+                self.hdl_language = get_hdl_language(toplevel, directory=self.builddir)
+                os.environ['SIMPLHDL_LANGUAGE'] = self.hdl_language
+
+        if self.args.do:
+            if Path(self.args.do).exists():
+                os.environ['DO_CMD'] = f"-do {Path(self.args.do).absolute()}"
+            else:
+                os.environ['DO_CMD'] = f"-do '{self.args.do}'"
+        command = ['make', step]
+        sh(command, cwd=self.builddir, output=True)
+        if step == 'simulate':
+            self.run_hooks('post')
+
+    def run_hooks(self, name):
+        try:
+            for command in self.project.Hooks[name]:
+                logger.info(f"Running {name} hook: {command}")
+                sh(command.split(), cwd=self.builddir, output=True)
+        except KeyError:
+            # NOTE: Continue if no hook is registret
+            pass
+
+    def cocotb_files(self):
+        return self.project.DefaultDesign.Files(CocotbPythonFile)
+
+    def is_cocotb_module(self, name: str):
+        # TODO: Should we also search in installed packages?
+        if [f for f in self.cocotb_files() if f.Path.stem == name]:
+            return True
+
+    def is_tool_setup(self) -> None:
+        if (shutil.which('vlog') is None or
+                shutil.which('vsim') is None or
+                shutil.which('vcom') is None or
+                shutil.which('vlib') is None or
+                shutil.which('vmap') is None):
+            raise Exception("Questa is not setup correctly")
+
 
 def get_lib_name_path(interface: str, simulator: str) -> str:
-    lib_name_path = sh(['cocotb-config', '--lib-name-path', interface, simulator]).strip()
+    lib_name_path = sh(['cocotb-config', '--lib-name-path', interface, simulator])
     return lib_name_path
+
+
+def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
+    """Get language of HDL module by inspecting the compiled libraries
+
+    Args:
+        name (str): Module/Entity name
+        directory (Path): Directory of library locations
+
+    Returns:
+        str: Verilog or VHDL
+    """
+    print(name)
+    info = sh(['vdir', '-prop', 'top', name], cwd=directory)
+    if info.startswith('ENTITY'):
+        return "vhdl"
+    elif info.startswith('MODULE'):
+        return "verilog"
+    else:
+        raise Exception(f"Unknow info: {info}")

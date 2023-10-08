@@ -11,6 +11,7 @@ VLOG_FLAGS :=
 VSIM_FLAGS := {{vsim_flags}}
 
 include project.mk
+-include cocotb.mk
 
 .PHONY: clean compile simulate gui
 
@@ -39,17 +40,17 @@ $(LIBRARIES):
 include *.files
 
 
-%.vhdl.fileset.com: %.vhdl.fileset %.vhdl.files
+%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files
 	$(VCOM) $(VCOM_FLAGS) -f $<
 	@touch $@
 
 
-%.verilog.fileset.com: %.verilog.fileset %.verilog.files
+%-verilog.fileset.com: %.verilog.fileset %-verilog.files
 	$(VLOG) $(VLOG_FLAGS) -f $<
 	@touch $@
 
 
-%.systemverilog.fileset.com: %.systemverilog.fileset %.systemverilog.files
+%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files
 	$(VLOG) $(VLOG_FLAGS) -f $<
 	@touch $@
 

@@ -21,10 +21,11 @@ def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False
             _, stderr = p.communicate()
         else:
             stdout, stderr = p.communicate()
-            stdout.decode()
+            stdout = stdout.decode().strip()
 
     if p.returncode != 0:
-        raise SystemError(stderr.decode())
+        print(stdout)
+        raise Exception(stderr.decode())
     return stdout
 
 
