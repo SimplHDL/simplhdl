@@ -30,7 +30,6 @@ class QuestaFlow(FlowBase):
     def parse_args(self, subparsers) -> None:
         parser = subparsers.add_parser('questa', help='Questa HDL Simulation Flow')
         parser.add_argument(
-            '-s',
             '--step',
             action='store',
             choices=['compile', 'elaborate', 'simulate'],
@@ -52,24 +51,28 @@ class QuestaFlow(FlowBase):
             '--vsim-flags',
             default='',
             action='store',
+            metavar='FLAGS',
             help="Extra flags for Questa vsim command"
         )
         parser.add_argument(
             '--vmap-flags',
             default='',
             action='store',
+            metavar='FLAGS',
             help="Extra flags for Questa vmap command"
         )
         parser.add_argument(
             '--vcom-flags',
             default='',
             action='store',
+            metavar='FLAGS',
             help="Extra flags for Questa vcom command"
         )
         parser.add_argument(
             '--vlog-flags',
             default='',
             action='store',
+            metavar='FLAGS',
             help="Extra flags for Questa vlog command"
         )
         parser.add_argument(
@@ -210,6 +213,7 @@ class QuestaFlow(FlowBase):
 
     def vsim_flags(self) -> str:
         flags = set()
+        flags.add(f"-sv_seed {self.args.seed}")
         if self.args.verbose == 0:
             flags.add('-quiet')
         if self.args.timescale:
@@ -242,12 +246,9 @@ class QuestaFlow(FlowBase):
 
     def execute(self, step: str) -> None:
         self.run_hooks('pre')
-        if self.args.gui:
-            command = ['make', 'gui']
-        else:
-            sh(['make', 'compile'], cwd=self.builddir, output=True)
-            if step == 'compile':
-                return
+        sh(['make', 'compile'], cwd=self.builddir, output=True)
+        if step == 'compile':
+            return
 
         if self.cocotb_files():
             for toplevel in [t for t in self.project.DefaultDesign.TopLevel.split() if not self.is_cocotb_module(t)]:
@@ -260,7 +261,11 @@ class QuestaFlow(FlowBase):
                 os.environ['DO_CMD'] = f"-do {Path(self.args.do).absolute()}"
             else:
                 os.environ['DO_CMD'] = f"-do '{self.args.do}'"
-        command = ['make', step]
+
+        if self.args.gui:
+            command = ['make', 'gui']
+        else:
+            command = ['make', step]
         sh(command, cwd=self.builddir, output=True)
         if step == 'simulate':
             self.run_hooks('post')
