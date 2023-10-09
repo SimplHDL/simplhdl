@@ -1,17 +1,17 @@
 import sys
-import subprocess
 import logging
 
 from typing import List, Optional
 from pathlib import Path
 from jinja2 import Template
+from subprocess import CalledProcessError, Popen, PIPE
+
 
 logger = logging.getLogger(__name__)
 
 
 def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False):
-    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                          cwd=cwd, shell=shell) as p:
+    with Popen(command, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell) as p:
         if output:
             stdout: str = ''
             for line in p.stdout:
@@ -24,8 +24,9 @@ def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False
             stdout = stdout.decode().strip()
 
     if p.returncode != 0:
-        print(stdout)
-        raise Exception(stderr.decode())
+        if not output:
+            logger.debug(stdout)
+        raise CalledProcessError(stderr.decode())
     return stdout
 
 

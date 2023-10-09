@@ -8,11 +8,11 @@ import shutil
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Callable, List, Dict, Tuple
+from typing import Callable, Generator, List, Dict, Tuple
 from jinja2 import Environment, FileSystemLoader
 from hashlib import md5
-import pyEDAA.ProjectModel as pm  # type: ignore
-from pyEDAA.ProjectModel import File, CocotbPythonFile
+from pyEDAA.ProjectModel import (File, CocotbPythonFile, VerilogSourceFile,
+                                 SystemVerilogSourceFile, VHDLSourceFile)
 
 from ..project import Project
 from ..fileset import FileSet
@@ -109,18 +109,8 @@ class QuestaFlow(FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
         self.is_tool_setup()
         os.environ['RANDOM_SEED'] = str(self.args.seed)
-        if self.cocotb_files():
-            cocotb_module = set()
-            for toplevel in self.project.DefaultDesign.TopLevel.split():
-                if self.is_cocotb_module(toplevel):
-                    # TODO: What if more than one module match?
-                    cocotb_module.add(toplevel)
-            if not cocotb_module:
-                raise Exception(f"No CocoTB module found in {self.project.DefaultDesign.TopLevel}")
-            elif len(cocotb_module) == 1:
-                os.environ['MODULE'] = next(iter(cocotb_module))
-            else:
-                raise NotImplementedError(f"More than one CocoTB module found: {cocotb_module}")
+        if self.has_cocotb_files():
+            os.environ['MODULE'] = self.cocotb_module()
 
     def generate(self):
         templatedir = resources_files(templates)
@@ -139,25 +129,55 @@ class QuestaFlow(FlowBase):
             toplevels=toplevels,
             libraries=' '.join([lib.Name for lib in self.project.DefaultDesign.VHDLLibraries.values()]))
 
-        if self.cocotb_files():
+        if self.has_cocotb_files():
             directories = {str(f.Path.parent.absolute()) for f in self.cocotb_files()}
             template = environment.get_template('cocotb.mk.j2')
             generate_from_template(template, self.builddir, directories=':'.join(directories))
 
-        for fileset in self.project.DefaultDesign.FileSets.values():
+        walker = FileSetWalker()
+        fileset_makefiles: List[str] = list()
+        for fileset in walker.walk(self.project.DefaultDesign.DefaultFileSet, reverse=True):
             for language in ['verilog', 'systemverilog', 'vhdl']:
-                self.generate_fileset_makefiles(environment, language, fileset)
+                fileset_makefiles += self.generate_fileset_makefiles(environment, language, fileset)
+        rules = self.generate_fileset_dependencies(fileset_makefiles)
+        template = environment.get_template('dependencies.mk.j2')
+        generate_from_template(template, self.builddir, rules=rules)
 
-    def generate_fileset_makefiles(self, environment: Environment, language: str, fileset: FileSet):
+    def generate_fileset_dependencies(self, filelist: List[Path]):
+        """Generate a dependency makefile for filesets. There a two type of
+           make rules.
+           1. the vhdl fileset depends in the verilog fileset, i.e. the verilog
+              filesets needs to be compiled first.
+           2. A fileset depends on its children filesets.
+
+        Args:
+            filelist (List[str]): List of generated makefile filesets.
+        """
+        walker = FileSetWalker()
+        rules: Dict[str, List[str]] = dict()
+        for fileset in walker.walk(self.project.DefaultDesign.DefaultFileSet, reverse=False):
+            name = md5sum(fileset.Name)
+            dependencies = []
+            for language_fileset in [f for f in filelist if f.stem.startswith(name)]:
+                for child in fileset.FileSets.values():
+                    child_name = md5sum(child.Name)
+                    dependencies += [append_suffix(f, '.com').name for f in filelist
+                                     if f.stem.startswith(child_name)]
+                    if dependencies:
+                        rules[append_suffix(language_fileset, '.com').name] = dependencies
+        return rules
+
+    def generate_fileset_makefiles(self, environment: Environment, language: str, fileset: FileSet) -> List[Path]:
         table: Dict[str, Tuple[List[File], Callable]] = {
-            'verilog': ([pm.VerilogSourceFile], self.vlog_flags),
-            'systemverilog': ([pm.SystemVerilogSourceFile], self.svlog_flags),
-            'vhdl': ([pm.VHDLSourceFile], self.vcom_flags),
+            'verilog': ([VerilogSourceFile], self.vlog_flags),
+            'systemverilog': ([SystemVerilogSourceFile], self.svlog_flags),
+            'vhdl': ([VHDLSourceFile], self.vcom_flags),
         }
         filetypes, flags = table[language]
-        files = [f for f in fileset.Files() if f.FileType in filetypes]
-        name = md5(fileset.Name.encode()).hexdigest()
+        files = [f for f in fileset.GetFiles() if f.FileType in filetypes]
+        name = md5sum(fileset.Name)
         base = self.builddir.joinpath(f"{name}-{language}")
+        generated: List[str] = list()
         if files:
             template = environment.get_template('files.j2')
             generate_from_template(
@@ -170,6 +190,8 @@ class QuestaFlow(FlowBase):
             includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
             files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
             generate_from_template(template, output, flags=flags(fileset), includes=includes, files=files)
+            generated.append(output)
+        return generated
 
     def svlog_flags(self, fileset: FileSet) -> str:
         library = self.get_library(fileset)
@@ -192,7 +214,7 @@ class QuestaFlow(FlowBase):
             flags.add('-quiet')
         if self.args.timescale:
             flags.add(f"-timescale {self.args.timescale}")
-        if self.cocotb_files():
+        if self.has_cocotb_files():
             if self.hdl_language == 'vhdl':
                 flags.add(f"-foreign {get_lib_name_path('fli', 'questa')}")
             else:
@@ -212,7 +234,7 @@ class QuestaFlow(FlowBase):
         try:
             library = fileset.VHDLLibrary.Name
         except AttributeError:
-            # TODO: This is a workaround The default fileset is pm.FileSet
+            # TODO: This is a workaround The default fileset is FileSet
             #       which is bugged. Because it is empty we don't need it
             #       anyway and can just ignore it.
             library = ''
@@ -255,10 +277,28 @@ class QuestaFlow(FlowBase):
     def cocotb_files(self):
         return self.project.DefaultDesign.Files(CocotbPythonFile)
 
+    def has_cocotb_files(self) -> bool:
+        for file in self.cocotb_files():
+            return True
+        return False
+
     def is_cocotb_module(self, name: str):
         # TODO: Should we also search in installed packages?
         if [f for f in self.cocotb_files() if f.Path.stem == name]:
             return True
+
+    def cocotb_module(self) -> str:
+        modules = set()
+        for toplevel in self.project.DefaultDesign.TopLevel.split():
+            if self.is_cocotb_module(toplevel):
+                # TODO: What if more than one module match?
+                modules.add(toplevel)
+        if not modules:
+            raise Exception(f"No CocoTB module found in {self.project.DefaultDesign.TopLevel}")
+        elif len(modules) == 1:
+            return next(iter(modules))
+        else:
+            raise NotImplementedError(f"More than one CocoTB module found: {modules}")
 
     def is_tool_setup(self) -> None:
         if (shutil.which('vlog') is None or
@@ -284,7 +324,6 @@ def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
     Returns:
         str: Verilog or VHDL
     """
-    print(name)
     info = sh(['vdir', '-prop', 'top', name], cwd=directory)
     if info.startswith('ENTITY'):
         return "vhdl"
@@ -292,3 +331,27 @@ def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
         return "verilog"
     else:
         raise Exception(f"Unknow info: {info}")
+
+
+def md5sum(string: str) -> str:
+    return md5(string.encode()).hexdigest()
+
+
+def append_suffix(path: Path, suffix: str) -> Path:
+    return path.with_suffix(path.suffix + suffix)
+
+
+class FileSetWalker:
+
+    def __init__(self):
+        self.__visited: List = list()
+
+    def walk(self, fileset: FileSet, reverse=False) -> Generator[FileSet, None, None]:
+        if fileset.Name not in self.__visited:
+            self.__visited.append(fileset.Name)
+            if reverse is False:
+                yield fileset
+            for child in fileset.FileSets.values():
+                yield from self.walk(child, reverse)
+            if reverse:
+                yield fileset

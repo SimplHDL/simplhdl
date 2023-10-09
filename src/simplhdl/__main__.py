@@ -4,6 +4,8 @@ import argcomplete
 import logging
 import traceback
 
+from subprocess import CalledProcessError
+
 from pathlib import Path
 from . import __version__
 from .simplhdl import Simplhdl
@@ -59,7 +61,7 @@ def main():
         simpl = Simplhdl()
         simpl.create_project(args.projectspec)
         simpl.run(args)
-    except (NotImplementedError, FileNotFoundError) as e:
+    except (NotImplementedError, FileNotFoundError, CalledProcessError) as e:
         logger.debug(traceback.format_exc())
         logger.error(e)
         return 1
