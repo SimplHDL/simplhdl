@@ -15,7 +15,7 @@ import pyEDAA.ProjectModel as pm
 
 
 from ..flow import FlowFactory, FlowBase
-from ..project import Project
+from ..project import Project, IPSpecificationFile
 from ..resources.templates import vivado as templates
 from ..utils import sh, generate_from_template
 
@@ -29,7 +29,6 @@ class VivadoFlow(FlowBase):
     def parse_args(self, subparsers) -> None:
         parser = subparsers.add_parser('vivado', help='Vivado FPGA Build Flow')
         parser.add_argument(
-            '-s',
             '--step',
             action='store',
             choices=[
@@ -69,7 +68,7 @@ class VivadoFlow(FlowBase):
         template = environment.get_template('project.tcl.j2')
         generate_from_template(template, self.builddir,
                                pm=pm,
-                               str=str,
+                               IPSpecificationFile=IPSpecificationFile,
                                project=self.project)
         template = environment.get_template('run.tcl.j2')
         generate_from_template(template, self.builddir,
@@ -97,11 +96,11 @@ class VivadoFlow(FlowBase):
 
         if self.args.gui:
             projectfile = self.builddir.joinpath(f"{self.project.DefaultDesign.Name}.xpr")
-            if projectfile.exists():
-                sh(['vivado', projectfile.name], cwd=self.builddir)
-                return
-            else:
-                raise FileNotFoundError(f"{projectfile}: doesn't exists")
+            if not projectfile.exists():
+                self.setup()
+                self.generate()
+            sh(['vivado', projectfile.name], cwd=self.builddir)
+            return
 
         self.setup()
         self.generate()

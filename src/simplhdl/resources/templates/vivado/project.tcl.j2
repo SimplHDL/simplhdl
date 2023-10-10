@@ -1,5 +1,11 @@
 package require Vivado
 
+proc source_script {filename} {
+    if {[catch {source -notrace $filename} err]} {
+        send_msg_id {SDK SOURCE-1} {ERROR} "Error sourcing $filename: $err"
+    }
+}
+
 proc set_hooks {filename} {
     foreach run [get_runs -filter {IS_SYNTHESIS==true}] {
         set_property STEPS.SYNTH_DESIGN.TCL.PRE $filename $run
@@ -55,7 +61,7 @@ read_vhdl -vhdl2008 "{{file.Path}}"
 {% if file.FileType == pm.ConstraintFile %}
 read_xdc "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.IPSpecificationFile %}
+{% if file.FileType == IPSpecificationFile %}
 read_ip "{{file.Path}}"
 {% endif %}
 {% if file.Path.suffix == '.dcp' %}
@@ -67,8 +73,16 @@ read_edif "{{file.Path}}"
 {% if file.Path.suffix == '.bd' %}
 reaad_bd "{{file.Path}}"
 {% endif %}
-{% if str(file.Path).endswith == '.bd.tcl' %}
+{% if file.Path.name.endswith('.bd.tcl') %}
 send_msg_id {SDK PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path}}: this might take some time."
-source "{{file.Path}}"
+source_script "{{file.Path}}"
+{% endif %}
+{% if file.Path.name.endswith('.steps.tcl') %}
+add_files -fileset utils_1 "{{file.Path}}"
+global step
+set step {project}
+send_msg_id {SDK PRJ-2} {INFO} "Sourcing step tcl file {{file.Path}}."
+source_script "{{file.Path}}"
+unset step
 {% endif %}
 {% endfor %}
