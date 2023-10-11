@@ -1,5 +1,5 @@
 project_new -overwrite -part "{{project.Part}}" "{{project.DefaultDesign.Name}}"
-set_global_assignment -name TOP_LEVEL_ENTITY "{{project.DefaultDesign.TopLevel}}"
+set_global_assignment -name TOP_LEVEL_ENTITY "{{project.DefaultDesign.DefaultFileSet.TopLevel}}"
 {% for file in project.DefaultDesign.Files() %}
 {% if file.FileType == pm.SystemVerilogSourceFile %}
 set_global_assignment -name SYSTEMVERILOG_FILE "{{file.Path}}"
@@ -16,13 +16,13 @@ set_global_assignment -name SDC_FILE "{{file.Path}}"
 {% if file.FileType == pm.TCLSourceFile %}
 set_global_assignment -name TCL_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.IPSpecificationFile and file.Path.suffix == '.ip' %}
+{% if file.FileType == IPSpecificationFile and file.Path.suffix == '.ip' %}
 set_global_assignment -name IP_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.IPSpecificationFile and file.Path.suffix == '.qip' %}
+{% if file.FileType == IPSpecificationFile and file.Path.suffix == '.qip' %}
 set_global_assignment -name QIP_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.IPSpecificationFile and file.Path.suffix == '.qsys' %}
+{% if file.FileType == IPSpecificationFile and file.Path.suffix == '.qsys' %}
 set_global_assignment -name QSYS_FILE "{{file.Path}}"
 {% endif %}
 {% if file.FileType == pm.SettingFile and file.Path.suffix == '.qsf' %}

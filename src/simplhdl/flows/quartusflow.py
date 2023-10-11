@@ -13,7 +13,7 @@ import pyEDAA.ProjectModel as pm
 
 
 from ..flow import FlowFactory, FlowBase
-from ..project import Project
+from ..project import Project, IPSpecificationFile
 from ..resources.templates import quartus as templates
 from ..utils import sh, generate_from_template
 
@@ -61,6 +61,7 @@ class QuartusFlow(FlowBase):
         template = environment.get_template('project.tcl.j2')
         generate_from_template(template, self.builddir,
                                pm=pm,
+                               IPSpecificationFile=IPSpecificationFile,
                                project=self.project)
         template = environment.get_template('run.tcl.j2')
         generate_from_template(template, self.builddir,
@@ -71,7 +72,6 @@ class QuartusFlow(FlowBase):
 
     def execute(self, step: str):
         name = self.project.DefaultDesign.Name
-
         if self.args.gui:
             sh(['quartus', name], cwd=self.builddir)
             return
