@@ -24,18 +24,18 @@ switch $step {
 
 }
 
-launch_runs [current_run] -scripts_only {*}[split $launch_args]
+launch_runs [current_run] {*}[split $launch_args]
 
-set current_run [current_run]
-set parent_run [get_property PARENT $current_run]
-set parent_needs_refresh [get_property NEEDS_REFRESH $parent_run]
-set parent_progress [get_property PROGRESS $parent_run]
-
-
-set fh [open "runs.json" "w"]
-puts $fh "{\"$current_run\": \["
-if { $parent_needs_refresh > 0 || $parent_progress != "100%" } {
-    puts $fh "\"[get_property DIRECTORY $parent_run]/runme.sh\","
-}
-puts $fh "\"[get_property DIRECTORY $current_run]/runme.sh\"\]}"
-close $fh
+# set current_run [current_run]
+# set parent_run [get_property PARENT $current_run]
+# set parent_needs_refresh [get_property NEEDS_REFRESH $parent_run]
+# set parent_progress [get_property PROGRESS $parent_run]
+#
+#
+# set fh [open "runs.json" "w"]
+# puts $fh "{\"$current_run\": \["
+# if { $parent_needs_refresh > 0 || $parent_progress != "100%" } {
+#     puts $fh "\"[get_property DIRECTORY $parent_run]/runme.sh\","
+# }
+# puts $fh "\"[get_property DIRECTORY $current_run]/runme.sh\"\]}"
+# close $fh

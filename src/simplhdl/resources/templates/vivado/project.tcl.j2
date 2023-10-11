@@ -86,3 +86,5 @@ source_script "{{file.Path}}"
 unset step
 {% endif %}
 {% endfor %}
+set_property top {{project.DefaultDesign.DefaultFileSet.TopLevel}} [current_fileset]
+update_compile_order -fileset [current_fileset]

@@ -76,18 +76,18 @@ class VivadoFlow(FlowBase):
         template = environment.get_template('launch_run.sh.j2')
         generate_from_template(template, self.builddir)
         command = "vivado -mode batch -notrace -source project.tcl".split()
-        sh(command, cwd=self.builddir)
+        sh(command, cwd=self.builddir, output=True)
 
     def execute(self, step: str):
         name = self.project.DefaultDesign.Name
         command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {step}".split()
-        sh(command, cwd=self.builddir)
-        jsonfile = self.builddir.joinpath('runs.json')
-        with jsonfile.open() as f:
-            runs: Dict[str, List[str]] = json.load(f)
-        for name, run in runs.items():
-            for script in run:
-                sh(['bash', 'launch_run.sh', script], output=True, cwd=self.builddir)
+        sh(command, cwd=self.builddir, output=True)
+        # jsonfile = self.builddir.joinpath('runs.json')
+        # with jsonfile.open() as f:
+        #     runs: Dict[str, List[str]] = json.load(f)
+        # for name, run in runs.items():
+        #     for script in run:
+        #         sh(['bash', 'launch_run.sh', script], output=True, cwd=self.builddir)
 
     def run(self, args: Namespace, project: Project, builddir: Path) -> None:
         self.project = project
