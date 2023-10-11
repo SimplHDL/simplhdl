@@ -11,6 +11,7 @@ from . import __version__
 from .simplhdl import Simplhdl
 from .plugins import load_plugins
 from .flow import FlowFactory
+from .parser import ParserError
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,8 @@ def main():
         simpl = Simplhdl()
         simpl.create_project(args.projectspec)
         simpl.run(args)
-    except (NotImplementedError, FileNotFoundError, CalledProcessError) as e:
+    except (NotImplementedError, FileNotFoundError, CalledProcessError,
+            ParserError) as e:
         logger.debug(traceback.format_exc())
         logger.error(e)
         return 1

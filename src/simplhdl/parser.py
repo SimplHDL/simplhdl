@@ -44,4 +44,11 @@ class ParserFactory:
             parser = parser_class()
             if parser.is_valid_format(filename):
                 return parser
-        raise Exception(f"Couldn't find Parser for parsing {filename}")
+        if filename is None:
+            raise ParserError("Couldn't find Parser for parsing, try using the --projectspec <filename>")
+        else:
+            raise ParserError(f"Couldn't find Parser for parsing '{filename}'")
+
+
+class ParserError(Exception):
+    pass
