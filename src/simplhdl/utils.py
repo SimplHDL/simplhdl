@@ -5,7 +5,7 @@ from typing import List, Optional
 from pathlib import Path
 from jinja2 import Template
 from subprocess import CalledProcessError, Popen, PIPE
-
+from hashlib import md5
 
 logger = logging.getLogger(__name__)
 
@@ -47,3 +47,42 @@ def generate_from_template(template: Template, output: Path, *args, **kwargs) ->
             return
     with output.open('w') as f:
         f.write(text)
+
+
+def md5_add_file(filename: Path, hash):
+    with filename.open("rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash.update(chunk)
+    return hash
+
+
+def md5_add_dir(directory, hash):
+    assert Path(directory).is_dir()
+    for path in sorted(Path(directory).iterdir()):
+        hash.update(path.name.encode())
+        if path.is_file():
+            hash = md5_add_file(path, hash)
+        elif path.is_dir():
+            hash = md5_add_dir(path, hash)
+    return hash
+
+
+def md5sum(*items: Path) -> str:
+    hash = md5()
+    for item in [Path(i) for i in items]:
+        if item.is_file():
+            hash = md5_add_file(item, hash)
+        elif item.is_dir():
+            hash = md5_add_dir(item, hash)
+    return hash.hexdigest()
+
+
+def md5check(*items: Path, filename: Path) -> bool:
+    with filename.open() as f:
+        md5expected = f.read()
+    return md5sum(*items) == md5expected
+
+
+def md5write(*items: Path, filename: Path) -> None:
+    with filename.open('w') as f:
+        f.write(md5sum(*items))
