@@ -5,17 +5,12 @@ except ImportError:
 import os
 import shutil
 import logging
-import json
-
-from argparse import Namespace
-from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
-from typing import Dict, List
 import pyEDAA.ProjectModel as pm
 
 
 from ..flow import FlowFactory, FlowBase
-from ..project import Project, IPSpecificationFile
+from ..project import IPSpecificationFile
 from ..resources.templates import vivado as templates
 from ..utils import sh, generate_from_template
 
@@ -89,11 +84,7 @@ class VivadoFlow(FlowBase):
         #     for script in run:
         #         sh(['bash', 'launch_run.sh', script], output=True, cwd=self.builddir)
 
-    def run(self, args: Namespace, project: Project, builddir: Path) -> None:
-        self.project = project
-        self.builddir = builddir
-        self.args = args
-
+    def run(self) -> None:
         if self.args.gui:
             projectfile = self.builddir.joinpath(f"{self.project.DefaultDesign.Name}.xpr")
             if not projectfile.exists():
@@ -104,4 +95,4 @@ class VivadoFlow(FlowBase):
 
         self.setup()
         self.generate()
-        self.execute(args.step)
+        self.execute(self.args.step)

@@ -8,8 +8,11 @@ from .project import Project
 
 class FlowBase(metaclass=ABCMeta):
 
-    def __init__(self, name):
+    def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         self.name = name
+        self.args = args
+        self.project = project
+        self.builddir = builddir
 
     @classmethod
     @abstractmethod
@@ -17,7 +20,7 @@ class FlowBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run(self, args: Namespace, project: Project, builddir: Path) -> None:
+    def run(self) -> None:
         pass
 
 
@@ -40,9 +43,9 @@ class FlowFactory:
         return inner_wrapper
 
     @classmethod
-    def get_flow(cls, name: str) -> 'FlowBase':
+    def get_flow(cls, name: str, args: Namespace, project: Project, builddir: Path) -> 'FlowBase':
         if name in cls.registry:
-            return cls.registry[name](name)
+            return cls.registry[name](name, args, project, builddir)
         raise Exception(f"Couldn't find Flow named {name}")
 
     @classmethod

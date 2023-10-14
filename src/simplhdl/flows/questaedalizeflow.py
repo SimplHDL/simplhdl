@@ -2,12 +2,9 @@ import os
 import logging
 import shutil
 
-from argparse import Namespace
-from pathlib import Path
 from edalize.edatool import get_edatool
-import pyEDAA.ProjectModel as pm  # type: ignore
+from pyEDAA.ProjectModel import CocotbPythonFile
 
-from ..project import Project
 from ..utils import sh
 from ..flow import FlowFactory, FlowBase
 
@@ -40,8 +37,7 @@ class QuestaEdalizeFlow(FlowBase):
             help="Open project in Questa GUI"
         )
 
-    def run(self, args: Namespace, project: Project, builddir: Path) -> None:
-        self.project = project
+    def run(self) -> None:
         # NOTE: edalize only supports questa through Modelsim
         simulator = 'modelsim'
         self.is_tool_setup()
@@ -54,9 +50,9 @@ class QuestaEdalizeFlow(FlowBase):
 
         for f in edam['files']:
             logger.debug(f)
-        backend = get_edatool(simulator)(edam=edam, work_root=builddir)
-        shutil.rmtree(builddir, ignore_errors=True)
-        os.makedirs(builddir, exist_ok=True)
+        backend = get_edatool(simulator)(edam=edam, work_root=self.builddir)
+        shutil.rmtree(self.builddir, ignore_errors=True)
+        os.makedirs(self.builddir, exist_ok=True)
         backend.configure()
         backend.build()
         backend.run()
@@ -71,7 +67,7 @@ class QuestaEdalizeFlow(FlowBase):
             os.environ['RANDOM_SEED'] = '1'
 
     def is_cocotb(self) -> bool:
-        if [True for f in self.project.DefaultDesign.Files() if f.FileType == pm.CocotbPythonFile]:
+        if [True for f in self.project.DefaultDesign.Files() if f.FileType == CocotbPythonFile]:
             return True
         return False
 

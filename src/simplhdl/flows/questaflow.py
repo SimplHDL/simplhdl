@@ -10,15 +10,15 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Callable, Generator, List, Dict, Tuple
 from jinja2 import Environment, FileSystemLoader
-from hashlib import md5
-from pyEDAA.ProjectModel import (File, CocotbPythonFile, VerilogSourceFile,
+from pyEDAA.ProjectModel import (File, VerilogSourceFile,
                                  SystemVerilogSourceFile, VHDLSourceFile)
 
 from ..project import Project
 from ..fileset import FileSet
-from ..utils import sh, generate_from_template
+from ..utils import sh, generate_from_template, md5sum, append_suffix
 from ..flow import FlowFactory, FlowBase
 from ..resources.templates import questa as templates
+from ..cocotb import Cocotb
 
 logger = logging.getLogger(__name__)
 
@@ -99,21 +99,22 @@ class QuestaFlow(FlowBase):
             help="Set the simulator timescale for Verilog"
         )
 
-    def run(self, args: Namespace, project: Project, builddir: Path) -> None:
-        self.project = project
-        self.builddir = builddir
-        self.args = args
+    def __init__(self, name, args: Namespace, project: Project, builddir: Path):
+        super().__init__(name, args, project, builddir)
         self.hdl_language = None
+        self.cocotb = Cocotb(project)
+
+    def run(self) -> None:
         self.configure()
         self.generate()
-        self.execute(args.step)
+        self.execute(self.args.step)
 
     def configure(self):
         os.makedirs(self.builddir, exist_ok=True)
         self.is_tool_setup()
         os.environ['RANDOM_SEED'] = str(self.args.seed)
-        if self.has_cocotb_files():
-            os.environ['MODULE'] = self.cocotb_module()
+        if self.cocotb.enabled:
+            os.environ['MODULE'] = self.cocotb.module()
 
     def generate(self):
         templatedir = resources_files(templates)
@@ -125,17 +126,16 @@ class QuestaFlow(FlowBase):
         generate_from_template(template, self.builddir, vsim_flags=self.vsim_flags())
 
         template = environment.get_template('project.mk.j2')
-        toplevels = ' '.join([t for t in self.project.DefaultDesign.TopLevel.split() if not self.is_cocotb_module(t)])
+        toplevels = ' '.join([t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()])
         generate_from_template(
             template,
             self.builddir,
             toplevels=toplevels,
             libraries=' '.join([lib.Name for lib in self.project.DefaultDesign.VHDLLibraries.values()]))
 
-        if self.has_cocotb_files():
-            directories = {str(f.Path.parent.absolute()) for f in self.cocotb_files()}
+        if self.cocotb.enabled:
             template = environment.get_template('cocotb.mk.j2')
-            generate_from_template(template, self.builddir, directories=':'.join(directories))
+            generate_from_template(template, self.builddir, pythonpath=self.cocotb.pythonpath)
 
         walker = FileSetWalker()
         fileset_makefiles: List[str] = list()
@@ -218,11 +218,11 @@ class QuestaFlow(FlowBase):
             flags.add('-quiet')
         if self.args.timescale:
             flags.add(f"-timescale {self.args.timescale}")
-        if self.has_cocotb_files():
+        if self.cocotb.enabled:
             if self.hdl_language == 'vhdl':
-                flags.add(f"-foreign {get_lib_name_path('fli', 'questa')}")
+                flags.add(f"-foreign {self.cocotb.lib_name_path('questa', 'fli')}")
             else:
-                flags.add(f"-pli {get_lib_name_path('vpi', 'questa')}")
+                flags.add(f"-pli {self.cocotb.lib_name_path('questa', 'vpi')}")
             flags.add("-no_autoacc")
         for name, value in self.project.Generics.items():
             flags.add(f"-g{name}={value}")
@@ -250,8 +250,8 @@ class QuestaFlow(FlowBase):
         if step == 'compile':
             return
 
-        if self.cocotb_files():
-            for toplevel in [t for t in self.project.DefaultDesign.TopLevel.split() if not self.is_cocotb_module(t)]:
+        if self.cocotb.enabled:
+            for toplevel in [t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()]:
                 # TODO: what should happend if no top or both a Verilog and VHDL top
                 self.hdl_language = get_hdl_language(toplevel, directory=self.builddir)
                 os.environ['SIMPLHDL_LANGUAGE'] = self.hdl_language
@@ -279,32 +279,6 @@ class QuestaFlow(FlowBase):
             # NOTE: Continue if no hook is registret
             pass
 
-    def cocotb_files(self):
-        return self.project.DefaultDesign.Files(CocotbPythonFile)
-
-    def has_cocotb_files(self) -> bool:
-        for file in self.cocotb_files():
-            return True
-        return False
-
-    def is_cocotb_module(self, name: str):
-        # TODO: Should we also search in installed packages?
-        if [f for f in self.cocotb_files() if f.Path.stem == name]:
-            return True
-
-    def cocotb_module(self) -> str:
-        modules = set()
-        for toplevel in self.project.DefaultDesign.TopLevel.split():
-            if self.is_cocotb_module(toplevel):
-                # TODO: What if more than one module match?
-                modules.add(toplevel)
-        if not modules:
-            raise Exception(f"No CocoTB module found in {self.project.DefaultDesign.TopLevel}")
-        elif len(modules) == 1:
-            return next(iter(modules))
-        else:
-            raise NotImplementedError(f"More than one CocoTB module found: {modules}")
-
     def is_tool_setup(self) -> None:
         if (shutil.which('vlog') is None or
                 shutil.which('vsim') is None or
@@ -312,11 +286,6 @@ class QuestaFlow(FlowBase):
                 shutil.which('vlib') is None or
                 shutil.which('vmap') is None):
             raise Exception("Questa is not setup correctly")
-
-
-def get_lib_name_path(interface: str, simulator: str) -> str:
-    lib_name_path = sh(['cocotb-config', '--lib-name-path', interface, simulator])
-    return lib_name_path
 
 
 def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
@@ -336,14 +305,6 @@ def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
         return "verilog"
     else:
         raise Exception(f"Unknow info: {info}")
-
-
-def md5sum(string: str) -> str:
-    return md5(string.encode()).hexdigest()
-
-
-def append_suffix(path: Path, suffix: str) -> Path:
-    return path.with_suffix(path.suffix + suffix)
 
 
 class FileSetWalker:

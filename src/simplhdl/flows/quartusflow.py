@@ -6,15 +6,13 @@ import os
 import shutil
 import logging
 
-from argparse import Namespace
-from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from zipfile import ZipFile
 from shutil import copy, copytree
 import pyEDAA.ProjectModel as pm
 
 from ..flow import FlowFactory, FlowBase
-from ..project import Project, IPSpecificationFile
+from ..project import IPSpecificationFile
 from ..resources.templates import quartus as templates
 from ..utils import sh, generate_from_template, md5write, md5check
 
@@ -41,14 +39,11 @@ class QuartusFlow(FlowBase):
             help="Open project in Quartus GUI"
         )
 
-    def run(self, args: Namespace, project: Project, builddir: Path) -> None:
-        self.project = project
-        self.builddir = builddir
-        self.args = args
+    def run(self) -> None:
         self.validate()
         self.configure()
         self.generate()
-        self.execute(args.step)
+        self.execute(self.args.step)
 
     def validate(self):
         if self.project.DefaultDesign.DefaultFileSet.TopLevel is None:

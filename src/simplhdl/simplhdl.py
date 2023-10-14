@@ -34,6 +34,6 @@ class Simplhdl:
         self._project = project
 
     def run(self, args):
-        flow = FlowFactory.get_flow(args.flow)
-        builddir = self.builddir.joinpath(flow.name)
-        flow.run(args, self._project, builddir)
+        builddir = self.builddir.joinpath(args.flow)
+        flow = FlowFactory.get_flow(args.flow, args, self._project, builddir)
+        flow.run()

@@ -1,7 +1,7 @@
 ifndef PYTHONPATH
-  export PYTHONPATH := {{directories}}
+  export PYTHONPATH := {{pythonpath}}
 else
-  export PYTHONPATH := {{directories}}:$(PYTHONPATH)
+  export PYTHONPATH := {{pythonpath}}:$(PYTHONPATH)
 endif
 export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
 

@@ -1,13 +1,17 @@
 import sys
 import logging
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from pathlib import Path
 from jinja2 import Template
-from subprocess import CalledProcessError, Popen, PIPE
+from subprocess import Popen, PIPE
 from hashlib import md5
 
 logger = logging.getLogger(__name__)
+
+
+class CalledShError(Exception):
+    pass
 
 
 def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False):
@@ -26,7 +30,7 @@ def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False
     if p.returncode != 0:
         if not output:
             logger.debug(stdout)
-        raise CalledProcessError(stderr.decode())
+        raise CalledShError(stderr.decode())
     return stdout
 
 
@@ -67,13 +71,15 @@ def md5_add_dir(directory, hash):
     return hash
 
 
-def md5sum(*items: Path) -> str:
+def md5sum(*items: Union[str, Path]) -> str:
     hash = md5()
     for item in [Path(i) for i in items]:
         if item.is_file():
             hash = md5_add_file(item, hash)
         elif item.is_dir():
             hash = md5_add_dir(item, hash)
+        else:
+            hash.update(str(item).decode())
     return hash.hexdigest()
 
 
@@ -86,3 +92,7 @@ def md5check(*items: Path, filename: Path) -> bool:
 def md5write(*items: Path, filename: Path) -> None:
     with filename.open('w') as f:
         f.write(md5sum(*items))
+
+
+def append_suffix(path: Path, suffix: str) -> Path:
+    return path.with_suffix(path.suffix + suffix)
