@@ -1,0 +1,4 @@
+{{target}}.com: \
+{% for file in files %}
+{{file}} {{ '\\' if not loop.last else '' }}
+{% endfor %}

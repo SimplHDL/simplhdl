@@ -1,0 +1,56 @@
+XVLOG := xvlog
+XVHDL := xvhdl
+XELAB := xelab
+XSIM := xsim
+
+XVLOG_FLAGS :=
+XVHDL_FLAGS :=
+XELAB_FLAGS := {{xelab_flags}}
+XSIM_FLAGS := {{xsim_flags}}
+
+include project.mk
+-include cocotb.mk
+
+.PHONY: clean compile elaborate simulate gui
+
+
+simulate: elaborate
+	$(XSIM) --runall $(XSIM_FLAGS) $(TOPLEVELS)
+
+
+gui: elaborate
+	$(XSIM) $(XSIM_FLAGS) $(TOPLEVELS)
+
+
+elaborate: compile
+	$(XELAB) $(XELAB_FLAGS) $(TOPLEVELS)
+
+
+compile: $(VERILOG_FILESETS) $(VHDL_FILESETS) | $(LIBRARIES)
+
+
+include dependencies.mk
+include *.files
+
+
+$(LIBRARIES):
+	mkdir -p $@
+
+
+%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files
+	$(XVHDL) $(XVHDL_FLAGS) -f $<
+	@touch $@
+
+
+%-verilog.fileset.com: %.verilog.fileset %-verilog.files
+	$(XVLOG) $(XVLOG_FLAGS) -f $<
+	@touch $@
+
+
+%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files
+	$(XVLOG) $(XVLOG_FLAGS) -f $<
+	@touch $@
+
+
+clean:
+	rm -rf $(LIBRARIES)
