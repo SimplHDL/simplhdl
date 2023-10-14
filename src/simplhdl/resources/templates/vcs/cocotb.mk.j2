@@ -1,0 +1,12 @@
+ifndef PYTHONPATH
+  export PYTHONPATH := {{pythonpath}}
+else
+  export PYTHONPATH := {{pythonpath}}:$(PYTHONPATH)
+endif
+export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
+
+ifeq ($(SIMPLHDL_LANGUAGE),verilog)
+  export GPI_EXTRA := $(shell cocotb-config --lib-name-path fli questa):cocotbfli_entry_point
+else ifeq ($(SIMPLHDL_LANGUAGE),vhdl)
+  export GPI_EXTRA := $(shell cocotb-config --lib-name-path vpi questa):cocotbvpi_entry_point
+endif
