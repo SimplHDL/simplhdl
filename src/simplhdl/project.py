@@ -34,6 +34,14 @@ class Project(pm.Project):
         self._hooks = dict()
 
     @property
+    def Name(self) -> str:
+        return super().Name
+
+    @Name.setter
+    def Name(self, value: str):
+        self._name = value
+
+    @property
     def Hooks(self) -> Dict[str, List[str]]:
         return self._hooks
 

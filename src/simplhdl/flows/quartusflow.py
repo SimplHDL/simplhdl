@@ -75,7 +75,7 @@ class QuartusFlow(FlowBase):
         sh(command, cwd=self.builddir, output=True)
 
     def execute(self, step: str):
-        name = self.project.DefaultDesign.Name
+        name = self.project.Name
         if self.args.gui:
             sh(['quartus', name], cwd=self.builddir)
             return

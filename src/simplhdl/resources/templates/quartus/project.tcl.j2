@@ -1,5 +1,14 @@
-project_new -overwrite -part "{{project.Part}}" "{{project.DefaultDesign.Name}}"
+project_new -overwrite -part "{{project.Part}}" "{{project.Name}}"
 set_global_assignment -name TOP_LEVEL_ENTITY "{{project.DefaultDesign.DefaultFileSet.TopLevel}}"
+{% for parameter, value in project.Parameters.items() %}
+set_parameter -name {{parameter}} {{value}}
+{% endfor %}
+{% for generic, value in project.Generics.items() %}
+set_parameter -name {{generic}} {{value}}
+{% endfor %}
+{% for define, value in project.Defines.items() %}
+set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
+{% endfor %}
 {% for file in project.DefaultDesign.Files() %}
 {% if file.FileType == pm.SystemVerilogSourceFile %}
 set_global_assignment -name SYSTEMVERILOG_FILE "{{file.Path}}"
