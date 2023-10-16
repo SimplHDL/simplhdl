@@ -33,18 +33,14 @@ class Info(FlowBase):
             help="List hooks in project"
         )
 
-    def run(self, args: Namespace, project: Project, builddir: Path) -> None:
-        self.args = args
-        self.project = project
-        self.builddir = builddir
-
-        if args.files:
+    def run(self) -> None:
+        if self.args.files:
             self.print_files()
-        elif args.filesets:
+        elif self.args.filesets:
             self.print_filesets()
-        elif args.libraries:
+        elif self.args.libraries:
             self.print_libraries()
-        elif args.hooks:
+        elif self.args.hooks:
             self.print_hooks()
         else:
             self.print_info()
