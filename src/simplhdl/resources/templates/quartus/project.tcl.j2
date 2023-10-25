@@ -10,19 +10,22 @@ set_parameter -name {{generic}} {{value}}
 set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% endfor %}
 {% for file in project.DefaultDesign.Files() %}
-{% if file.FileType == pm.SystemVerilogSourceFile %}
+{% if file.FileType == VerilogIncludeFile %}
+set_global_assignment -name VERILOG_INCLUDE_FILE "{{file.Path}}"
+{% endif %}
+{% if file.FileType == SystemVerilogSourceFile %}
 set_global_assignment -name SYSTEMVERILOG_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.VerilogSourceFile %}
+{% if file.FileType == VerilogSourceFile %}
 set_global_assignment -name VERILOG_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.VHDLSourceFile %}
+{% if file.FileType == VHDLSourceFile %}
 set_global_assignment -name VHDL_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.ConstraintFile %}
+{% if file.FileType == ConstraintFile %}
 set_global_assignment -name SDC_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.TCLSourceFile %}
+{% if file.FileType == TCLSourceFile %}
 set_global_assignment -name TCL_FILE "{{file.Path}}"
 {% endif %}
 {% if file.FileType == IPSpecificationFile and file.Path.suffix == '.ip' %}
@@ -34,7 +37,7 @@ set_global_assignment -name QIP_FILE "{{file.Path}}"
 {% if file.FileType == IPSpecificationFile and file.Path.suffix == '.qsys' %}
 set_global_assignment -name QSYS_FILE "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.SettingFile and file.Path.suffix == '.qsf' %}
+{% if file.FileType == SettingFile and file.Path.suffix == '.qsf' %}
 source "{{file.Path}}"
 {% endif %}
 {% endfor %}

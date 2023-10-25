@@ -2,8 +2,8 @@ from argparse import Namespace
 from pathlib import Path
 
 from .flow import FlowBase, FlowFactory
-from .project import Project
-from .fileset import FileSet
+from .pyedaa.project import Project
+from .pyedaa.fileset import FileSet
 
 
 @FlowFactory.register('info')

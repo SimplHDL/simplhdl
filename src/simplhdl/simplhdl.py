@@ -3,8 +3,8 @@ import logging
 from pathlib import Path
 from pyEDAA.ProjectModel import VHDLLibrary  # type: ignore
 
-from .project import Project
-from .design import Design
+from .pyedaa.project import Project
+from .pyedaa.design import Design
 from .parser import ParserFactory
 from .flow import FlowFactory
 

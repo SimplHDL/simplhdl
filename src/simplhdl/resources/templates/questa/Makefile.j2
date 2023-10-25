@@ -45,7 +45,7 @@ include *.files
 	@touch $@
 
 
-%-verilog.fileset.com: %.verilog.fileset %-verilog.files
+%-verilog.fileset.com: %-verilog.fileset %-verilog.files
 	$(VLOG) $(VLOG_FLAGS) -f $<
 	@touch $@
 

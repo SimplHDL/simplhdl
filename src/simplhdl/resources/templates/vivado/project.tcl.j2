@@ -47,18 +47,20 @@ proc add_reports {} {
 
 create_project -force -part {{project.Part}} {{project.DefaultDesign.Name}} [pwd]
 add_reports
-
 {% for file in project.DefaultDesign.Files() %}
-{% if file.FileType == pm.SystemVerilogSourceFile %}
+{% if file.FileType == VerilogIncludeFile %}
+add_files "{{file.Path}}"
+{% endif %}
+{% if file.FileType == SystemVerilogSourceFile %}
 read_verilog -sv "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.VerilogSourceFile %}
+{% if file.FileType == VerilogSourceFile %}
 read_verilog "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.VHDLSourceFile %}
+{% if file.FileType == VHDLSourceFile %}
 read_vhdl -vhdl2008 "{{file.Path}}"
 {% endif %}
-{% if file.FileType == pm.ConstraintFile %}
+{% if file.FileType == ConstraintFile %}
 read_xdc "{{file.Path}}"
 {% endif %}
 {% if file.FileType == IPSpecificationFile %}

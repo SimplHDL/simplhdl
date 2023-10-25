@@ -3,7 +3,7 @@ from typing import Optional
 
 from pyEDAA.ProjectModel import CocotbPythonFile
 from .utils import sh
-from .project import Project
+from .pyedaa.project import Project
 
 
 class Cocotb:

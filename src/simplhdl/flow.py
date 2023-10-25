@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable, Dict
 from abc import ABCMeta, abstractmethod
 
-from .project import Project
+from .pyedaa.project import Project
 
 
 class FlowBase(metaclass=ABCMeta):

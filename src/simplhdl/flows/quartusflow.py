@@ -9,12 +9,13 @@ import logging
 from jinja2 import Environment, FileSystemLoader
 from zipfile import ZipFile
 from shutil import copy, copytree
-import pyEDAA.ProjectModel as pm
 
 from ..flow import FlowFactory, FlowBase
-from ..project import IPSpecificationFile
 from ..resources.templates import quartus as templates
 from ..utils import sh, generate_from_template, md5write, md5check
+from ..pyedaa import (IPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
+                      SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
+                      EDIFNetlistFile, NetlistFile, SettingFile)
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +65,15 @@ class QuartusFlow(FlowBase):
 
         template = environment.get_template('project.tcl.j2')
         generate_from_template(template, self.builddir,
-                               pm=pm,
+                               VerilogIncludeFile=VerilogIncludeFile,
+                               VerilogSourceFile=VerilogSourceFile,
+                               SystemVerilogSourceFile=SystemVerilogSourceFile,
+                               VHDLSourceFile=VHDLSourceFile,
+                               ConstraintFile=ConstraintFile,
                                IPSpecificationFile=IPSpecificationFile,
+                               EDIFNetlistFile=EDIFNetlistFile,
+                               NetlistFile=NetlistFile,
+                               SettingFile=SettingFile,
                                project=self.project)
         template = environment.get_template('run.tcl.j2')
         generate_from_template(template, self.builddir,

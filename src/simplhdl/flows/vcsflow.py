@@ -10,11 +10,11 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Callable, Generator, List, Dict, Tuple
 from jinja2 import Environment, FileSystemLoader
-from pyEDAA.ProjectModel import (File, VerilogSourceFile,
-                                 SystemVerilogSourceFile, VHDLSourceFile)
+from ..pyedaa import (File, VerilogSourceFile, VerilogIncludeFile,
+                      SystemVerilogSourceFile, VHDLSourceFile)
 
-from ..project import Project
-from ..fileset import FileSet
+from ..pyedaa.project import Project
+from ..pyedaa.fileset import FileSet
 from ..utils import sh, generate_from_template, md5sum, append_suffix
 from ..flow import FlowFactory, FlowBase
 from ..resources.templates import vcs as templates
@@ -171,8 +171,8 @@ class VcsFlow(FlowBase):
 
     def generate_fileset_makefiles(self, environment: Environment, language: str, fileset: FileSet) -> List[Path]:
         table: Dict[str, Tuple[List[File], Callable]] = {
-            'verilog': ([VerilogSourceFile], self.vlogan_flags),
-            'systemverilog': ([SystemVerilogSourceFile], self.svlogan_flags),
+            'verilog': ([VerilogSourceFile, VerilogIncludeFile], self.vlogan_flags),
+            'systemverilog': ([SystemVerilogSourceFile, VerilogIncludeFile], self.svlogan_flags),
             'vhdl': ([VHDLSourceFile], self.vhdlan_flags),
         }
         filetypes, flags = table[language]
@@ -180,7 +180,7 @@ class VcsFlow(FlowBase):
         name = md5sum(fileset.Name)
         base = self.builddir.joinpath(f"{name}-{language}")
         generated: List[str] = list()
-        if files:
+        if [f for f in files if not isinstance(f, VerilogIncludeFile)]:
             template = environment.get_template('files.j2')
             generate_from_template(
                 template,
@@ -189,8 +189,8 @@ class VcsFlow(FlowBase):
                 files=[f.Path.absolute() for f in files])
             template = environment.get_template('fileset.j2')
             output = base.with_suffix('.fileset')
-            includes = {f.Path.parent.absolute() for f in files if f.Path.suffix in ['.vh', '.svh']}
-            files = [f.Path.absolute() for f in files if f.Path.suffix not in ['.vh', '.svh']]
+            includes = {f.Path.parent.absolute() for f in files if isinstance(f, VerilogIncludeFile)}
+            files = [f.Path.absolute() for f in files if not isinstance(f, VerilogIncludeFile)]
             generate_from_template(template, output, flags=flags(fileset), includes=includes, files=files)
             generated.append(output)
         return generated

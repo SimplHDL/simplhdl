@@ -4,7 +4,9 @@ import pyEDAA.ProjectModel as pm  # type: ignore
 from typing import Dict, List
 from pathlib import Path
 from .design import Design
-
+from . import (
+    IPSpecificationFile, TCLSourceFile, CocotbPythonFile, SettingFile, HDLIncludeFile,
+    ConstraintFile, VHDLSourceFile, VerilogSourceFile, SystemVerilogSourceFile)
 
 logger = logging.getLogger(__name__)
 
@@ -113,17 +115,6 @@ class Project(pm.Project):
         }
 
 
-class IPSpecificationFile(pm.File, pm.XMLContent):
-    """
-    IP design file.
-    """
-
-
-def is_include(file_obj: pm.File) -> bool:
-    return ((file_obj.Path.suffix in ['.vh', '.svh']) and
-            (file_obj.FileType in [pm.VerilogSourceFile, pm.SystemVerilogSourceFile]))
-
-
 def file_to_edam(file_obj: pm.File) -> Dict:
     """
     Convert File object to edam dictionary.
@@ -131,27 +122,27 @@ def file_to_edam(file_obj: pm.File) -> Dict:
     return {
         'name': str(file_obj.Path.absolute()),
         'file_type': filetype_to_edam(file_obj),
-        'is_include_file': is_include(file_obj),
+        'is_include_file': isinstance(file_obj, HDLIncludeFile),
         'logic_name': "work"  # file_obj.FileSet.VHDLLibrary
     }
 
 
 def filetype_to_edam(file_obj: pm.File) -> str:  # noqa C901
-    if file_obj.FileType == pm.SystemVerilogSourceFile:
+    if file_obj.FileType == SystemVerilogSourceFile:
         return 'systemVerilogSource'
-    elif file_obj.FileType == pm.VerilogSourceFile:
+    elif file_obj.FileType == VerilogSourceFile:
         return 'verilogSource'
-    elif file_obj.FileType == pm.VHDLSourceFile:
+    elif file_obj.FileType == VHDLSourceFile:
         return 'vhdlSource-2008'
-    elif file_obj.FileType == pm.ConstraintFile and file_obj.Path.suffix == '.xdc':
+    elif file_obj.FileType == ConstraintFile and file_obj.Path.suffix == '.xdc':
         return 'xdc'
-    elif file_obj.FileType == pm.ConstraintFile and file_obj.Path.suffix == '.sdc':
+    elif file_obj.FileType == ConstraintFile and file_obj.Path.suffix == '.sdc':
         return 'SDC'
-    elif file_obj.FileType == pm.SettingFile and file_obj.Path.suffix == '.qsf':
+    elif file_obj.FileType == SettingFile and file_obj.Path.suffix == '.qsf':
         # TODO: edalize don't have a QSF file type
         logger.warning('qsf files are not support')
         return 'user'
-    elif file_obj.FileType == pm.TCLSourceFile:
+    elif file_obj.FileType == TCLSourceFile:
         return 'tclSource'
     elif file_obj.FileType == IPSpecificationFile and file_obj.Path.suffix == '.ip':
         return 'IP'
@@ -159,7 +150,7 @@ def filetype_to_edam(file_obj: pm.File) -> str:  # noqa C901
         return 'QIP'
     elif file_obj.FileType == IPSpecificationFile and file_obj.Path.suffix == '.qsys':
         return 'QSYS'
-    elif file_obj.FileType == pm.CocotbPythonFile:
+    elif file_obj.FileType == CocotbPythonFile:
         return 'user'
     logger.warning(f"Unknown filetype: '{file_obj.FileType.__name__}' for file '{file_obj.Path}'")
     return 'user'

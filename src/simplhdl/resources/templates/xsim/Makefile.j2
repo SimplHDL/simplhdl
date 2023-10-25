@@ -42,7 +42,7 @@ $(LIBRARIES):
 	@touch $@
 
 
-%-verilog.fileset.com: %.verilog.fileset %-verilog.files
+%-verilog.fileset.com: %-verilog.fileset %-verilog.files
 	$(XVLOG) $(XVLOG_FLAGS) -f $<
 	@touch $@
 
