@@ -1,5 +1,7 @@
-from typing import Optional
 import pyEDAA.ProjectModel as pyeda
+
+from typing import Optional
+from pathlib import Path
 
 
 class HDLLibrary(pyeda.VHDLLibrary):
@@ -13,8 +15,15 @@ class HDLIncludeFile(pyeda.SourceFile):
 class HDLSourceFile(pyeda.HDLSourceFile):
     _library: HDLLibrary
 
-    def __init__(self, library: Optional[HDLLibrary] = None) -> None:
-        super().__init__()
+    def __init__(
+        self,
+        path: Path,
+        project: pyeda.Project = None,
+        design: pyeda.Design = None,
+        fileSet: pyeda.FileSet = None,
+        library: Optional[HDLLibrary] = None
+    ):
+        super().__init__(path=path, project=project, design=design, fileSet=fileSet)
         self._library = library
 
     @property

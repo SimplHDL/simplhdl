@@ -79,7 +79,7 @@ def md5sum(*items: Union[str, Path]) -> str:
         elif item.is_dir():
             hash = md5_add_dir(item, hash)
         else:
-            hash.update(str(item).decode())
+            hash.update(str(item).encode())
     return hash.hexdigest()
 
 

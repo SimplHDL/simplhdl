@@ -16,7 +16,7 @@ from ..pyedaa import (File, VerilogSourceFile, VerilogIncludeFile,
 from ..pyedaa.project import Project
 from ..pyedaa.fileset import FileSet
 from ..utils import sh, generate_from_template, md5sum, append_suffix
-from ..flow import FlowFactory, FlowBase
+from ..flow import FlowFactory, FlowBase, FlowCategory, FlowError
 from ..resources.templates import questa as templates
 from ..cocotb import Cocotb
 
@@ -101,13 +101,22 @@ class QuestaFlow(FlowBase):
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
+        self.category = FlowCategory.SIMULATION
         self.hdl_language = None
         self.cocotb = Cocotb(project)
 
     def run(self) -> None:
+        self.validate()
         self.configure()
         self.generate()
         self.execute(self.args.step)
+
+    def validate(self):
+        if not self.project.DefaultDesign.TopLevel:
+            raise FlowError("Simulation top level is not defined")
+        for file in self.project.DefaultDesign.Files():
+            if not file.Path.exists():
+                raise FileNotFoundError(f"{file.Path}: doesn't exits")
 
     def configure(self):
         os.makedirs(self.builddir, exist_ok=True)

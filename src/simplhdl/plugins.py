@@ -38,10 +38,12 @@ def load_external_plugins() -> None:
     """
     Loads external plugins.
     """
-    if sys.version_info < (3, 10):
-        from importlib_metadata import entry_points
-    else:
+    try:
+        print("importlib.metadata")
         from importlib.metadata import entry_points
+        print("importlib.metadata end")
+    except ImportError:
+        from importlib_metadata import entry_points
 
     plugins = entry_points(group='simplhdl.plugins')
     for plugin in plugins:

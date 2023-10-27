@@ -7,6 +7,7 @@ from .pyedaa.project import Project
 from .pyedaa.design import Design
 from .parser import ParserFactory
 from .flow import FlowFactory
+from .generator import GeneratorFactory
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class Simplhdl:
         project = Project("default")
         # TODO: This is a workaround to fix the AddVHDLLibary function in
         #       the Design class
-        project.DefaultDesign = Design("default", project)
+        project.DefaultDesign = Design("default")
         project.DefaultDesign.AddVHDLLibrary(default_library)
         parser = ParserFactory().get_parser(filename)
         fileset = parser.parse(filename, project)
@@ -36,4 +37,7 @@ class Simplhdl:
     def run(self, args):
         builddir = self.builddir.joinpath(args.flow)
         flow = FlowFactory.get_flow(args.flow, args, self._project, builddir)
+        generators = GeneratorFactory.get_generators(args, self._project, builddir)
+        for generator in generators:
+            generator.run(flow.category)
         flow.run()

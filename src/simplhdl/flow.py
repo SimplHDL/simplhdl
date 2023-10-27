@@ -2,6 +2,7 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Callable, Dict
 from abc import ABCMeta, abstractmethod
+from enum import Flag, auto
 
 from .pyedaa.project import Project
 
@@ -13,6 +14,7 @@ class FlowBase(metaclass=ABCMeta):
         self.args = args
         self.project = project
         self.builddir = builddir
+        self.category: FlowCategory = FlowCategory.DEFAULT
 
     @classmethod
     @abstractmethod
@@ -22,6 +24,16 @@ class FlowBase(metaclass=ABCMeta):
     @abstractmethod
     def run(self) -> None:
         pass
+
+
+class FlowCategory(Flag):
+    DEFAULT = auto()
+    SIMULATION = auto()
+    IMPLEMENTATION = auto()
+
+
+class FlowError(Exception):
+    pass
 
 
 class FlowFactory:
