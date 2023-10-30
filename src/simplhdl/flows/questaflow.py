@@ -195,7 +195,7 @@ class QuestaFlow(FlowBase):
             generate_from_template(
                 template,
                 base.with_suffix('.files'),
-                target=base.with_suffix('.fileset'),
+                target=base.with_suffix('.fileset').name,
                 files=[f.Path.absolute() for f in files])
             template = environment.get_template('fileset.j2')
             output = base.with_suffix('.fileset')

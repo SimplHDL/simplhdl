@@ -39,9 +39,7 @@ def load_external_plugins() -> None:
     Loads external plugins.
     """
     try:
-        print("importlib.metadata")
         from importlib.metadata import entry_points
-        print("importlib.metadata end")
     except ImportError:
         from importlib_metadata import entry_points
 
