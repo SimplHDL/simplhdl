@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 from pathlib import Path
 from jinja2 import Template
 from subprocess import Popen, PIPE
@@ -96,3 +96,10 @@ def md5write(*items: Path, filename: Path) -> None:
 
 def append_suffix(path: Path, suffix: str) -> Path:
     return path.with_suffix(path.suffix + suffix)
+
+
+def dict2str(*dictionaries: Dict[str, str]) -> str:
+    dictionary = dict()
+    for d in dictionaries:
+        dictionary.update(d)
+    return ' '.join([f"{k}={v}" for k, v in dictionary.items()])

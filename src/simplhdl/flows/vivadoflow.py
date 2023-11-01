@@ -9,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from ..flow import FlowFactory, FlowBase
 from ..resources.templates import vivado as templates
-from ..utils import sh, generate_from_template
+from ..utils import sh, generate_from_template, dict2str
 from ..pyedaa import (IPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile)
@@ -62,6 +62,7 @@ class VivadoFlow(FlowBase):
             trim_blocks=True)
         template = environment.get_template('project.tcl.j2')
         generate_from_template(template, self.builddir,
+                               dict2str=dict2str,
                                VerilogIncludeFile=VerilogIncludeFile,
                                VerilogSourceFile=VerilogSourceFile,
                                SystemVerilogSourceFile=SystemVerilogSourceFile,

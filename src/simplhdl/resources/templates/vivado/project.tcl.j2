@@ -47,6 +47,16 @@ proc add_reports {} {
 
 create_project -force -part {{project.Part}} {{project.DefaultDesign.Name}} [pwd]
 add_reports
+{% if project.Parameters or project.Generics %}
+foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
+    set_property generic "{{dict2str(project.Parameters, project.Generics)}}" $fileset
+}
+{% endif %}
+{% if project.Defines %}
+foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
+    set_property verilog_define "{{dict2str(project.Defines)}}" $fileset
+}
+{% endif %}
 {% for file in project.DefaultDesign.Files() %}
 {% if file.FileType == VerilogIncludeFile %}
 add_files "{{file.Path}}"
@@ -88,5 +98,11 @@ source_script "{{file.Path}}"
 unset step
 {% endif %}
 {% endfor %}
+{% if project.Parameters or project.Generics %}
+set_property generic "{{dict2str(project.Parameters, project.Generics)}}" [current_fileset]
+{% endif %}
+{% if project.Defines %}
+set_property verilog_define "{{dict2str(project.Defines)}}" [current_fileset]
+{% endif %}
 set_property top {{project.DefaultDesign.DefaultFileSet.TopLevel}} [current_fileset]
 update_compile_order -fileset [current_fileset]
