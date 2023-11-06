@@ -1,3 +1,4 @@
+export PYTHONPYCACHEPREFIX = ./pycache
 ifndef PYTHONPATH
   export PYTHONPATH := {{pythonpath}}
 else
@@ -5,8 +6,5 @@ else
 endif
 export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
 
-ifeq ($(SIMPLHDL_LANGUAGE),verilog)
-  export GPI_EXTRA := $(shell cocotb-config --lib-name-path fli questa):cocotbfli_entry_point
-else ifeq ($(SIMPLHDL_LANGUAGE),vhdl)
-  export GPI_EXTRA := $(shell cocotb-config --lib-name-path vpi questa):cocotbvpi_entry_point
-endif
+VCS_FLAGS += +warn=noVPI-CT-NS +vpi -P pli.tab -load $(shell cocotb-config --lib-name-path vpi vcs)
+VCS_FLAGS += -debug_access+r+w+nomemcbk -debug_region+cell+encrypt -debug_acc+pp+f+dmptf

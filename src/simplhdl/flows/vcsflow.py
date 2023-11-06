@@ -219,13 +219,6 @@ class VcsFlow(FlowBase):
             flags.add('-q')
         if self.args.timescale:
             flags.add(f"-timescale={self.args.timescale}")
-        if self.cocotb.enabled:
-            if self.hdl_language == 'vhdl':
-                raise NotImplementedError("Cocotb with VHDL top is not implemented")
-            else:
-                flags.add(f"+vpi -P pli.tab -load {self.cocotb.lib_name_path('vcs', 'vpi')}")
-                flags.add("-debug_access+r+w+nomemcbk -debug_region+cell+encrypt")
-                flags.add("-debug_acc+pp+f+dmptf")
         for name, value in self.project.Generics.items():
             flags.add(f"-pvalue+{name}={value}")
         for name, value in self.project.Parameters.items():
@@ -257,13 +250,6 @@ class VcsFlow(FlowBase):
         if step == 'compile':
             return
 
-        if self.cocotb.enabled:
-            for toplevel in [t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()]:
-                # TODO: what should happend in Vcs?
-                # self.hdl_language = get_hdl_language(toplevel, directory=self.builddir)
-                # os.environ['SIMPLHDL_LANGUAGE'] = self.hdl_language
-                pass
-
         if self.args.gui:
             command = ['make', 'gui']
         else:
@@ -286,25 +272,6 @@ class VcsFlow(FlowBase):
                 shutil.which('vhdlan') is None or
                 shutil.which('vcs') is None):
             raise Exception("Vcs is not setup correctly")
-
-
-def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
-    """Get language of HDL module by inspecting the compiled libraries
-
-    Args:
-        name (str): Module/Entity name
-        directory (Path): Directory of library locations
-
-    Returns:
-        str: Verilog or VHDL
-    """
-    info = sh(['vdir', '-prop', 'top', name], cwd=directory)
-    if info.startswith('ENTITY'):
-        return "vhdl"
-    elif info.startswith('MODULE'):
-        return "verilog"
-    else:
-        raise Exception(f"Unknow info: {info}")
 
 
 class FileSetWalker:
