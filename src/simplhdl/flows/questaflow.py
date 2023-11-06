@@ -227,12 +227,6 @@ class QuestaFlow(FlowBase):
             flags.add('-quiet')
         if self.args.timescale:
             flags.add(f"-timescale {self.args.timescale}")
-        if self.cocotb.enabled:
-            if self.hdl_language == 'vhdl':
-                flags.add(f"-foreign {self.cocotb.lib_name_path('questa', 'fli')}")
-            else:
-                flags.add(f"-pli {self.cocotb.lib_name_path('questa', 'vpi')}")
-            flags.add("-no_autoacc")
         for name, value in self.project.Generics.items():
             flags.add(f"-g{name}={value}")
         for name, value in self.project.Parameters.items():
@@ -258,12 +252,6 @@ class QuestaFlow(FlowBase):
         sh(['make', 'compile'], cwd=self.builddir, output=True)
         if step == 'compile':
             return
-
-        if self.cocotb.enabled:
-            for toplevel in [t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()]:
-                # TODO: what should happend if no top or both a Verilog and VHDL top
-                self.hdl_language = get_hdl_language(toplevel, directory=self.builddir)
-                os.environ['SIMPLHDL_LANGUAGE'] = self.hdl_language
 
         if self.args.do:
             if Path(self.args.do).exists():
@@ -295,25 +283,6 @@ class QuestaFlow(FlowBase):
                 shutil.which('vlib') is None or
                 shutil.which('vmap') is None):
             raise Exception("Questa is not setup correctly")
-
-
-def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
-    """Get language of HDL module by inspecting the compiled libraries
-
-    Args:
-        name (str): Module/Entity name
-        directory (Path): Directory of library locations
-
-    Returns:
-        str: Verilog or VHDL
-    """
-    info = sh(['vdir', '-prop', 'top', name], cwd=directory)
-    if info.startswith('ENTITY'):
-        return "vhdl"
-    elif info.startswith('MODULE'):
-        return "verilog"
-    else:
-        raise Exception(f"Unknow info: {info}")
 
 
 class FileSetWalker:

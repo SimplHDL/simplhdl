@@ -1,3 +1,8 @@
+HDL_TYPE = $(shell vdir -prop top $(TOPLEVELS) | head -1 | cut -d " " -f1)
+VPI_SO_PATH = $(shell cocotb-config --lib-name-path vpi questa)
+FLI_SO_PATH = $(shell cocotb-config --lib-name-path fli questa)
+
+export PYTHONPYCACHEPREFIX = ./pycache
 ifndef PYTHONPATH
   export PYTHONPATH := {{pythonpath}}
 else
@@ -5,8 +10,10 @@ else
 endif
 export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
 
-ifeq ($(SIMPLHDL_LANGUAGE),verilog)
-  export GPI_EXTRA := $(shell cocotb-config --lib-name-path fli questa):cocotbfli_entry_point
-else ifeq ($(SIMPLHDL_LANGUAGE),vhdl)
-  export GPI_EXTRA := $(shell cocotb-config --lib-name-path vpi questa):cocotbvpi_entry_point
+ifeq ($(HDL_TYPE),MODULE)
+  VSIM_FLAGS += -no_autoacc -pli $(VPI_SO_PATH)
+  export GPI_EXTRA := $(FLI_SO_PATH):cocotbfli_entry_point
+else ifeq ($(HDL_TYPE),ENTITY)
+  VSIM_FLAGS += -no_autoacc -foreign "cocotb_init $(FLI_SO_PATH)"
+  export GPI_EXTRA := $(VPI_SO_PATH):cocotbvpi_entry_point
 endif
