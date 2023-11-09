@@ -20,7 +20,7 @@ class Cocotb:
 
     def module(self) -> Optional[str]:
         set_ = set()
-        modules = self.project.DefaultDesign.TopLevel
+        modules = self.project.DefaultDesign.DefaultFileSet.TopLevel
         for module in modules.split():
             if self.is_python_module(module):
                 # TODO: What if more than one module match?
