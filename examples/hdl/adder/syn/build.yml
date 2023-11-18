@@ -1,0 +1,18 @@
+#%SimplAPI=1.0
+project: default
+part: xc7z007sclg225-2
+top: top
+
+parameters:
+  WIDTH: 4
+
+defines:
+  TECH: ultrascale
+
+dependencies:
+  - ../adder.yml
+
+files:
+  - top.sv
+  - timing.xdc
+  - placement.xdc

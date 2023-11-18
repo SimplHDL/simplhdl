@@ -1,0 +1,10 @@
+#%SimplAPI=1.0
+
+library: work
+top: testbench
+
+dependencies:
+  - ../adder.yml
+
+files:
+  - testbench.sv

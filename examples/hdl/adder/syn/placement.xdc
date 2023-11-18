@@ -1,0 +1,23 @@
+set_property PACKAGE_PIN K11 [get_ports clk_i]
+set_property PACKAGE_PIN R8  [get_ports rst_i]
+set_property PACKAGE_PIN P8  [get_ports {a_i[3]}]
+set_property PACKAGE_PIN P9  [get_ports {a_i[2]}]
+set_property PACKAGE_PIN P10 [get_ports {a_i[1]}]
+set_property PACKAGE_PIN R10 [get_ports {a_i[0]}]
+set_property PACKAGE_PIN M10 [get_ports {b_i[3]}]
+set_property PACKAGE_PIN M11 [get_ports {b_i[2]}]
+set_property PACKAGE_PIN N7  [get_ports {b_i[1]}]
+set_property PACKAGE_PIN N8  [get_ports {b_i[0]}]
+set_property PACKAGE_PIN P14 [get_ports {sum_o[3]}]
+set_property PACKAGE_PIN M9  [get_ports {sum_o[2]}]
+set_property PACKAGE_PIN N9  [get_ports {sum_o[1]}]
+set_property PACKAGE_PIN R7  [get_ports {sum_o[0]}]
+
+set_property IOSTANDARD LVCMOS18 [get_ports *]
+
+set_property DRIVE 12  [get_ports {sum_o[*]}]
+set_property SLEW SLOW [get_ports {sum_o[*]}]
+set_output_delay 0     [get_ports {sum_o[*]}]
+
+set_input_delay 0 [get_ports {a_i[*]}]
+set_input_delay 0 [get_ports {b_i[*]}]
