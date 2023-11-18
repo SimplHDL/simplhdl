@@ -268,10 +268,10 @@ class XsimFlow(FlowBase):
             pass
 
     def is_tool_setup(self) -> None:
-        if (shutil.which('vlogan') is None or
-                shutil.which('vhdlan') is None or
-                shutil.which('vcs') is None):
-            raise Exception("Vcs is not setup correctly")
+        if (shutil.which('xvlog') is None or
+                shutil.which('xvhdl') is None or
+                shutil.which('xsim') is None):
+            raise Exception("Xsim is not setup correctly")
 
 
 def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
