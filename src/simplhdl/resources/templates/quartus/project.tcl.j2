@@ -1,5 +1,7 @@
 project_new -overwrite -part "{{project.Part}}" "{{project.Name}}"
 set_global_assignment -name TOP_LEVEL_ENTITY "{{project.DefaultDesign.DefaultFileSet.TopLevel}}"
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2012
+set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 {% for parameter, value in project.Parameters.items() %}
 set_parameter -name {{parameter}} {{value}}
 {% endfor %}
