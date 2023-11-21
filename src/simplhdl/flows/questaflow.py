@@ -206,14 +206,16 @@ class QuestaFlow(FlowBase):
         return generated
 
     def svlog_flags(self, fileset: FileSet) -> str:
-        library = self.get_library(fileset)
-        quiet = '-quiet' if self.args.verbose == 0 else ''
-        return f"-sv {quiet} -work {library} {self.args.vlog_flags}".strip()
+        return self.vlog_flags(fileset)
 
     def vlog_flags(self, fileset: FileSet) -> str:
-        library = self.get_library(fileset)
-        quiet = '-quiet' if self.args.verbose == 0 else ''
-        return f"{quiet} -work {library} {self.args.vlog_flags}".strip()
+        flags = set()
+        flags.add(f"-work {self.get_library(fileset)}")
+        if self.args.verbose == 0:
+            flags.add('-quiet')
+        for name, value in self.project.Defines.items():
+            flags.add(f"+define+{name}={value}")
+        return ' '.join(list(flags) + [self.args.vlog_flags])
 
     def vcom_flags(self, fileset: FileSet) -> str:
         library = self.get_library(fileset)
@@ -231,10 +233,10 @@ class QuestaFlow(FlowBase):
             flags.add(f"-g{name}={value}")
         for name, value in self.project.Parameters.items():
             flags.add(f"-g{name}={value}")
-        for name, value in self.project.Defines.items():
-            flags.add(f"+define+{name}={value}")
         for name, value in self.project.PlusArgs.items():
             flags.add(f"+{name}={value}")
+        if self.args.gui:
+            flags.add('-voptargs=+acc')
         return ' '.join(list(flags) + [self.args.vsim_flags])
 
     def get_library(self, fileset: FileSet) -> str:

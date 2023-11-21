@@ -29,3 +29,20 @@ class Design(pm.Design):
     def AddVHDLLibrary(self, vhdlLibrary: pm.VHDLLibrary):
         super().AddVHDLLibrary(vhdlLibrary)
         self._vhdlLibraries[vhdlLibrary.Name] = vhdlLibrary
+
+    @property
+    def TopLevel(self) -> str:
+        """Property setting or returning the fileset's toplevel."""
+        top = set()
+        if self._topLevel is not None:
+            for t in self._topLevel.split():
+                top.add(t)
+        for fileset in self._fileSets.values():
+            if fileset.TopLevel is not None:
+                for t in fileset.TopLevel.split():
+                    top.add(t)
+        return ' '.join(top)
+
+    @TopLevel.setter
+    def TopLevel(self, value: str) -> None:
+        self._topLevel = value
