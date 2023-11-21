@@ -1,0 +1,5 @@
+pyTooling
+sphinx
+furo
+sphinx-prompt
+docutils
