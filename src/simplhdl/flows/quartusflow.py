@@ -72,23 +72,25 @@ class QuartusFlow(FlowBase):
             trim_blocks=True)
 
         template = environment.get_template('project.tcl.j2')
-        generate_from_template(template, self.builddir,
-                               VerilogIncludeFile=VerilogIncludeFile,
-                               VerilogSourceFile=VerilogSourceFile,
-                               SystemVerilogSourceFile=SystemVerilogSourceFile,
-                               VHDLSourceFile=VHDLSourceFile,
-                               ConstraintFile=ConstraintFile,
-                               IPSpecificationFile=IPSpecificationFile,
-                               EDIFNetlistFile=EDIFNetlistFile,
-                               NetlistFile=NetlistFile,
-                               SettingFile=SettingFile,
-                               project=self.project)
+        project_updated = generate_from_template(
+            template, self.builddir,
+            VerilogIncludeFile=VerilogIncludeFile,
+            VerilogSourceFile=VerilogSourceFile,
+            SystemVerilogSourceFile=SystemVerilogSourceFile,
+            VHDLSourceFile=VHDLSourceFile,
+            ConstraintFile=ConstraintFile,
+            IPSpecificationFile=IPSpecificationFile,
+            EDIFNetlistFile=EDIFNetlistFile,
+            NetlistFile=NetlistFile,
+            SettingFile=SettingFile,
+            project=self.project)
         template = environment.get_template('run.tcl.j2')
         generate_from_template(template, self.builddir,
                                project=self.project)
         command = "quartus_sh -t project.tcl".split()
         self.is_tool_setup()
-        sh(command, cwd=self.builddir, output=True)
+        if project_updated:
+            sh(command, cwd=self.builddir, output=True)
 
     def execute(self, step: str):
         name = self.project.Name

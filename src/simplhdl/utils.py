@@ -34,7 +34,7 @@ def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False
     return stdout
 
 
-def generate_from_template(template: Template, output: Path, *args, **kwargs) -> None:
+def generate_from_template(template: Template, output: Path, *args, **kwargs) -> bool:
     templatefile = Path(template.filename)
     if output.is_dir():
         filename = output.joinpath(templatefile.name)
@@ -48,10 +48,10 @@ def generate_from_template(template: Template, output: Path, *args, **kwargs) ->
             old_text = f.read()
         if old_text == text:
             logger.debug(f"{output.absolute()}: is already up to date")
-            return
+            return False
     with output.open('w') as f:
         f.write(text)
-
+    return True
 
 def md5_add_file(filename: Path, hash):
     with filename.open("rb") as f:
