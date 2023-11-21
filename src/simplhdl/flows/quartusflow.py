@@ -37,12 +37,25 @@ class QuartusFlow(FlowBase):
             action='store_true',
             help="Open project in Quartus GUI"
         )
+        parser.add_argument(
+            '--archive',
+            action='store_true',
+            help="Archive Quartus project and results"
+        )
 
     def run(self) -> None:
+        if self.args.archive:
+            self.archive()
         self.validate()
         self.configure()
         self.generate()
         self.execute(self.args.step)
+
+    def archive(self) -> None:
+        name = self.project.Name
+        command = f"quartus_sh --archive -use_file_set full_db -revision {name} -no_discover -output {name}.qar {name}"
+        sh(command.split(), output=True, cwd=self.builddir)
+        raise SystemExit
 
     def validate(self):
         if self.project.DefaultDesign.DefaultFileSet.TopLevel is None:
