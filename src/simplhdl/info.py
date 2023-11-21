@@ -89,7 +89,14 @@ class Info(FlowBase):
         for name, value in self.project.PlusArgs.items():
             print(f"  - {name}: {value}")
 
+    def print_toplevels(self):
+        print('TOPLEVELS')
+        for top in self.project.DefaultDesign.TopLevel.split():
+            print(f"  - {top}")
+
     def print_info(self):
+        self.print_toplevels()
+        print()
         self.print_plusargs()
         print()
         self.print_defines()
