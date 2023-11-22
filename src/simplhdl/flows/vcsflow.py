@@ -196,22 +196,40 @@ class VcsFlow(FlowBase):
         return generated
 
     def svlogan_flags(self, fileset: FileSet) -> str:
-        library = self.get_library(fileset)
-        verbosity = '-q' if self.args.verbose == 0 else ''
-        verbosity = '-V' if self.args.verbose == 2 else verbosity
-        return f"-sverilog {verbosity} -work {library} {self.args.vlogan_flags}".strip()
+        flags = set()
+        flags.add('-sverilog')
+        flags.add(f"-work {self.get_library(fileset)}")
+        if self.args.verbose == 0:
+            flags.add('-q')
+        elif self.args.verbose > 1:
+            flags.add('-V')
+        if self.is_verdi():
+            flags.add('-kdb')
+        return ' '.join(list(flags) + [self.args.vlogan_flags]).strip()
 
     def vlogan_flags(self, fileset: FileSet) -> str:
-        library = self.get_library(fileset)
-        verbosity = '-q' if self.args.verbose == 0 else ''
-        verbosity = '-V' if self.args.verbose == 2 else verbosity
-        return f"+v2k {verbosity} -work {library} {self.args.vlogan_flags}".strip()
+        flags = set()
+        flags.add('+v2k')
+        flags.add(f"-work {self.get_library(fileset)}")
+        if self.args.verbose == 0:
+            flags.add('-q')
+        elif self.args.verbose > 1:
+            flags.add('-V')
+        if self.is_verdi():
+            flags.add('-kdb')
+        return ' '.join(list(flags) + [self.args.vlogan_flags]).strip()
 
     def vhdlan_flags(self, fileset: FileSet) -> str:
-        library = self.get_library(fileset)
-        verbosity = '-q' if self.args.verbose == 0 else ''
-        verbosity = '-V' if self.args.verbose == 2 else verbosity
-        return f"-vhdl08 {verbosity} -work {library} {self.args.vhdlan_flags}".strip()
+        flags = set()
+        flags.add('-vhdl08')
+        flags.add(f"-work {self.get_library(fileset)}")
+        if self.args.verbose == 0:
+            flags.add('-q')
+        elif self.args.verbose > 1:
+            flags.add('-V')
+        if self.args.gui and self.is_verdi():
+            flags.add('-kdb')
+        return ' '.join(list(flags) + [self.args.vhdlan_flags]).strip()
 
     def vcs_flags(self) -> str:
         flags = set()
@@ -219,6 +237,10 @@ class VcsFlow(FlowBase):
             flags.add('-q')
         if self.args.timescale:
             flags.add(f"-timescale={self.args.timescale}")
+        if self.args.gui:
+            flags.add('-debug_access+all')
+            if self.is_verdi():
+                flags.add('-kdb')
         for name, value in self.project.Generics.items():
             flags.add(f"-pvalue+{name}={value}")
         for name, value in self.project.Parameters.items():
@@ -272,6 +294,10 @@ class VcsFlow(FlowBase):
                 shutil.which('vhdlan') is None or
                 shutil.which('vcs') is None):
             raise Exception("Vcs is not setup correctly")
+
+    def is_verdi(self) -> bool:
+        return (os.environ.get('SNPS_SIM_DEFAULT_GUI') == 'verdi' or
+                os.environ.get('VERDI_HOME'))
 
 
 class FileSetWalker:
