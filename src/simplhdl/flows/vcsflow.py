@@ -199,6 +199,8 @@ class VcsFlow(FlowBase):
         flags = set()
         flags.add('-sverilog')
         flags.add(f"-work {self.get_library(fileset)}")
+        for name, value in self.project.Defines.items():
+            flags.add(f"+define+{name}={value}")
         if self.args.verbose == 0:
             flags.add('-q')
         elif self.args.verbose > 1:
@@ -211,6 +213,8 @@ class VcsFlow(FlowBase):
         flags = set()
         flags.add('+v2k')
         flags.add(f"-work {self.get_library(fileset)}")
+        for name, value in self.project.Defines.items():
+            flags.add(f"+define+{name}={value}")
         if self.args.verbose == 0:
             flags.add('-q')
         elif self.args.verbose > 1:
@@ -245,8 +249,6 @@ class VcsFlow(FlowBase):
             flags.add(f"-pvalue+{name}={value}")
         for name, value in self.project.Parameters.items():
             flags.add(f"-pvalue+{name}={value}")
-        for name, value in self.project.Defines.items():
-            flags.add(f"+define+{name}={value}")
         for name, value in self.project.PlusArgs.items():
             flags.add(f"+{name}={value}")
         return ' '.join(list(flags) + [self.args.vcs_flags])
