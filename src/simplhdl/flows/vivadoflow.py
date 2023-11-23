@@ -42,6 +42,11 @@ class VivadoFlow(FlowBase):
             action='store_true',
             help="Open project in Vivado GUI"
         )
+        parser.add_argument(
+            '--archive',
+            action='store_true',
+            help="Archive Vivado project and results"
+        )
 
     def is_tool_setup(self) -> None:
         exit: bool = False
@@ -49,7 +54,15 @@ class VivadoFlow(FlowBase):
             logger.error('vivado: not found in PATH')
             exit = True
         if exit:
-            raise FileNotFoundError("Quartus is not setup correctly")
+            raise FileNotFoundError("Vivado is not setup correctly")
+
+    def archive(self) -> None:
+        name = self.project.Name
+        # command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs archive".split()
+        command = f"vivado {name}.xpr -mode batch -source run.tcl -tclargs archive".split()
+        print(command)
+        sh(command, cwd=self.builddir, output=True)
+        raise SystemExit
 
     def setup(self):
         self.is_tool_setup()
@@ -81,7 +94,7 @@ class VivadoFlow(FlowBase):
         sh(command, cwd=self.builddir, output=True)
 
     def execute(self, step: str):
-        name = self.project.DefaultDesign.Name
+        name = self.project.Name
         command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {step}".split()
         sh(command, cwd=self.builddir, output=True)
         # jsonfile = self.builddir.joinpath('runs.json')
@@ -92,8 +105,10 @@ class VivadoFlow(FlowBase):
         #         sh(['bash', 'launch_run.sh', script], output=True, cwd=self.builddir)
 
     def run(self) -> None:
+        if self.args.archive:
+            self.archive()
         if self.args.gui:
-            projectfile = self.builddir.joinpath(f"{self.project.DefaultDesign.Name}.xpr")
+            projectfile = self.builddir.joinpath(f"{self.project.Name}.xpr")
             if not projectfile.exists():
                 self.setup()
                 self.generate()
