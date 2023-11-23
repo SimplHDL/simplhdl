@@ -73,11 +73,14 @@ def md5_add_dir(directory, hash):
 
 def md5sum(*items: Union[str, Path]) -> str:
     hash = md5()
-    for item in [Path(i) for i in items]:
-        if item.is_file():
-            hash = md5_add_file(item, hash)
-        elif item.is_dir():
-            hash = md5_add_dir(item, hash)
+    for item in items:
+        if isinstance(item, Path):
+            if item.is_file():
+                hash = md5_add_file(item, hash)
+            elif item.is_dir():
+                hash = md5_add_dir(item, hash)
+            else:
+                raise Exception(f"Unknown Path item: {item}")
         else:
             hash.update(str(item).encode())
     return hash.hexdigest()
