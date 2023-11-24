@@ -45,7 +45,7 @@ proc add_reports {} {
 }
 
 
-create_project -force -part {{project.Part}} {{project.DefaultDesign.Name}} [pwd]
+create_project -force -part {{project.Part}} {{project.Name}} [pwd]
 add_reports
 {% if project.Parameters or project.Generics %}
 foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
