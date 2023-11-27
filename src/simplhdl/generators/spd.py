@@ -102,6 +102,9 @@ class QuartusIP(GeneratorBase):
                     copytree(str(dir), str(dest.with_suffix('')), dirs_exist_ok=True)
                     md5write(filename.Path, dir, filename=md5file)
                     logger.debug(f"Copy {filename.Path} to {dest}")
+        else:
+            # Non Qartus IP files
+            return filename
         filename._path = dest.absolute()
         return filename
 
