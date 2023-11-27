@@ -29,7 +29,14 @@ switch $step {
 
 set runs [list [current_run -synthesis] [current_run -implementation]]
 launch_runs [current_run] {*}[split $launch_args]
-wait_on_runs $runs
+
+if {[package vsatisfies [package require Vivado] 1.2020.3]} {
+    wait_on_runs $runs
+} else {
+    foreach run $runs {
+        wait_on_run $run
+    }
+}
 
 foreach run $runs {
     set status [get_property STATUS $run]
