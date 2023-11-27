@@ -83,7 +83,7 @@ read_ip "{{file.Path}}"
 read_edif "{{file.Path}}"
 {% endif %}
 {% if file.Path.suffix == '.bd' %}
-reaad_bd "{{file.Path}}"
+read_bd "{{file.Path}}"
 {% endif %}
 {% if file.Path.name.endswith('.bd.tcl') %}
 send_msg_id {SDK PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path}}: this might take some time."
