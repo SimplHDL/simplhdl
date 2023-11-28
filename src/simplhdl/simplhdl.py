@@ -21,6 +21,7 @@ class Simplhdl:
     def create_project(self, filename: Path) -> None:
         default_library = VHDLLibrary("work")
         project = Project("default")
+        project.ReposDir = self.builddir.joinpath('repos')
         # TODO: This is a workaround to fix the AddVHDLLibary function in
         #       the Design class
         project.DefaultDesign = Design("default")

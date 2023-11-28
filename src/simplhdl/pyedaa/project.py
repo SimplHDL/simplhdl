@@ -1,8 +1,9 @@
 import logging
 import pyEDAA.ProjectModel as pm  # type: ignore
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 from pathlib import Path
+from ..repo import Repo
 from .design import Design
 from . import (
     IPSpecificationFile, TCLSourceFile, CocotbPythonFile, SettingFile, HDLIncludeFile,
@@ -19,6 +20,8 @@ class Project(pm.Project):
     _verilogDefines: Dict[str, str]
     _verilogPlusArgs: Dict[str, str]
     _hooks: Dict[str, List[str]]
+    _repos: Dict[str, Repo]
+    _reposdir: Optional[Path]
 
     def __init__(
         self,
@@ -34,6 +37,19 @@ class Project(pm.Project):
         self._verilogDefines = dict()
         self._verilogPlusArgs = dict()
         self._hooks = dict()
+        self._repos = dict()
+        self._reposdir = None
+
+    @property
+    def ReposDir(self) -> Optional[Path]:
+        return self._reposdir
+
+    @ReposDir.setter
+    def ReposDir(self, path: Path) -> None:
+        self._reposdir = path
+
+    def AddRepo(self, name: str, repo: Repo) -> None:
+        self._repos[name] = Repo
 
     @property
     def Name(self) -> str:

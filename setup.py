@@ -33,9 +33,10 @@ setup(
         'edalize',
         'argcomplete',
         'jinja2',
+        'GitPython',
     ],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 3 - Beta',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3 :: Only',
         'Intended Audience :: Developers',
