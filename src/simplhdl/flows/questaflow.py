@@ -140,7 +140,9 @@ class QuestaFlow(FlowBase):
             template,
             self.builddir,
             toplevels=toplevels,
-            libraries=' '.join([lib.Name for lib in self.project.DefaultDesign.VHDLLibraries.values()]))
+            libraries=self.project.DefaultDesign.VHDLLibraries,
+            external_libraries=self.project.DefaultDesign.ExternalVHDLLibraries
+        )
 
         if self.cocotb.enabled:
             template = environment.get_template('cocotb.mk.j2')
@@ -235,6 +237,8 @@ class QuestaFlow(FlowBase):
             flags.add(f"-g{name}={value}")
         for name, value in self.project.PlusArgs.items():
             flags.add(f"+{name}={value}")
+        for name in self.project.DefaultDesign.ExternalVHDLLibraries:
+            flags.add(f"-L {name}")
         if self.args.gui:
             flags.add('-voptargs=+acc')
         return ' '.join(list(flags) + [self.args.vsim_flags])

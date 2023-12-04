@@ -29,28 +29,24 @@ gui: compile
 	$(VSIM) $(VSIM_FLAGS) $(TOPLEVELS) $(GUI_DO_CMD)
 
 
-compile: $(VERILOG_FILESETS) $(VHDL_FILESETS) | $(LIBRARIES)
+compile: $(VERILOG_FILESETS) $(VHDL_FILESETS)
 
-
-$(LIBRARIES):
-	$(VLIB) $@
-	$(VMAP) $@ $@
 
 include dependencies.mk
 include *.files
 
 
-%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files
+%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files | $(LIBRARIES)
 	$(VCOM) $(VCOM_FLAGS) -f $<
 	@touch $@
 
 
-%-verilog.fileset.com: %-verilog.fileset %-verilog.files
+%-verilog.fileset.com: %-verilog.fileset %-verilog.files | $(LIBRARIES)
 	$(VLOG) $(VLOG_FLAGS) -f $<
 	@touch $@
 
 
-%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files
+%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files | $(LIBRARIES)
 	$(VLOG) $(VLOG_FLAGS) -f $<
 	@touch $@
 
