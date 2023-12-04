@@ -73,8 +73,8 @@ read_vhdl -vhdl2008 "{{file.Path}}"
 {% if file.FileType == ConstraintFile %}
 read_xdc "{{file.Path}}"
 {% endif %}
-{% if file.FileType == IPSpecificationFile %}
-read_ip "{{file.Path}}"
+{% if file.FileType == VivadoIPSpecificationFile %}
+import_ip "{{file.Path}}"
 {% endif %}
 {% if file.Path.suffix == '.dcp' %}
 read_ip "{{file.Path}}"

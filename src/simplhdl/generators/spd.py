@@ -9,7 +9,7 @@ from shutil import copy, copytree
 
 from ..pyedaa import (
     File, SystemVerilogSourceFile, VHDLSourceFile, VerilogSourceFile,
-    IPSpecificationFile, HDLLibrary
+    QuartusIPSpecificationFile, HDLLibrary
 )
 from ..pyedaa.fileset import FileSet
 from ..flow import FlowCategory
@@ -73,7 +73,7 @@ class Spd:
 @GeneratorFactory.register('QuartusIP')
 class QuartusIP(GeneratorBase):
 
-    def unpack_ip(self, filename: IPSpecificationFile) -> IPSpecificationFile:
+    def unpack_ip(self, filename: QuartusIPSpecificationFile) -> QuartusIPSpecificationFile:
         ipdir = self.builddir.joinpath('ips')
         dest = ipdir.joinpath(filename.Path.name).with_suffix('.ip')
         md5file = dest.with_suffix('.md5')
@@ -110,9 +110,10 @@ class QuartusIP(GeneratorBase):
 
     def run(self, flowcategory: FlowCategory):
         os.makedirs(self.builddir, exist_ok=True)
-        for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=IPSpecificationFile):
+        for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile):
             newipfile = self.unpack_ip(ipfile)
             if flowcategory == FlowCategory.SIMULATION:
                 spd = Spd(newipfile.Path)
                 for fileset in spd.filesets:
+                    # Add fileset as children to the fileset of the IP
                     newipfile.FileSet._fileSets[fileset.Name] = fileset

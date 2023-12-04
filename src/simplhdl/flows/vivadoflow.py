@@ -10,7 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 from ..flow import FlowFactory, FlowBase
 from ..resources.templates import vivado as templates
 from ..utils import sh, generate_from_template, dict2str
-from ..pyedaa import (IPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
+from ..pyedaa import (VivadoIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile)
 
@@ -81,7 +81,7 @@ class VivadoFlow(FlowBase):
                                SystemVerilogSourceFile=SystemVerilogSourceFile,
                                VHDLSourceFile=VHDLSourceFile,
                                ConstraintFile=ConstraintFile,
-                               IPSpecificationFile=IPSpecificationFile,
+                               VivadoIPSpecificationFile=VivadoIPSpecificationFile,
                                EDIFNetlistFile=EDIFNetlistFile,
                                NetlistFile=NetlistFile,
                                project=self.project)

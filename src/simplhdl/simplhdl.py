@@ -1,10 +1,11 @@
 import logging
 
 from pathlib import Path
-from pyEDAA.ProjectModel import VHDLLibrary  # type: ignore
+from argparse import Namespace
 
 from .pyedaa.project import Project
 from .pyedaa.design import Design
+from .pyedaa.vhdllibrary import VHDLLibrary
 from .parser import ParserFactory
 from .flow import FlowFactory
 from .generator import GeneratorFactory
@@ -14,11 +15,12 @@ logger = logging.getLogger(__name__)
 
 class Simplhdl:
 
-    def __init__(self):
-        self._project = None
-        self.builddir: Path = Path('_build')
+    def __init__(self, args: Namespace):
+        self.args = args
+        self.builddir: Path = args.outputdir
 
-    def create_project(self, filename: Path) -> None:
+    def create_project(self) -> Project:
+        filename = self.args.projectspec
         default_library = VHDLLibrary("work")
         project = Project("default")
         project.ReposDir = self.builddir.joinpath('repos')
@@ -27,18 +29,19 @@ class Simplhdl:
         project.DefaultDesign = Design("default")
         project.DefaultDesign.AddVHDLLibrary(default_library)
         parser = ParserFactory().get_parser(filename)
-        fileset = parser.parse(filename, project)
+        fileset = parser.parse(filename, project, self.args)
         project.DefaultDesign.AddFileSet(fileset)
         project.DefaultDesign.DefaultFileSet = fileset.Name
 
         # TODO: Need some more understading of the project and design classes
         # project.DefaultDesign.TopLevel = fileset.TopLevel
-        self._project = project
+        return project
 
-    def run(self, args):
-        builddir = self.builddir.joinpath(args.flow)
-        flow = FlowFactory.get_flow(args.flow, args, self._project, builddir)
-        generators = GeneratorFactory.get_generators(args, self._project, builddir)
+    def run(self):
+        project = self.create_project()
+        builddir = self.builddir.joinpath(self.args.flow)
+        flow = FlowFactory.get_flow(self.args.flow, self.args, project, builddir)
+        generators = GeneratorFactory.get_generators(self.args, project, builddir)
         for generator in generators:
             generator.run(flow.category)
         flow.run()

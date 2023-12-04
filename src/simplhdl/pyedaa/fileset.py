@@ -1,6 +1,6 @@
 import pyEDAA.ProjectModel as pm  # type: ignore
 
-from typing import Generator
+from typing import Dict, Generator
 
 
 class FileSet(pm.FileSet):
@@ -11,7 +11,6 @@ class FileSet(pm.FileSet):
         elif (fileSet in self.FileSets):
             raise Exception("Design already contains this fileSet.")
         elif (fileSet.Name in self._fileSets.keys()):
-            # raise Exception(f"Design already contains a fileset named '{fileSet.Name}'.")
             return
         self._fileSets[fileSet.Name] = fileSet
 
@@ -28,6 +27,19 @@ class FileSet(pm.FileSet):
         else:
             raise Exception("VHDLLibrary was neither set locally nor globally.")
 
+    @VHDLLibrary.setter
+    def VHDLLibrary(self, value: 'VHDLLibrary') -> None:
+        self._vhdlLibrary = value
+
     def GetFiles(self) -> Generator[pm.File, None, None]:
         for file in self._files:
             yield file
+
+    @property
+    def VHDLLibraries(self) -> Dict[str, 'VHDLLibrary']:
+        libraries = dict()
+        if self._vhdlLibrary is not None:
+            libraries[self._vhdlLibrary.Name] = self._vhdlLibrary
+        for fileset in self.FileSets.values():
+            libraries.update(fileset.VHDLLibraries)
+        return libraries

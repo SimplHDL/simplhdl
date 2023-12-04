@@ -38,6 +38,13 @@ def parse_arguments():
         help="Increase verbosity"
 
     )
+    parser.add_argument(
+        '-o',
+        '--outputdir',
+        default='_build',
+        type=Path,
+        help="output directory for build files"
+    )
     subparsers = parser.add_subparsers(
         title="Flows",
         description="""Different work flows for simulation and implementation
@@ -58,9 +65,9 @@ def main():
         levels = [logging.WARNING, logging.INFO, logging.DEBUG, logging.NOTSET]
         level = levels[min(args.verbose, len(levels)-1)]
         logging.basicConfig(level=level)
-        simpl = Simplhdl()
-        simpl.create_project(args.projectspec)
-        simpl.run(args)
+        simpl = Simplhdl(args)
+        simpl.create_project()
+        simpl.run()
     except (NotImplementedError, FileNotFoundError, CalledShError,
             ParserError, FlowError) as e:
         logger.debug(traceback.format_exc())

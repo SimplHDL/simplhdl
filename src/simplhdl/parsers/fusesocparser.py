@@ -2,7 +2,9 @@ import yaml
 
 from typing import Optional
 from pathlib import Path
-from pyEDAA.ProjectModel import FileSet  # type: ignore
+from argparse import Namespace
+from simplhdl.pyedaa.project import Project
+from simplhdl.pyedaa.fileset import FileSet  # type: ignore
 
 from ..parser import ParserFactory, ParserBase
 
@@ -25,7 +27,7 @@ class FuseSocParser(ParserBase):
             else:
                 return False
 
-    def parse(self, filename: Optional[Path]) -> FileSet:
+    def parse(self, filename: Optional[Path], project: Project, args: Namespace) -> FileSet:
         with open(filename, 'r') as fp:
             try:
                 spec = yaml.safe_load(fp)

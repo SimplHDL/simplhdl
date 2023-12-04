@@ -1,9 +1,15 @@
 import pyEDAA.ProjectModel as pm
 
 from pathlib import Path
+from typing import Dict, List
+
+from pyEDAA.ProjectModel import VHDLLibrary
+from .vhdllibrary import VHDLLibrary
 
 
 class Design(pm.Design):
+
+    __externalVHDLLibraries: Dict[str, VHDLLibrary]
 
     def __init__(
         self,
@@ -25,6 +31,7 @@ class Design(pm.Design):
               svVersion=svVersion)
         self._defaultFileSet = {}
         self._fileSets = {}
+        self.__externalVHDLLibraries = {}
 
     def AddVHDLLibrary(self, vhdlLibrary: pm.VHDLLibrary):
         super().AddVHDLLibrary(vhdlLibrary)
@@ -46,3 +53,17 @@ class Design(pm.Design):
     @TopLevel.setter
     def TopLevel(self, value: str) -> None:
         self._topLevel = value
+
+    def AddExternalVHDLLibrary(self, vhdlLibrary: pm.VHDLLibrary) -> None:
+        self.__externalVHDLLibraries[vhdlLibrary.Name] = vhdlLibrary
+
+    @property
+    def ExternalVHDLLibraries(self) -> Dict[str, VHDLLibrary]:
+        return self.__externalVHDLLibraries
+
+    @property
+    def VHDLLibraries(self) -> Dict[str, VHDLLibrary]:
+        libraries = dict()
+        libraries.update(self._vhdlLibraries)
+        libraries.update(self.DefaultFileSet.VHDLLibraries)
+        return libraries

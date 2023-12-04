@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Callable
 from abc import ABCMeta, abstractmethod
+from argparse import Namespace
+
 from .pyedaa.fileset import FileSet
 from .pyedaa.project import Project
 
@@ -15,7 +17,7 @@ class ParserBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def parse(self, filename: Path, project: Project) -> 'FileSet':
+    def parse(self, filename: Path, project: Project, args: Namespace) -> 'FileSet':
         pass
 
 

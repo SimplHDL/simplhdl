@@ -85,3 +85,11 @@ class SettingFile(pm.SettingFile):
 
 class ConstraintFile(pm.ConstraintFile):
     pass
+
+
+class QuartusIPSpecificationFile(IPSpecificationFile):
+    pass
+
+
+class VivadoIPSpecificationFile(IPSpecificationFile):
+    pass

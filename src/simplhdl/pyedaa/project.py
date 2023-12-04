@@ -39,6 +39,7 @@ class Project(pm.Project):
         self._hooks = dict()
         self._repos = dict()
         self._reposdir = None
+        self._part = None
 
     @property
     def ReposDir(self) -> Optional[Path]:

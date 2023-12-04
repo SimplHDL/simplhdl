@@ -2,6 +2,7 @@ import yaml
 
 from typing import Dict, List, Optional
 from pathlib import Path
+from argparse import Namespace
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.fileset import FileSet  # type: ignore
 from simplhdl.pyedaa.vhdllibrary import VHDLLibrary
@@ -36,7 +37,7 @@ class SimplHdlParser(ParserBase):
                         return True
         return False
 
-    def parse(self, filename: Optional[Path], project: Project) -> FileSet:
+    def parse(self, filename: Optional[Path], project: Project, args: Namespace) -> FileSet:
         if filename is None:
             filenames = Path('.').glob('*.yml')
         else:
