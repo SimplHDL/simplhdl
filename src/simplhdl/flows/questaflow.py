@@ -237,7 +237,10 @@ class QuestaFlow(FlowBase):
             flags.add(f"-g{name}={value}")
         for name, value in self.project.PlusArgs.items():
             flags.add(f"+{name}={value}")
-        for name in self.project.DefaultDesign.ExternalVHDLLibraries:
+        libraries = dict()
+        libraries.update(self.project.DefaultDesign.VHDLLibraries)
+        libraries.update(self.project.DefaultDesign.ExternalVHDLLibraries)
+        for name in libraries.keys():
             flags.add(f"-L {name}")
         if self.args.gui:
             flags.add('-voptargs=+acc')
