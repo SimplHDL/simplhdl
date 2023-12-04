@@ -77,7 +77,7 @@ read_xdc "{{file.Path}}"
 import_ip "{{file.Path}}"
 {% endif %}
 {% if file.Path.suffix == '.dcp' %}
-read_ip "{{file.Path}}"
+add_files "{{file.Path}}"
 {% endif %}
 {% if file.Path.suffix in ['.edif', '.ngc'] %}
 read_edif "{{file.Path}}"
