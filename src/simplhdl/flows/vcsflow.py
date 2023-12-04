@@ -16,7 +16,7 @@ from ..pyedaa import (File, VerilogSourceFile, VerilogIncludeFile,
 from ..pyedaa.project import Project
 from ..pyedaa.fileset import FileSet
 from ..utils import sh, generate_from_template, md5sum, append_suffix
-from ..flow import FlowFactory, FlowBase
+from ..flow import FlowFactory, FlowBase, FlowCategory
 from ..resources.templates import vcs as templates
 from ..cocotb import Cocotb
 
@@ -92,6 +92,7 @@ class VcsFlow(FlowBase):
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
+        self.category = FlowCategory.SIMULATION
         self.hdl_language = None
         self.cocotb = Cocotb(project)
 
@@ -113,9 +114,9 @@ class VcsFlow(FlowBase):
             loader=FileSystemLoader(templatedir),
             trim_blocks=True)
 
-        libraries = [lib.Name for lib in self.project.DefaultDesign.VHDLLibraries.values()]
+        libraries = (list(self.project.DefaultDesign.VHDLLibraries.values()) +
+                     list(self.project.DefaultDesign.ExternalVHDLLibraries.values()))
         defaultlib = 'work'
-
         template = environment.get_template('Makefile.j2')
         generate_from_template(template, self.builddir, vcs_flags=self.vcs_flags(), simv_flags=self.simv_flags())
 
@@ -124,11 +125,12 @@ class VcsFlow(FlowBase):
 
         template = environment.get_template('project.mk.j2')
         toplevels = ' '.join([t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()])
+        libraries = ' '.join([lib.Name for lib in self.project.DefaultDesign.VHDLLibraries.values()])
         generate_from_template(
             template,
             self.builddir,
             toplevels=toplevels,
-            libraries=' '.join(libraries))
+            libraries=libraries)
 
         if self.cocotb.enabled:
             template = environment.get_template('cocotb.mk.j2')

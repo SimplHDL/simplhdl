@@ -1,4 +1,4 @@
 WORK > {{defaultlib}}
 {% for library in libraries %}
-{{library}}: ./{{library}}
+{{library.Name}}: {{library.Path}}
 {% endfor %}
