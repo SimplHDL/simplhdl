@@ -3,7 +3,7 @@ VHDLAN := vhdlan
 VCS := vcs
 SIMV := ./simv
 
-VLOGAN_FLAGS := -full64
+VLOGAN_FLAGS := -full64 +warn=noLNX_OS_VERUN
 VHDLAN_FLAGS := -full64
 VCS_FLAGS := -full64 -licqueue +warn=noLINX_KRNL {{vcs_flags}}
 SIMV_FLAGS := -licqueue {{simv_flags}}
@@ -53,4 +53,4 @@ $(LIBRARIES):
 
 
 clean:
-	rm -rf $(LIBRARIES)
+	rm -rf $(LIBRARIES) *-vhdl.fileset.com *-verilog.fileset.com *-systemverilog.fileset.com simv.daidir csrc
