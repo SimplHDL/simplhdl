@@ -4,6 +4,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional
 from pathlib import Path
 
+from .utils import sh
 
 class Repo(metaclass=ABCMeta):
 
@@ -63,7 +64,9 @@ class Git(Repo):
 class Mercurial(Repo):
 
     def checkout(self):
-        pass
+        if not self._path.exists():
+            self.path.mkdir(parents=True, exist_ok=True)
+            sh(f'hg clone --updaterev {self._ref} {self._url} {self._path}'.split())
 
     def update(self):
         pass
@@ -73,6 +76,9 @@ class Mercurial(Repo):
 
 
 class Subversion(Repo):
+
+    def __init__(self, name: str, url: str, path: Path, ref: Optional[str] = None):
+        raise NotImplementedError("Support for Subversion repositories not implemented.")
 
     def checkout(self):
         pass
