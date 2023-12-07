@@ -139,9 +139,12 @@ class Component:
         if issubclass(fileclass, HDLSourceFile):
             library = VHDLLibrary(logicalname)
             if path.suffix.endswith('vh') and fileclass in [VerilogSourceFile, SystemVerilogSourceFile]:
-                logger.warning(f"Changing {path} to VerilogIncludeFile")
+                logger.info(f"Changing {path} to VerilogIncludeFile")
                 fileclass = VerilogIncludeFile
                 return fileclass(path)
+            elif path.suffix.endswith('.sv') and fileclass in [VerilogSourceFile]:
+                logger.info(f"Changing {path} to SystemVerilogSourceFile")
+                fileclass = SystemVerilogSourceFile
             return fileclass(path, library=library)
         else:
             return fileclass(path)
