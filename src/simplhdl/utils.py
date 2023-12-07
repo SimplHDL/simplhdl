@@ -49,9 +49,11 @@ def generate_from_template(template: Template, output: Path, *args, **kwargs) ->
         if old_text == text:
             logger.debug(f"{output.absolute()}: is already up to date")
             return False
+    logger.debug(f"{output.absolute()}: create new")
     with output.open('w') as f:
         f.write(text)
     return True
+
 
 def md5_add_file(filename: Path, hash):
     with filename.open("rb") as f:
