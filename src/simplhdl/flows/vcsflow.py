@@ -251,13 +251,13 @@ class VcsFlow(FlowBase):
             flags.add(f"-pvalue+{name}={value}")
         for name, value in self.project.Parameters.items():
             flags.add(f"-pvalue+{name}={value}")
-        for name, value in self.project.PlusArgs.items():
-            flags.add(f"+{name}={value}")
         return ' '.join(list(flags) + [self.args.vcs_flags])
 
     def simv_flags(self) -> str:
         flags = set()
         flags.add(f"+ntb_random_seed={self.args.seed}")
+        for name, value in self.project.PlusArgs.items():
+            flags.add(f"+{name}={value}")
         return ' '.join(list(flags) + [self.args.simv_flags])
 
     def get_library(self, fileset: FileSet) -> str:
