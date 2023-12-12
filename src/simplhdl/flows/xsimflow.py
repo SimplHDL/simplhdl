@@ -16,7 +16,7 @@ from ..pyedaa import (File, VerilogSourceFile, VerilogIncludeFile,
 from ..pyedaa.project import Project
 from ..pyedaa.fileset import FileSet
 from ..utils import sh, generate_from_template, md5sum, append_suffix
-from ..flow import FlowFactory, FlowBase
+from ..flow import FlowFactory, FlowBase, FlowCategory
 from ..resources.templates import xsim as templates
 from ..cocotb import Cocotb
 
@@ -92,6 +92,7 @@ class XsimFlow(FlowBase):
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
+        self.category = FlowCategory.SIMULATION
         self.hdl_language = None
         self.cocotb = Cocotb(project)
 
@@ -191,14 +192,21 @@ class XsimFlow(FlowBase):
         return generated
 
     def xsvlog_flags(self, fileset: FileSet) -> str:
-        library = self.get_library(fileset)
-        verbosity = f"-v {self.args.verbose if self.args.verbose < 2 else 2}"
-        return f"-sv {verbosity} -work {library} {self.args.xvlog_flags}".strip()
+        flags = set()
+        flags.add('-sv')
+        flags.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
+        flags.add(f"-work {self.get_library(fileset)}")
+        for name, value in self.project.Defines.items():
+            flags.add(f"-d {name}={value}")
+        return ' '.join(list(flags) + [self.args.xvlog_flags]).strip()
 
     def xvlog_flags(self, fileset: FileSet) -> str:
-        library = self.get_library(fileset)
-        verbosity = f"-v {self.args.verbose if self.args.verbose < 2 else 2}"
-        return f"{verbosity} -work {library} {self.args.xvlog_flags}".strip()
+        flags = set()
+        flags.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
+        flags.add(f"-work {self.get_library(fileset)}")
+        for name, value in self.project.Defines.items():
+            flags.add(f"-d {name}={value}")
+        return ' '.join(list(flags) + [self.args.xvlog_flags]).strip()
 
     def xvhdl_flags(self, fileset: FileSet) -> str:
         library = self.get_library(fileset)

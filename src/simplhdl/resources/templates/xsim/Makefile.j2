@@ -26,7 +26,7 @@ elaborate: compile
 	$(XELAB) $(XELAB_FLAGS) $(TOPLEVELS)
 
 
-compile: $(VERILOG_FILESETS) $(VHDL_FILESETS) | $(LIBRARIES)
+compile: $(VERILOG_FILESETS) $(VHDL_FILESETS)
 
 
 include dependencies.mk
@@ -37,17 +37,17 @@ $(LIBRARIES):
 	mkdir -p $@
 
 
-%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files
+%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files | $(LIBRARIES)
 	$(XVHDL) $(XVHDL_FLAGS) -f $<
 	@touch $@
 
 
-%-verilog.fileset.com: %-verilog.fileset %-verilog.files
+%-verilog.fileset.com: %-verilog.fileset %-verilog.files | $(LIBRARIES)
 	$(XVLOG) $(XVLOG_FLAGS) -f $<
 	@touch $@
 
 
-%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files
+%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files | $(LIBRARIES)
 	$(XVLOG) $(XVLOG_FLAGS) -f $<
 	@touch $@
 
