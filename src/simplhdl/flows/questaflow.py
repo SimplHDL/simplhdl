@@ -292,6 +292,19 @@ class QuestaFlow(FlowBase):
                 shutil.which('vlib') is None or
                 shutil.which('vmap') is None):
             raise Exception("Questa is not setup correctly")
+        # NOTE: If questa's bin directory is appended to the PATH variable,
+        #       the vdir command is found in /bin/vdir which is not the
+        #       Questa vdir command
+        vdir = Path(shutil.which('vdir'))
+        vsim = Path(shutil.which('vsim'))
+        if vdir.parent != vsim.parent:
+            logger.warning(
+                "Questa is not setup correctly. "
+                f"The 'vdir' command is pointing to {vdir}, which "
+                "is not part of the Questa installation. Try to "
+                "prepend Questa to the PATH environment variable."
+            )
+            os.environ['PATH'] = f"{vsim.parent}:{os.environ['PATH']}"
 
 
 class FileSetWalker:
