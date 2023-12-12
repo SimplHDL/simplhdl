@@ -232,7 +232,7 @@ class VcsFlow(FlowBase):
         if self.args.verbose == 0:
             flags.add('-q')
         elif self.args.verbose > 1:
-            flags.add('-V')
+            flags.add('-verbose')
         if self.args.gui and self.is_verdi():
             flags.add('-kdb')
         return ' '.join(list(flags) + [self.args.vhdlan_flags]).strip()
