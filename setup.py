@@ -19,6 +19,7 @@ setup(
         'simplhdl.resources.templates.vivado': ['*'],
         'simplhdl.resources.templates.questa': ['*'],
         'simplhdl.resources.templates.vcs': ['*'],
+        'simplhdl.resources.templates.xsim': ['*'],
     },
     include_package_data=True,
     entry_points={
