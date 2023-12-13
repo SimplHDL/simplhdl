@@ -9,7 +9,7 @@ from shutil import copy, copytree
 
 from ..pyedaa import (
     File, SystemVerilogSourceFile, VHDLSourceFile, VerilogSourceFile,
-    QuartusIPSpecificationFile, HDLLibrary
+    QuartusIPSpecificationFile, HDLLibrary, ConstraintFile, HDLSourceFile
 )
 from ..pyedaa.fileset import FileSet
 from ..flow import FlowCategory
@@ -23,6 +23,7 @@ FILETYPE_MAP = {
     'SYSTEM_VERILOG': SystemVerilogSourceFile,
     'VERILOG': VerilogSourceFile,
     'VHDL': VHDLSourceFile,
+    'SDC_ENTITY': ConstraintFile,
 }
 
 
@@ -53,9 +54,11 @@ class Spd:
         libraryname = properties['library']
         if libraryname not in self.libraries:
             self.libraries[libraryname] = HDLLibrary(libraryname)
-        fileclass = FILETYPE_MAP.get(properties['type'])
-        # print(properties['type'])
-        return fileclass(path=path, library=self.libraries[libraryname])
+        fileclass = FILETYPE_MAP.get(properties['type'], File)
+        if issubclass(fileclass, HDLSourceFile):
+            return fileclass(path=path, library=self.libraries[libraryname])
+        else:
+            return fileclass(path=path)
 
     @property
     def filesets(self):
@@ -64,7 +67,10 @@ class Spd:
             name = f"{self._filename}.{library.Name}"
             fileset = FileSet(name, vhdlLibrary=library)
             for file in self._files:
-                if file.Library == library:
+                if isinstance(file, HDLSourceFile):
+                    if file.Library == library:
+                        fileset.AddFile(file)
+                else:
                     fileset.AddFile(file)
             filesets.append(fileset)
         return filesets
