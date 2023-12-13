@@ -242,8 +242,13 @@ class QuestaFlow(FlowBase):
         libraries.update(self.project.DefaultDesign.ExternalVHDLLibraries)
         for name in libraries.keys():
             flags.add(f"-L {name}")
+        if self.args.gui or self.cocotb.enabled:
+            flags.add('-voptargs="+acc=npr"')
         if self.args.gui:
-            flags.add('-voptargs=+acc')
+            flags.add('-onfinish final')
+        else:
+            flags.add('-onfinish exit')
+
         return ' '.join(list(flags) + [self.args.vsim_flags])
 
     def get_library(self, fileset: FileSet) -> str:

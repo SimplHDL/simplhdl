@@ -1,0 +1,19 @@
+package require Vivado
+
+set files [list \
+{% for file in project.DefaultDesign.Files() %}
+{% if file.Path.name.endswith('.steps.tcl') %}
+{{file.Path}} \
+{% endif %}
+{% endfor %}
+]
+
+proc source_script {filename} {
+    if {[catch {source -notrace $filename} err]} {
+        send_msg_id {SDK SOURCE-1} {ERROR} "Error sourcing $filename: $err"
+    }
+}
+
+foreach file $files {
+    source_script $file
+}

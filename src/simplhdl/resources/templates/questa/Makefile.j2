@@ -16,7 +16,7 @@ include project.mk
 .PHONY: clean compile simulate gui
 
 ifeq ($(DO_CMD),)
-DO_CMD := -do "run -all; quit"
+DO_CMD := -do "run -all"
 else
 GUI_DO_CMD := $(DO_CMD)
 endif
