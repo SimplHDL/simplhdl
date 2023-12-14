@@ -1,8 +1,11 @@
+import os
 import sys
 import logging
 
 from typing import Dict, List, Optional, Union
 from pathlib import Path
+from contextlib import contextmanager
+from time import sleep
 from jinja2 import Template
 from subprocess import Popen, PIPE
 from hashlib import md5
@@ -108,3 +111,21 @@ def dict2str(*dictionaries: Dict[str, str]) -> str:
     for d in dictionaries:
         dictionary.update(d)
     return ' '.join([f"{k}={v}" for k, v in dictionary.items()])
+
+
+def mkdir(name: Path) -> bool:
+    try:
+        name.mkdir(parents=True)
+        return True
+    except FileExistsError:
+        return False
+
+
+@contextmanager
+def lock(directory: Path) -> Path:
+    while not mkdir(directory):
+        sleep(1)
+    try:
+        yield directory
+    finally:
+        directory.rmdir()

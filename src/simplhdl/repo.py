@@ -4,7 +4,8 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional
 from pathlib import Path
 
-from .utils import sh
+from .utils import sh, lock
+
 
 class Repo(metaclass=ABCMeta):
 
@@ -45,11 +46,12 @@ class Git(Repo):
     _repo: git.Repo = None
 
     def checkout(self):
-        if self._path.exists():
-            self._repo = git.Repo(self._path)
-        else:
-            self._repo = git.Repo.clone_from(self._url, self._path)
-            self._repo.git.checkout(self._ref)
+        with lock(self._path.with_suffix('.lock')):
+            if self._path.exists():
+                self._repo = git.Repo(self._path)
+            else:
+                self._repo = git.Repo.clone_from(self._url, self._path)
+                self._repo.git.checkout(self._ref)
 
     def update(self):
         pass
@@ -64,9 +66,10 @@ class Git(Repo):
 class Mercurial(Repo):
 
     def checkout(self):
-        if not self._path.exists():
-            self.path.mkdir(parents=True, exist_ok=True)
-            sh(f'hg clone --updaterev {self._ref} {self._url} {self._path}'.split())
+        with lock(self._path.with_suffix('.lock')):
+            if not self._path.exists():
+                self.path.mkdir(parents=True, exist_ok=True)
+                sh(f'hg clone --updaterev {self._ref} {self._url} {self._path}'.split())
 
     def update(self):
         pass
