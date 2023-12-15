@@ -55,6 +55,13 @@ class QuestaFlow(FlowBase):
             help="Extra flags for Questa vsim command"
         )
         parser.add_argument(
+            '--vopt-flags',
+            default='',
+            action='store',
+            metavar='FLAGS',
+            help="Extra flags for Questa vopt command"
+        )
+        parser.add_argument(
             '--vmap-flags',
             default='',
             action='store',
@@ -132,7 +139,14 @@ class QuestaFlow(FlowBase):
             trim_blocks=True)
 
         template = environment.get_template('Makefile.j2')
-        generate_from_template(template, self.builddir, vsim_flags=self.vsim_flags())
+        generate_from_template(
+            template, self.builddir,
+            vsim_flags=self.vsim_flags(),
+            vopt_flags=self.vopt_flags(),
+            vmap_flags=self.vmap_flags(),
+            # vlog_flags=self.vlog_flags(),
+            # vcom_flags=self.vcom_flags()
+        )
 
         template = environment.get_template('project.mk.j2')
         toplevels = ' '.join([t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()])
@@ -224,26 +238,36 @@ class QuestaFlow(FlowBase):
         quiet = '-quiet' if self.args.verbose == 0 else ''
         return f"-2008 {quiet} -work {library} {self.args.vcom_flags}".strip()
 
-    def vsim_flags(self) -> str:
+    def vmap_flags(self) -> str:
         flags = set()
-        flags.add(f"-sv_seed {self.args.seed}")
+        return ' '.join(list(flags) + [self.args.vmap_flags])
+
+    def vopt_flags(self) -> str:
+        flags = set()
         if self.args.verbose == 0:
             flags.add('-quiet')
+        libraries = dict()
+        libraries.update(self.project.DefaultDesign.VHDLLibraries)
+        libraries.update(self.project.DefaultDesign.ExternalVHDLLibraries)
+        for name in libraries.keys():
+            flags.add(f"-L {name}")
         if self.args.timescale:
             flags.add(f"-timescale {self.args.timescale}")
         for name, value in self.project.Generics.items():
             flags.add(f"-g{name}={value}")
         for name, value in self.project.Parameters.items():
             flags.add(f"-g{name}={value}")
+        if self.args.gui or self.cocotb.enabled:
+            flags.add('+acc=npr')
+        return ' '.join(list(flags) + [self.args.vopt_flags])
+
+    def vsim_flags(self) -> str:
+        flags = set()
+        flags.add(f"-sv_seed {self.args.seed}")
+        if self.args.verbose == 0:
+            flags.add('-quiet')
         for name, value in self.project.PlusArgs.items():
             flags.add(f"+{name}={value}")
-        libraries = dict()
-        libraries.update(self.project.DefaultDesign.VHDLLibraries)
-        libraries.update(self.project.DefaultDesign.ExternalVHDLLibraries)
-        for name in libraries.keys():
-            flags.add(f"-L {name}")
-        if self.args.gui or self.cocotb.enabled:
-            flags.add('-voptargs="+acc=npr"')
         if self.args.gui:
             flags.add('-onfinish final')
         else:
