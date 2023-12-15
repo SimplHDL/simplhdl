@@ -93,3 +93,7 @@ class QuartusIPSpecificationFile(IPSpecificationFile):
 
 class VivadoIPSpecificationFile(IPSpecificationFile):
     pass
+
+
+class SystemRDLSourceFile(File):
+    pass

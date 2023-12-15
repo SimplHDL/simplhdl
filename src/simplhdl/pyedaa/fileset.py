@@ -43,3 +43,11 @@ class FileSet(pm.FileSet):
         for fileset in self.FileSets.values():
             libraries.update(fileset.VHDLLibraries)
         return libraries
+
+    def InsertFile(self, position: int, file: pm.File) -> None:
+        # file.FileSet = self
+        self._files.insert(position, file)
+
+    def InsertFileAfter(self, listfile: pm.File, newfile: pm.File) -> None:
+        position = self._files.index(listfile)
+        self.InsertFile(position, newfile)
