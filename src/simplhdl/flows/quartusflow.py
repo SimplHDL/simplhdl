@@ -11,7 +11,7 @@ from jinja2 import Environment, FileSystemLoader
 from ..flow import FlowFactory, FlowBase
 from ..resources.templates import quartus as templates
 from ..utils import sh, generate_from_template
-from ..pyedaa import (IPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
+from ..pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile, SettingFile)
 
@@ -79,7 +79,7 @@ class QuartusFlow(FlowBase):
             SystemVerilogSourceFile=SystemVerilogSourceFile,
             VHDLSourceFile=VHDLSourceFile,
             ConstraintFile=ConstraintFile,
-            IPSpecificationFile=IPSpecificationFile,
+            QuartusIPSpecificationFile=QuartusIPSpecificationFile,
             EDIFNetlistFile=EDIFNetlistFile,
             NetlistFile=NetlistFile,
             SettingFile=SettingFile,
