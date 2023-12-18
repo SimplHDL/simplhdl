@@ -3,8 +3,8 @@ VHDLAN := vhdlan
 VCS := vcs
 SIMV := ./simv
 
-VLOGAN_FLAGS := -full64 +warn=noLNX_OS_VERUN
-VHDLAN_FLAGS := -full64
+VLOGAN_FLAGS := -full64 +warn=noLNX_OS_VERUN {{vlogan_flags}}
+VHDLAN_FLAGS := -full64 {{vhdlan_flags}}
 VCS_FLAGS := -full64 -licqueue +warn=noLINX_KRNL {{vcs_flags}}
 SIMV_FLAGS := -licqueue {{simv_flags}}
 

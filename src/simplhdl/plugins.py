@@ -5,6 +5,7 @@ import simplhdl
 import simplhdl.parsers
 import simplhdl.flows
 import simplhdl.generators
+# import simplhdl.flows.vcs.vcsflow
 
 from typing import Iterator
 from pkgutil import iter_modules, ModuleInfo
@@ -24,6 +25,7 @@ def load_builtin_plugins() -> None:
     Loads builtin plugins.
     """
     import_module('simplhdl.info')
+    import_module('simplhdl.flows.vcs.vcsflow')
     packages = chain(
         iter_namespace(simplhdl.parsers),
         iter_namespace(simplhdl.flows),

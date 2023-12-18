@@ -26,6 +26,14 @@ class FlowBase(metaclass=ABCMeta):
         pass
 
 
+class SimulationFlow(FlowBase):
+    pass
+
+
+class ImplementationFlow(FlowBase):
+    pass
+
+
 class FlowCategory(Flag):
     DEFAULT = auto()
     SIMULATION = auto()

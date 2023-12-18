@@ -2,3 +2,6 @@ WORK > {{defaultlib}}
 {% for library in libraries %}
 {{library.Name}}: {{library.Path}}
 {% endfor %}
+{% for library in external_libraries %}
+{{library.Name}}: {{library.Path}}
+{% endfor %}
