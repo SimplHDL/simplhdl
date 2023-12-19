@@ -1,4 +1,3 @@
-import sys
 import logging
 
 import simplhdl
@@ -26,6 +25,7 @@ def load_builtin_plugins() -> None:
     """
     import_module('simplhdl.info')
     import_module('simplhdl.flows.vcs.vcsflow')
+    import_module('simplhdl.flows.questa.questaflow')
     packages = chain(
         iter_namespace(simplhdl.parsers),
         iter_namespace(simplhdl.flows),

@@ -1,5 +1,5 @@
 from ..flow import FlowFactory
-from .questaflow import QuestaFlow
+from .questa.questaflow import QuestaFlow
 
 
 @FlowFactory.register('modelsim')

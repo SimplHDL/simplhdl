@@ -4,7 +4,7 @@ VHDL_FILESETS := $(addsuffix .com,$(wildcard *-vhdl.fileset))
 VERILOG_FILESETS := $(addsuffix .com,$(wildcard *verilog.fileset))
 
 {% set libpaths = [] %}
-{% for library in libraries.values() %}
+{% for library in libraries %}
 {{ libpaths.append(library.Path) or '' }}
 {{library.Path}}:
 	$(VLIB) {{library.Name}}
@@ -12,7 +12,7 @@ VERILOG_FILESETS := $(addsuffix .com,$(wildcard *verilog.fileset))
 
 {% endfor %}
 
-{% for library in external_libraries.values() %}
+{% for library in external_libraries %}
 {{ libpaths.append(library.Name + ".map") or '' }}
 {{library.Name}}.map:
 	$(VMAP) {{library.Name}} {{library.Path}}
