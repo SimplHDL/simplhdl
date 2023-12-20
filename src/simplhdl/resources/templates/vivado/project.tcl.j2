@@ -34,13 +34,16 @@ proc set_hooks {filename} {
 }
 
 proc add_reports {} {
-    foreach run [get_runs -filter {IS_IMPLEMENTATION==true}] {
-        set reportName "${run}__route_report_cdc"
-        create_report_config -report_name $reportName -step route_design -report_type report_cdc -run $run
-        set_property DISPLAY_NAME {CDC - Route Design} [get_report_configs -of_objects $run $reportName]
-        set reportName "${run}__post_route_phys_opt_report_cdc"
-        create_report_config -report_name $reportName -step post_route_phys_opt_design -report_type report_cdc -run $run
-        set_property DISPLAY_NAME {CDC - Route Design} [get_report_configs -of_objects $run $reportName]
+    # Report strategies are only available from Vivado 2021.1
+    if {[package vsatisfies 1.[version -s] 1.2021.1]} {
+        foreach run [get_runs -filter {IS_IMPLEMENTATION==true}] {
+            set reportName "${run}__route_report_cdc"
+            create_report_config -report_name $reportName -step route_design -report_type report_cdc -run $run
+            set_property DISPLAY_NAME {CDC - Route Design} [get_report_configs -of_objects $run $reportName]
+            set reportName "${run}__post_route_phys_opt_report_cdc"
+            create_report_config -report_name $reportName -step post_route_phys_opt_design -report_type report_cdc -run $run
+            set_property DISPLAY_NAME {CDC - Route Design} [get_report_configs -of_objects $run $reportName]
+        }
     }
 }
 
