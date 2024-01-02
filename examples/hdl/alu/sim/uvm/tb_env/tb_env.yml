@@ -1,0 +1,12 @@
+#%SimplAPI=1.0
+
+dependencies:
+  - ../alu_vip/alu_vip.yml
+
+files:
+  - seq_lib/base_seq.svh
+  - seq_lib/add_seq.svh
+  - env/env.svh
+  - test/base_test.svh
+  - test/test_add.svh
+  - tb_env.sv

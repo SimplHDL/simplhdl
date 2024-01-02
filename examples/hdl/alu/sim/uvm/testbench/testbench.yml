@@ -1,0 +1,9 @@
+#%SimplAPI=1.0
+
+dependencies:
+  - ../../../alu.yml
+  - ../tb_env/tb_env.yml
+
+files:
+  - alu_if.sv
+  - testbench.sv

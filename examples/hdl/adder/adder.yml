@@ -1,3 +1,3 @@
-#%SIMPL-1.0
+#%SimplAPI=1.0
 files:
   - hdl/adder.sv

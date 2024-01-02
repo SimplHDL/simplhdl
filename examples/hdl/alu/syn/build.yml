@@ -1,0 +1,12 @@
+#%SimplAPI=1.0
+
+project: alu
+part: xc7z007sclg225-2
+top: alu
+
+dependencies:
+  - ../alu.yml
+
+files:
+  - timing.xdc
+  - placement.xdc

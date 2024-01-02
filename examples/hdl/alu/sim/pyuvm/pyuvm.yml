@@ -1,0 +1,9 @@
+#%SimplAPI=1.0
+
+top: alu pyuvm_test
+
+dependencies:
+  - ../../alu.yml
+
+files:
+  - pyuvm_test.py

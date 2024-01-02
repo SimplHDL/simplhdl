@@ -1,0 +1,6 @@
+#%SimplAPI=1.0
+files:
+  - hdl/alu.sv
+  - hdl/add.sv
+  - hdl/sub.sv
+  - hdl/mul.sv

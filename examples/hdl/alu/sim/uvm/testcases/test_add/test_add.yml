@@ -1,0 +1,9 @@
+#%SimplAPI=1.0
+
+dependencies:
+  - ../../testbench/testbench.yml
+
+top: testbench
+
+plusargs:
+  UVM_TESTNAME: tb_env::test_add
