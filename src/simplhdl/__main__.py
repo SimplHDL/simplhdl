@@ -66,7 +66,6 @@ def main():
         level = levels[min(args.verbose, len(levels)-1)]
         logging.basicConfig(level=level)
         simpl = Simplhdl(args)
-        simpl.create_project()
         simpl.run()
     except (NotImplementedError, FileNotFoundError, CalledShError,
             ParserError, FlowError) as e:

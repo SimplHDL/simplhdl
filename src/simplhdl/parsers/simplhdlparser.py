@@ -39,13 +39,13 @@ class SimplHdlParser(ParserBase):
 
     def parse(self, filename: Optional[Path], project: Project, args: Namespace) -> FileSet:
         if filename is None:
-            filenames = Path('.').glob('*.yml')
+            files = Path('.').glob('*.yml')
         else:
-            filenames = [filename]
+            files = [filename]
 
-        for filename in filenames:
-            if self.is_valid_format(filename):
-                return self.parse_core(filename, project)
+        for file in files:
+            if self.is_valid_format(file):
+                return self.parse_core(file, project)
 
     def parse_core(self, filename: Path, project: Project) -> FileSet:
         self._core_stack.append(filename)
@@ -54,7 +54,7 @@ class SimplHdlParser(ParserBase):
         fileset = FileSet(str(filename), vhdlLibrary=VHDLLibrary(spec.get('library', 'work')))
         for corefile in spec.get('dependencies', list()):
             corefile = self.path(corefile)
-            if corefile in self._core_visited:
+            if corefile.absolute() in self._core_visited:
                 continue
             subfileset = self.parse_core(corefile, project)
             fileset.AddFileSet(subfileset)
@@ -86,7 +86,7 @@ class SimplHdlParser(ParserBase):
         return fileset
 
     def read_spec(self, filename: Path) -> Dict:
-        self._core_visited.append(filename)
+        self._core_visited.append(filename.absolute())
         with filename.open() as fp:
             try:
                 return yaml.safe_load(fp)
