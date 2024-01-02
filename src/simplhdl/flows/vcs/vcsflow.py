@@ -131,6 +131,8 @@ class VcsFlow(SimulationFlow):
             flags.add('-q')
         elif self.args.verbose > 1:
             flags.add('-V')
+        if self.is_uvm():
+            flags.add('-ntb_opts uvm')
         if self.is_verdi():
             flags.add('-kdb')
         return ' '.join(list(flags) + [self.args.vlogan_flags]).strip()
@@ -151,6 +153,8 @@ class VcsFlow(SimulationFlow):
             flags.add('-q')
         if self.args.timescale:
             flags.add(f"-timescale={self.args.timescale}")
+        if self.is_uvm():
+            flags.add('-ntb_opts uvm')
         if self.args.gui:
             flags.add('-debug_access+all')
             if self.is_verdi():

@@ -2,6 +2,11 @@ VLOGAN := vlogan
 VHDLAN := vhdlan
 VCS := vcs
 SIMV := ./simv
+{% if uvm %}
+UVM := uvm.com
+{% else %}
+UVM :=
+{% endif %}
 
 VLOGAN_FLAGS := -full64 +warn=noLNX_OS_VERUN {{vlogan_flags}}
 VHDLAN_FLAGS := -full64 {{vhdlan_flags}}
@@ -37,17 +42,22 @@ $(LIBRARIES):
 	mkdir -p $@
 
 
-%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files | $(LIBRARIES)
+$(UVM):
+	$(VLOGAN) $(VLOGAN_FLAGS)
+	@touch $@
+
+
+%-vhdl.fileset.com: %-vhdl.fileset %-vhdl.files | $(LIBRARIES) $(UVM)
 	$(VHDLAN) $(VHDLAN_FLAGS) -f $<
 	@touch $@
 
 
-%-verilog.fileset.com: %-verilog.fileset %-verilog.files | $(LIBRARIES)
+%-verilog.fileset.com: %-verilog.fileset %-verilog.files | $(LIBRARIES) $(UVM)
 	$(VLOGAN) $(VLOGAN_FLAGS) -f $<
 	@touch $@
 
 
-%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files | $(LIBRARIES)
+%-systemverilog.fileset.com: %-systemverilog.fileset %-systemverilog.files | $(LIBRARIES) $(UVM)
 	$(VLOGAN) $(VLOGAN_FLAGS) -f $<
 	@touch $@
 

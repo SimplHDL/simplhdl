@@ -58,6 +58,7 @@ class SimulationFlow(FlowBase):
         globals['toplevels'] = ' '.join(
             [t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()])
         globals['pythonpath'] = self.cocotb.pythonpath
+        globals['uvm'] = self.is_uvm()
         return globals
 
     def generate(self):
@@ -128,6 +129,12 @@ class SimulationFlow(FlowBase):
             generate_from_template(template, output, flags=flags, includes=includes, files=files)
             generated.append(output)
         return generated
+
+    def is_uvm(self):
+        for plusarg in self.project.PlusArgs.keys():
+            if plusarg.startswith('UVM_'):
+                return True
+        return False
 
 
 class FileSetWalker:
