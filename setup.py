@@ -20,6 +20,7 @@ setup(
         'simplhdl.resources.templates.questa': ['*'],
         'simplhdl.resources.templates.vcs': ['*'],
         'simplhdl.resources.templates.xsim': ['*'],
+        'simplhdl.resources.templates.rivierapro': ['*'],
     },
     include_package_data=True,
     entry_points={

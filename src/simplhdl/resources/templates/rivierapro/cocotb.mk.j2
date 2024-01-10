@@ -1,0 +1,22 @@
+HDL_TYPE = $(shell $(VDIR) $(TOPLEVELS) | head -1 | cut -d " " -f3)
+VPI_SO_PATH = $(shell cocotb-config --lib-name-path vpi riviera)
+VHPI_SO_PATH = $(shell cocotb-config --lib-name-path vhpi riviera)
+
+VLOG_FLAGS += -pli libgpi
+VSIM_FLAGS +=  +access +rw
+
+export PYTHONPYCACHEPREFIX = ./pycache
+ifndef PYTHONPATH
+  export PYTHONPATH := {{pythonpath}}
+else
+  export PYTHONPATH := {{pythonpath}}:$(PYTHONPATH)
+endif
+export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
+
+ifeq ($(HDL_TYPE),module:)
+  VSIM_FLAGS += -pli $(VPI_SO_PATH)
+  export GPI_EXTRA := $(VHPI_SO_PATH):cocotbvhpi_entry_point
+else ifeq ($(HDL_TYPE),entity:)
+  VSIM_FLAGS += -loadvhpi $(VHPI_SO_PATH):vhpi_startup_routines_bootstrap
+  export GPI_EXTRA := $(VPI_SO_PATH):cocotbvpi_entry_point
+endif

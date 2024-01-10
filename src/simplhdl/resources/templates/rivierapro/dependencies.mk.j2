@@ -1,0 +1,6 @@
+{% for target, dependencies in rules.items() %}
+{{target}}: \
+{% for dependency in dependencies %}
+  {{dependency}} {{ '\\' if not loop.last else '' }}
+{% endfor %}
+{% endfor %}
