@@ -21,7 +21,7 @@ class agent extends uvm_agent;
         super.build_phase(phase);
         m_monitor = alu_vip::monitor::type_id::create("m_monitor", this);
 
-        if(get_is_active() == UVM_ACTIVE) begin
+        if(this.get_is_active() == UVM_ACTIVE) begin
             m_sequencer = uvm_sequencer#(alu_vip::sequence_item)::type_id::create("m_sequencer", this);
             m_driver = alu_vip::driver::type_id::create("m_driver", this);
         end
@@ -32,7 +32,7 @@ class agent extends uvm_agent;
 
 
     function void connect_phase(uvm_phase phase);
-        if(get_is_active() == UVM_ACTIVE) begin
+        if(this.get_is_active() == UVM_ACTIVE) begin
             m_driver.seq_item_port.connect(m_sequencer.seq_item_export);
         end
     endfunction : connect_phase

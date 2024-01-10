@@ -19,14 +19,4 @@ class base_test extends uvm_test;
         m_printer.knobs.depth = 3;
     endfunction : build_phase
 
-   function void report_phase(uvm_phase phase);
-      //uvm_report_server svr;
-      //svr = _global_reporter.get_report_server();
-      //if (svr.get_severity_count(UVM_FATAL) +
-          //svr.get_severity_count(UVM_ERROR) == 0)
-         //$write("** UVM TEST PASSED **\n");
-      //else
-         //$write("!! UVM TEST FAILED !!\n");
-   endfunction
-
 endclass: base_test

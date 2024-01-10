@@ -1,4 +1,4 @@
-class monitor extends uvm_monitor #(alu_vip::sequence_item);
+class monitor extends uvm_monitor;
 
     `uvm_component_utils(alu_vip::monitor)
 

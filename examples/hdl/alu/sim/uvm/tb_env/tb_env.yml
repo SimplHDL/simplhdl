@@ -6,6 +6,7 @@ dependencies:
 files:
   - seq_lib/base_seq.svh
   - seq_lib/add_seq.svh
+  - env/scoreboard.svh
   - env/env.svh
   - test/base_test.svh
   - test/test_add.svh

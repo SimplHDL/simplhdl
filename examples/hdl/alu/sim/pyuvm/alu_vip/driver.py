@@ -25,8 +25,6 @@ class Driver(uvm_driver):
         await RisingEdge(self.vif.clock)
         while True:
             tr = await self.seq_item_port.get_next_item()
-            while self.vif.busy == 1:
-                await RisingEdge(self.vif.clock)
             rsp = await self.drive(tr)
             self.seq_item_port.item_done(rsp)
 
@@ -37,6 +35,6 @@ class Driver(uvm_driver):
         self.vif.a.value = trans.a
         self.vif.b.value = trans.b
         self.vif.cmd.value = trans.cmd
-        if self.vif.ready.value == 0:
-            await RisingEdge(self.vif.ready)
+        while not self.vif.ready.value:
+            await RisingEdge(self.vif.clock)
         self.vif.valid.value = 0

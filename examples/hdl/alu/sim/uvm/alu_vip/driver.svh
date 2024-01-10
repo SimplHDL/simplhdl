@@ -35,7 +35,7 @@ class driver extends uvm_driver #(alu_vip::sequence_item);
     endtask : run_phase
 
 
-    virtual protected task drive (alu_vip::sequence_item trans);
+    virtual task drive (alu_vip::sequence_item trans);
         if (trans.transmit_delay > 0) begin
             repeat(trans.transmit_delay) @(this.vif.active_ck);
         end
@@ -43,7 +43,7 @@ class driver extends uvm_driver #(alu_vip::sequence_item);
         this.vif.active_ck.a      <= trans.a;
         this.vif.active_ck.b      <= trans.b;
         this.vif.active_ck.cmd    <= trans.cmd;
-        wait(this.vif.active_ck.ready) ;
+        wait(this.vif.active_ck.ready);
         this.vif.active_ck.valid  <= 0;
         //      @(this.vif.active_ck);
     endtask : drive

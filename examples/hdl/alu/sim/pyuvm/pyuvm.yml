@@ -1,9 +1,9 @@
 #%SimplAPI=1.0
 
-top: alu pyuvm_test
+top: alu testbench
 
 dependencies:
   - ../../alu.yml
 
 files:
-  - pyuvm_test.py
+  - testbench.py

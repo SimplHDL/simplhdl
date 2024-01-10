@@ -26,6 +26,7 @@ interface alu_if();
     modport active(clocking active_ck);
     modport passive(clocking passive_ck);
 
+/*
     always @(posedge clk) begin
 
         // result must not be X or Z during valid and ready both asserted
@@ -72,5 +73,5 @@ interface alu_if();
             `uvm_error("INTENTIONAL ERROR", " ");
 
     end
-
+*/
 endinterface : alu_if

@@ -5,7 +5,6 @@ module alu #(
     input  logic             rst_i,
     input  logic             valid_i,
     output logic             ready_o,
-    output logic             busy_o,
     input  logic [3:0]       cmd_i,
     input  logic [WIDTH-1:0] a_i,
     input  logic [WIDTH-1:0] b_i,
@@ -25,6 +24,7 @@ module alu #(
     } state_e;
     state_e current_state, next_state;
 
+    logic ready;
     logic [WIDTH-1:0] add_result;
     logic [WIDTH-1:0] sub_result;
     logic [WIDTH-1:0] mul_result;
@@ -40,55 +40,53 @@ module alu #(
     always_comb begin
         case (current_state)
             IDLE: begin
-                ready_o = 1'b0;
+                ready = 1'b0;
                 if (valid_i == 1'b1) begin
-                    busy_o = 1'b1;
                     next_state = START;
                 end else begin
-                    busy_o = 1'b0;
                     next_state = IDLE;
                 end
             end
 
             START: begin
-                busy_o = 1'b1;
                 if (valid_i == 1'b1) begin
+                    ready = 1'b1;
                     next_state = DONE;
-                    ready_o = 1'b1;
                 end else begin
+                    ready = 1'b0;
                     next_state = IDLE;
-                    ready_o = 1'b0;
                 end
             end
 
             DONE: begin
+                ready = 1'b0;
                 next_state = IDLE;
-                ready_o = 1'b0;
-                busy_o = 1'b1;
             end
 
             default: begin
+                ready = 1'b0;
                 next_state = IDLE;
-                ready_o = 1'b0;
-                busy_o = 1'b1;
             end
         endcase
     end
 
     always_ff @(posedge clk_i) begin
-        case (cmd_e'(cmd_i))
-            ADD:
-                x_o <= add_result;
+        ready_o <= ready;
+        if (ready == 1'b1) begin
+            case (cmd_e'(cmd_i))
+                ADD:
+                    x_o <= add_result;
 
-            SUB:
-                x_o <= sub_result;
+                SUB:
+                    x_o <= sub_result;
 
-            MUL:
-                x_o <= mul_result;
+                MUL:
+                    x_o <= mul_result;
 
-            default:
-                x_o <= 0;
-        endcase
+                default:
+                    x_o <= 0;
+            endcase
+        end
     end
 
     add #(

@@ -5,6 +5,7 @@ package tb_env;
 
     `include "base_seq.svh"
     `include "add_seq.svh"
+    `include "scoreboard.svh"
     `include "env.svh"
     `include "base_test.svh"
     `include "test_add.svh"

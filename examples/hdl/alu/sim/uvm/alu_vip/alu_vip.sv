@@ -5,6 +5,8 @@ package alu_vip;
 
     parameter WIDTH = 16;
 
+    typedef enum logic[3:0] {NOP, ADD, SUB, MUL} cmd_e;
+
     typedef class sequence_item;
     typedef class monitor;
     typedef class driver;
