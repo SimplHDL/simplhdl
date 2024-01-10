@@ -10,18 +10,18 @@ from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.utils import sh
 from simplhdl.flow import FlowFactory
-from simplhdl.resources.templates import questa as questatemplates
+from simplhdl.resources.templates import questasim as questasimtemplates
 from simplhdl.flows.simulationflow import SimulationFlow
 
 logger = logging.getLogger(__name__)
 
 
-@FlowFactory.register('questa')
-class QuestaFlow(SimulationFlow):
+@FlowFactory.register('questasim')
+class QuestaSimFlow(SimulationFlow):
 
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('questa', help='Questa HDL Simulation Flow')
+        parser = subparsers.add_parser('questasim', help='QuestaSim HDL Simulation Flow')
         parser.add_argument(
             '--step',
             action='store',
@@ -38,42 +38,42 @@ class QuestaFlow(SimulationFlow):
         parser.add_argument(
             '--gui',
             action='store_true',
-            help="Open project in Questa GUI"
+            help="Open project in QuestaSim GUI"
         )
         parser.add_argument(
             '--vsim-flags',
             default='',
             action='store',
             metavar='FLAGS',
-            help="Extra flags for Questa vsim command"
+            help="Extra flags for QuestaSim vsim command"
         )
         parser.add_argument(
             '--vopt-flags',
             default='',
             action='store',
             metavar='FLAGS',
-            help="Extra flags for Questa vopt command"
+            help="Extra flags for QuestaSim vopt command"
         )
         parser.add_argument(
             '--vmap-flags',
             default='',
             action='store',
             metavar='FLAGS',
-            help="Extra flags for Questa vmap command"
+            help="Extra flags for QuestaSim vmap command"
         )
         parser.add_argument(
             '--vcom-flags',
             default='',
             action='store',
             metavar='FLAGS',
-            help="Extra flags for Questa vcom command"
+            help="Extra flags for QuestaSim vcom command"
         )
         parser.add_argument(
             '--vlog-flags',
             default='',
             action='store',
             metavar='FLAGS',
-            help="Extra flags for Questa vlog command"
+            help="Extra flags for QuestaSim vlog command"
         )
         parser.add_argument(
             '--seed',
@@ -101,7 +101,7 @@ class QuestaFlow(SimulationFlow):
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
-        self.templates = questatemplates
+        self.templates = questasimtemplates
 
     def get_globals(self) -> Dict[str, Any]:
         globals = super().get_globals()
@@ -233,17 +233,17 @@ class QuestaFlow(SimulationFlow):
                 shutil.which('vcom') is None or
                 shutil.which('vlib') is None or
                 shutil.which('vmap') is None):
-            raise Exception("Questa is not setup correctly")
-        # NOTE: If questa's bin directory is appended to the PATH variable,
+            raise Exception("QuestaSim is not setup correctly")
+        # NOTE: If questasim's bin directory is appended to the PATH variable,
         #       the vdir command is found in /bin/vdir which is not the
-        #       Questa vdir command
+        #       QuestaSim vdir command
         vdir = Path(shutil.which('vdir'))
         vsim = Path(shutil.which('vsim'))
         if vdir.parent != vsim.parent:
             logger.warning(
-                "Questa is not setup correctly. "
+                "QuestaSim is not setup correctly. "
                 f"The 'vdir' command is pointing to {vdir}, which "
-                "is not part of the Questa installation. Try to "
+                "is not part of the QuestaSim installation. Try to "
                 "prepend Questa to the PATH environment variable."
             )
             os.environ['PATH'] = f"{vsim.parent}:{os.environ['PATH']}"

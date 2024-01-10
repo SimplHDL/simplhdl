@@ -24,7 +24,7 @@ def load_builtin_plugins() -> None:
     """
     import_module('simplhdl.info')
     import_module('simplhdl.flows.vcs.vcsflow')
-    import_module('simplhdl.flows.questa.questaflow')
+    import_module('simplhdl.flows.questasim.questasimflow')
     import_module('simplhdl.flows.xsim.xsimflow')
     import_module('simplhdl.flows.rivierapro.rivieraproflow')
     packages = chain(

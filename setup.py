@@ -17,7 +17,7 @@ setup(
     package_data={
         'simplhdl.resources.templates.quartus': ['*'],
         'simplhdl.resources.templates.vivado': ['*'],
-        'simplhdl.resources.templates.questa': ['*'],
+        'simplhdl.resources.templates.questasim': ['*'],
         'simplhdl.resources.templates.vcs': ['*'],
         'simplhdl.resources.templates.xsim': ['*'],
         'simplhdl.resources.templates.rivierapro': ['*'],

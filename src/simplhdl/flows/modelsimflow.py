@@ -1,9 +1,9 @@
 from ..flow import FlowFactory
-from .questa.questaflow import QuestaFlow
+from .questasim.questasimflow import QuestaSimFlow
 
 
 @FlowFactory.register('modelsim')
-class ModelsimFlow(QuestaFlow):
+class ModelsimFlow(QuestaSimFlow):
 
     @classmethod
     def parse_args(self, subparsers) -> None:
