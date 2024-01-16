@@ -1,0 +1,3 @@
+#%SimplAPI=1.0
+files:
+  - build.sbt

@@ -1,0 +1,8 @@
+#%SimplAPI=1.0
+
+project: hello
+part: xc7z007sclg225-2
+top: Hello
+
+dependencies:
+  - ../hello.yml

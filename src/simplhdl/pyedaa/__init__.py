@@ -97,3 +97,12 @@ class VivadoIPSpecificationFile(IPSpecificationFile):
 
 class SystemRDLSourceFile(File):
     pass
+
+
+class ScalaBuildFile(File):
+    pass
+
+
+class ChiselBuildFile(ScalaBuildFile):
+    pass
+

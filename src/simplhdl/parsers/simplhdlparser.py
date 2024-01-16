@@ -9,7 +9,7 @@ from simplhdl.pyedaa.vhdllibrary import VHDLLibrary
 from simplhdl.pyedaa import (
     IPSpecificationFile, TCLSourceFile, CocotbPythonFile, SettingFile, File,
     ConstraintFile, VHDLSourceFile, VerilogIncludeFile, SystemVerilogSourceFile,
-    EDIFNetlistFile, NetlistFile, CSourceFile, SourceFile)
+    EDIFNetlistFile, NetlistFile, CSourceFile, SourceFile, ChiselBuildFile)
 
 from ..parser import ParserFactory, ParserBase
 
@@ -130,6 +130,7 @@ class SimplHdlParser(ParserBase):
             '.S': CSourceFile,
             '.py': CocotbPythonFile,
             '.qsf': SettingFile,
+            '.sbt': ChiselBuildFile,
         }
         path = self.path(filename)
         fileClass = fileClasses.get(path.suffix, SourceFile)

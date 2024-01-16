@@ -43,5 +43,5 @@ class Simplhdl:
         flow = FlowFactory.get_flow(self.args.flow, self.args, project, builddir)
         generators = GeneratorFactory.get_generators(self.args, project, builddir)
         for generator in generators:
-            generator.run(flow.category)
+            generator.run(flow)
         flow.run()
