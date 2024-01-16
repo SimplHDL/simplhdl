@@ -1,7 +1,8 @@
 import os
+import re
 import logging
 
-from typing import List
+from typing import List, Generator
 from pathlib import Path
 from xml.etree.ElementTree import Element, parse
 from zipfile import ZipFile
@@ -12,8 +13,8 @@ from ..pyedaa import (
     QuartusIPSpecificationFile, HDLLibrary, ConstraintFile, HDLSourceFile
 )
 from ..pyedaa.fileset import FileSet
-from ..flow import FlowCategory
-from ..generator import GeneratorFactory, GeneratorBase
+from ..flow import FlowBase, FlowCategory, FlowTools
+from ..generator import GeneratorFactory, GeneratorBase, GeneratorError
 from ..utils import md5write, md5check
 
 logger = logging.getLogger(__name__)
@@ -21,18 +22,32 @@ logger = logging.getLogger(__name__)
 
 FILETYPE_MAP = {
     'SYSTEM_VERILOG': SystemVerilogSourceFile,
+    'SYSTEM_VERILOG_ENCRYPT': SystemVerilogSourceFile,
     'VERILOG': VerilogSourceFile,
+    'VERILOG_ENCRYPT': VerilogSourceFile,
     'VHDL': VHDLSourceFile,
+    'VHDL_ENCRYPT': VHDLSourceFile,
     'SDC_ENTITY': ConstraintFile,
+}
+
+TOOL_MAP = {
+    FlowTools.VCS: 'vcs',
+    FlowTools.NCSIM: 'ncsim',
+    FlowTools.QUESTASIM: 'modelsim',
+    FlowTools.MODELSIM: 'modelsim',
+    FlowTools.VCS: 'vcs',
+    FlowTools.RIVIERAPRO: 'riviera'
 }
 
 
 class Spd:
 
-    def __init__(self, filename: Path) -> None:
+    def __init__(self, filename: Path, flow: FlowBase) -> None:
         self._files = list()
         self._filename = filename.absolute()
+        self.flow = flow
         self.libraries = dict()
+        self.simulators = set()
         spdfile = filename.parent.joinpath(filename.stem, filename.name).with_suffix('.spd')
         if not spdfile.exists():
             raise FileNotFoundError(f"{spdfile}: doesn't exits")
@@ -41,9 +56,19 @@ class Spd:
         self.location = spdfile.parent.absolute()
         for element in self.file_elements():
             self._files.append(self.element_to_file(element))
+        if self.simulators and not self.supported(self.flow, self.simulators):
+            names = [n.name.capitalize() for n in self.flow.tools]
+            raise GeneratorError(f"Encrypted IP {filename} does not support {','.join(names)}")
 
-    def file_elements(self) -> List[Element]:
-        return [f for f in self.root if f.tag == 'file']
+    def file_elements(self) -> Generator[Element, None, None]:
+        for f in self.root:
+            if f.tag == 'file':
+                properties = f.attrib
+                if 'simulator' in properties:
+                    simulators = re.split(r'\s*,\s*', properties['simulator'])
+                    if not self.supported(self.flow, simulators):
+                        continue
+                yield f
 
     def element_to_file(self, element: Element) -> File:
         properties = element.attrib
@@ -59,6 +84,13 @@ class Spd:
             return fileclass(path=path, library=self.libraries[libraryname])
         else:
             return fileclass(path=path)
+
+    def supported(self, flow: FlowBase, simulators: List) -> bool:
+        self.simulators.update(simulators)
+        for tool in flow.tools:
+            if TOOL_MAP.get(tool, None) in simulators:
+                return True
+        return False
 
     @property
     def filesets(self):
@@ -114,12 +146,14 @@ class QuartusIP(GeneratorBase):
         filename._path = dest.absolute()
         return filename
 
-    def run(self, flowcategory: FlowCategory):
+    def run(self, flow: FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
         for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile):
             newipfile = self.unpack_ip(ipfile)
-            if flowcategory == FlowCategory.SIMULATION:
-                spd = Spd(newipfile.Path)
-                for fileset in spd.filesets:
-                    # Add fileset as children to the fileset of the IP
-                    newipfile.FileSet._fileSets[fileset.Name] = fileset
+            if flow.category == FlowCategory.SIMULATION:
+                spd = Spd(newipfile.Path, flow)
+                parent = newipfile.FileSet
+                for fileset in reversed(spd.filesets):
+                    # Add fileset to parent, then set parent to fileset to make a chain
+                    parent._fileSets[fileset.Name] = fileset
+                    parent = fileset

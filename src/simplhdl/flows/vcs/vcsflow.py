@@ -9,9 +9,10 @@ from jinja2 import Template
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.pyedaa.project import Project
 from simplhdl.utils import sh
-from simplhdl.flow import FlowFactory
+from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.resources.templates import vcs as vcstemplates
 from ..simulationflow import SimulationFlow
+
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ class VcsFlow(SimulationFlow):
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.templates = vcstemplates
+        self.tools.add(FlowTools.VCS)
 
     def get_globals(self) -> Dict[str, Any]:
         globals = super().get_globals()

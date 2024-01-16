@@ -9,7 +9,7 @@ from jinja2 import Template
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.utils import sh
-from simplhdl.flow import FlowFactory
+from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.resources.templates import xsim as xsimtemplates
 from simplhdl.flows.simulationflow import SimulationFlow
 
@@ -86,6 +86,7 @@ class XsimFlow(SimulationFlow):
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.templates = xsimtemplates
+        self.tools.add(FlowTools.XSIM)
 
     def configure(self):
         super().configure()

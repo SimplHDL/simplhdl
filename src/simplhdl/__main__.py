@@ -9,6 +9,7 @@ from . import __version__
 from .simplhdl import Simplhdl
 from .plugins import load_plugins
 from .flow import FlowFactory, FlowError
+from .generator import GeneratorError
 from .parser import ParserError
 from .utils import CalledShError
 
@@ -68,7 +69,7 @@ def main():
         simpl = Simplhdl(args)
         simpl.run()
     except (NotImplementedError, FileNotFoundError, CalledShError,
-            ParserError, FlowError) as e:
+            ParserError, FlowError, GeneratorError) as e:
         logger.debug(traceback.format_exc())
         logger.error(e)
         return 1

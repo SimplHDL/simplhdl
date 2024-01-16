@@ -6,20 +6,24 @@ import os
 import shutil
 import logging
 
+from argparse import Namespace
 from jinja2 import Environment, FileSystemLoader
+from pathlib import Path
 
-from ..flow import FlowFactory, FlowBase
+from ..flow import FlowFactory, FlowTools
+from .implementationflow import ImplementationFlow
 from ..resources.templates import quartus as templates
 from ..utils import sh, generate_from_template
 from ..pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile, SettingFile)
+from ..pyedaa.project import Project
 
 logger = logging.getLogger(__name__)
 
 
 @FlowFactory.register('quartus')
-class QuartusFlow(FlowBase):
+class QuartusFlow(ImplementationFlow):
 
     @classmethod
     def parse_args(self, subparsers) -> None:
@@ -42,6 +46,11 @@ class QuartusFlow(FlowBase):
             action='store_true',
             help="Archive Quartus project and results"
         )
+
+    def __init__(self, name, args: Namespace, project: Project, builddir: Path):
+        super().__init__(name, args, project, builddir)
+        self.templates = templates
+        self.tools.add(FlowTools.QUARTUS)
 
     def run(self) -> None:
         if self.args.archive:

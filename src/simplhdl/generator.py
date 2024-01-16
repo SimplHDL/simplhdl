@@ -7,6 +7,10 @@ from .pyedaa.project import Project
 from .flow import FlowCategory
 
 
+class GeneratorError(Exception):
+    pass
+
+
 class GeneratorBase(metaclass=ABCMeta):
 
     def __init__(

@@ -9,7 +9,7 @@ from zipfile import ZipFile
 
 from ..generator import GeneratorFactory, GeneratorBase
 from ..utils import md5write, md5check
-from ..flow import FlowCategory
+from ..flow import FlowBase, FlowCategory
 from ..pyedaa.fileset import FileSet
 from ..pyedaa.vhdllibrary import VHDLLibrary
 from ..pyedaa import (
@@ -194,8 +194,8 @@ class VivadoIP(GeneratorBase):
                 files += component.pyedaa_files(fileset)
         return files
 
-    def run(self, flowcategory: FlowCategory):
-        if flowcategory == FlowCategory.SIMULATION:
+    def run(self, flow: FlowBase):
+        if flow.category == FlowCategory.SIMULATION:
             os.makedirs(self.builddir, exist_ok=True)
             for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=VivadoIPSpecificationFile):
                 newipfile = self.unpack_ip(ipfile)

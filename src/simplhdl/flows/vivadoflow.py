@@ -5,14 +5,17 @@ except ImportError:
 import os
 import shutil
 import logging
+from argparse import Namespace
+from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-from ..flow import FlowFactory, FlowBase
+from ..flow import FlowFactory, FlowBase, FlowTools
 from ..resources.templates import vivado as templates
 from ..utils import sh, generate_from_template, dict2str
 from ..pyedaa import (VivadoIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile)
+from ..pyedaa.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,11 @@ class VivadoFlow(FlowBase):
             help="Archive Vivado project and results"
         )
 
+    def __init__(self, name, args: Namespace, project: Project, builddir: Path):
+        super().__init__(name, args, project, builddir)
+        self.templates = templates
+        self.tools.add(FlowTools.VIVADO)
+
     def is_tool_setup(self) -> None:
         exit: bool = False
         if shutil.which('vivado') is None:
@@ -69,7 +77,7 @@ class VivadoFlow(FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
 
     def generate(self):
-        templatedir = resources_files(templates)
+        templatedir = resources_files(self.templates)
         environment = Environment(
             loader=FileSystemLoader(templatedir),
             trim_blocks=True)

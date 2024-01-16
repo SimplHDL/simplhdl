@@ -1,6 +1,6 @@
 from argparse import Namespace
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, Set
 from abc import ABCMeta, abstractmethod
 from enum import Flag, auto
 
@@ -10,11 +10,12 @@ from .pyedaa.project import Project
 class FlowBase(metaclass=ABCMeta):
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
-        self.name = name
-        self.args = args
-        self.project = project
-        self.builddir = builddir
+        self.name: str = name
+        self.args: Namespace = args
+        self.project: Project = project
+        self.builddir: Path = builddir
         self.category: FlowCategory = FlowCategory.DEFAULT
+        self.tools: Set = set()
 
     @classmethod
     @abstractmethod
@@ -26,12 +27,21 @@ class FlowBase(metaclass=ABCMeta):
         pass
 
 
-class SimulationFlow(FlowBase):
-    pass
-
-
-class ImplementationFlow(FlowBase):
-    pass
+class FlowTools(Flag):
+    VCS = auto()
+    QUESTASIM = auto()
+    MODELSIM = auto()
+    XCELIUM = auto()
+    RIVIERAPRO = auto()
+    XSIM = auto()
+    VERILATOR = auto()
+    ICARUS = auto()
+    GHDL = auto()
+    ISE = auto()
+    VIVADO = auto()
+    QUARTUS = auto()
+    NCSIM = auto()
+    UNKNOWN = auto()
 
 
 class FlowCategory(Flag):
