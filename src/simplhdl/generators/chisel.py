@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class Chisel(GeneratorBase):
 
     def run(self, flow: FlowBase):
-        sbt_files = self.project.DefaultDesign.DefaultFileSet.Files(fileType=ChiselBuildFile)
+        sbt_files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=ChiselBuildFile))
         if sbt_files:
             logging.debug("Running Chisel Generator")
             chisel_dir = self.builddir.joinpath('chisel')
