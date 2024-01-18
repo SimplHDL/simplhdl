@@ -41,39 +41,39 @@ class QuestaSimFlow(SimulationFlow):
             help="Open project in QuestaSim GUI"
         )
         parser.add_argument(
-            '--vsim-flags',
+            '--vsim-args',
             default='',
             action='store',
-            metavar='FLAGS',
-            help="Extra flags for QuestaSim vsim command"
+            metavar='ARGS',
+            help="Extra arguments for QuestaSim vsim command"
         )
         parser.add_argument(
-            '--vopt-flags',
+            '--vopt-args',
             default='',
             action='store',
-            metavar='FLAGS',
-            help="Extra flags for QuestaSim vopt command"
+            metavar='ARGS',
+            help="Extra arguments for QuestaSim vopt command"
         )
         parser.add_argument(
-            '--vmap-flags',
+            '--vmap-args',
             default='',
             action='store',
-            metavar='FLAGS',
-            help="Extra flags for QuestaSim vmap command"
+            metavar='ARGS',
+            help="Extra arguments for QuestaSim vmap command"
         )
         parser.add_argument(
-            '--vcom-flags',
+            '--vcom-args',
             default='',
             action='store',
-            metavar='FLAGS',
-            help="Extra flags for QuestaSim vcom command"
+            metavar='ARGS',
+            help="Extra arguments for QuestaSim vcom command"
         )
         parser.add_argument(
-            '--vlog-flags',
+            '--vlog-args',
             default='',
             action='store',
-            metavar='FLAGS',
-            help="Extra flags for QuestaSim vlog command"
+            metavar='ARGS',
+            help="Extra arguments for QuestaSim vlog command"
         )
         parser.add_argument(
             '--seed',
@@ -106,10 +106,10 @@ class QuestaSimFlow(SimulationFlow):
 
     def get_globals(self) -> Dict[str, Any]:
         globals = super().get_globals()
-        globals['vlog_flags'] = self.vlog_flags()
-        globals['vcom_flags'] = self.vcom_flags()
-        globals['vopt_flags'] = self.vopt_flags()
-        globals['vsim_flags'] = self.vsim_flags()
+        globals['vlog_args'] = self.vlog_args()
+        globals['vcom_args'] = self.vcom_args()
+        globals['vopt_args'] = self.vopt_args()
+        globals['vsim_args'] = self.vsim_args()
         return globals
 
     def get_project_templates(self, environment) -> List[Template]:
@@ -126,68 +126,67 @@ class QuestaSimFlow(SimulationFlow):
         else:
             return list()
 
-    def fileset_verilog_flags(self, fileset: FileSet) -> str:
+    def fileset_verilog_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"-work {library.Name}"
 
-    def fileset_systemverilog_flags(self, fileset: FileSet) -> str:
+    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"-sv -work {library.Name}"
 
-    def fileset_vhdl_flags(self, fileset: FileSet) -> str:
+    def fileset_vhdl_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"-2008 -work {library.Name}"
 
-    def vlog_flags(self) -> str:
-        flags = set()
+    def vlog_args(self) -> str:
+        args = set()
         if self.args.verbose == 0:
-            flags.add('-quiet')
+            args.add('-quiet')
+        for name in self.get_libraries().keys():
+            args.add(f"-L {name}")
         for name, value in self.project.Defines.items():
-            flags.add(f"+define+{name}={value}")
-        return ' '.join(list(flags) + [self.args.vlog_flags])
+            args.add(f"+define+{name}={value}")
+        return ' '.join(list(args) + [self.args.vlog_args])
 
-    def vcom_flags(self) -> str:
-        flags = set()
+    def vcom_args(self) -> str:
+        args = set()
         if self.args.verbose == 0:
-            flags.add('-quiet')
-        return ' '.join(list(flags) + [self.args.vcom_flags])
+            args.add('-quiet')
+        return ' '.join(list(args) + [self.args.vcom_args])
 
-    def vmap_flags(self) -> str:
-        flags = set()
-        return ' '.join(list(flags) + [self.args.vmap_flags])
+    def vmap_args(self) -> str:
+        args = set()
+        return ' '.join(list(args) + [self.args.vmap_args])
 
-    def vopt_flags(self) -> str:
-        flags = set()
+    def vopt_args(self) -> str:
+        args = set()
         if self.args.verbose == 0:
-            flags.add('-quiet')
-        libraries = dict()
-        libraries.update(self.project.DefaultDesign.VHDLLibraries)
-        libraries.update(self.project.DefaultDesign.ExternalVHDLLibraries)
-        for name in libraries.keys():
-            flags.add(f"-L {name}")
+            args.add('-quiet')
+        for name in self.get_libraries().keys():
+            args.add(f"-L {name}")
         if self.args.timescale:
-            flags.add(f"-timescale {self.args.timescale}")
+            args.add(f"-timescale {self.args.timescale}")
         for name, value in self.project.Generics.items():
-            flags.add(f"-g{name}={value}")
+            args.add(f"-g{name}={value}")
         for name, value in self.project.Parameters.items():
-            flags.add(f"-g{name}={value}")
+            args.add(f"-g{name}={value}")
         if self.args.gui or self.cocotb.enabled:
-            flags.add('+acc=npr')
-        return ' '.join(list(flags) + [self.args.vopt_flags])
+            args.add('+acc=npr')
+        return ' '.join(list(args) + [self.args.vopt_args])
 
-    def vsim_flags(self) -> str:
-        flags = set()
-        flags.add(f"-sv_seed {self.args.seed}")
+    def vsim_args(self) -> str:
+        args = set()
+        args.add(f"-sv_seed {self.args.seed}")
         if self.args.verbose == 0:
-            flags.add('-quiet')
+            args.add('-quiet')
         for name, value in self.project.PlusArgs.items():
-            flags.add(f"+{name}={value}")
+            args.add(f"+{name}={value}")
         if self.args.gui:
-            flags.add('-onfinish final')
+            args.add('-onfinish final')
         else:
-            flags.add('-onfinish exit')
+            args.add('-onfinish exit')
 
-        return ' '.join(list(flags) + [self.args.vsim_flags])
+        return ' '.join(list(args) + [self.args.vsim_args])
 
     def get_library(self, fileset: FileSet) -> str:
         try:

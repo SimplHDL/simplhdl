@@ -8,10 +8,10 @@ UVM := uvm.com
 UVM :=
 {% endif %}
 
-VLOGAN_FLAGS := -full64 +warn=noLNX_OS_VERUN {{vlogan_flags}}
-VHDLAN_FLAGS := -full64 {{vhdlan_flags}}
-VCS_FLAGS := -full64 -licqueue +warn=noLINX_KRNL {{vcs_flags}}
-SIMV_FLAGS := -licqueue {{simv_flags}}
+VLOGAN_FLAGS := -full64 +warn=noLNX_OS_VERUN {{vlogan_args}}
+VHDLAN_FLAGS := -full64 {{vhdlan_args}}
+VCS_FLAGS := -full64 -licqueue +warn=noLINX_KRNL {{vcs_args}}
+SIMV_FLAGS := -licqueue {{simv_args}}
 
 include project.mk
 -include cocotb.mk

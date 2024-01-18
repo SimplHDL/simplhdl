@@ -43,28 +43,28 @@ class VcsFlow(SimulationFlow):
             help="Open project in DVE or Verdi GUI"
         )
         parser.add_argument(
-            '--simv-flags',
+            '--simv-args',
             default='',
             action='store',
-            help="Extra flags for Vcs simv command"
+            help="Extra args for Vcs simv command"
         )
         parser.add_argument(
-            '--vcs-flags',
+            '--vcs-args',
             default='',
             action='store',
-            help="Extra flags for Vcs vcs command"
+            help="Extra args for Vcs vcs command"
         )
         parser.add_argument(
-            '--vhdlan-flags',
+            '--vhdlan-args',
             default='',
             action='store',
-            help="Extra flags for Vcs vhdlan command"
+            help="Extra args for Vcs vhdlan command"
         )
         parser.add_argument(
-            '--vlogan-flags',
+            '--vlogan-args',
             default='',
             action='store',
-            help="Extra flags for Vcs vlogan command"
+            help="Extra args for Vcs vlogan command"
         )
         parser.add_argument(
             '--seed',
@@ -91,10 +91,10 @@ class VcsFlow(SimulationFlow):
 
     def get_globals(self) -> Dict[str, Any]:
         globals = super().get_globals()
-        globals['vlogan_flags'] = self.vlogan_flags()
-        globals['vhdlan_flags'] = self.vhdlan_flags()
-        globals['vcs_flags'] = self.vcs_flags()
-        globals['simv_flags'] = self.simv_flags()
+        globals['vlogan_args'] = self.vlogan_args()
+        globals['vhdlan_args'] = self.vhdlan_args()
+        globals['vcs_args'] = self.vcs_args()
+        globals['simv_args'] = self.simv_args()
         return globals
 
     def get_project_templates(self, environment) -> List[Template]:
@@ -113,66 +113,66 @@ class VcsFlow(SimulationFlow):
         else:
             return list()
 
-    def fileset_verilog_flags(self, fileset: FileSet) -> str:
+    def fileset_verilog_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"+v2k -work {library.Name}"
 
-    def fileset_systemverilog_flags(self, fileset: FileSet) -> str:
+    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"-sverilog -work {library.Name}"
 
-    def fileset_vhdl_flags(self, fileset: FileSet) -> str:
+    def fileset_vhdl_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"-vhdl08 -work {library.Name}"
 
-    def vlogan_flags(self) -> str:
-        flags = set()
+    def vlogan_args(self) -> str:
+        args = set()
         for name, value in self.project.Defines.items():
-            flags.add(f"+define+{name}={value}")
+            args.add(f"+define+{name}={value}")
         if self.args.verbose == 0:
-            flags.add('-q')
+            args.add('-q')
         elif self.args.verbose > 1:
-            flags.add('-V')
+            args.add('-V')
         if self.is_uvm():
-            flags.add('-ntb_opts uvm')
+            args.add('-ntb_opts uvm')
         if self.is_verdi():
-            flags.add('-kdb')
-        return ' '.join(list(flags) + [self.args.vlogan_flags]).strip()
+            args.add('-kdb')
+        return ' '.join(list(args) + [self.args.vlogan_args]).strip()
 
-    def vhdlan_flags(self) -> str:
-        flags = set()
+    def vhdlan_args(self) -> str:
+        args = set()
         if self.args.verbose == 0:
-            flags.add('-q')
+            args.add('-q')
         elif self.args.verbose > 1:
-            flags.add('-verbose')
+            args.add('-verbose')
         if self.args.gui and self.is_verdi():
-            flags.add('-kdb')
-        return ' '.join(list(flags) + [self.args.vhdlan_flags]).strip()
+            args.add('-kdb')
+        return ' '.join(list(args) + [self.args.vhdlan_args]).strip()
 
-    def vcs_flags(self) -> str:
-        flags = set()
+    def vcs_args(self) -> str:
+        args = set()
         if self.args.verbose == 0:
-            flags.add('-q')
+            args.add('-q')
         if self.args.timescale:
-            flags.add(f"-timescale={self.args.timescale}")
+            args.add(f"-timescale={self.args.timescale}")
         if self.is_uvm():
-            flags.add('-ntb_opts uvm')
+            args.add('-ntb_opts uvm')
         if self.args.gui:
-            flags.add('-debug_access+all')
+            args.add('-debug_access+all')
             if self.is_verdi():
-                flags.add('-kdb')
+                args.add('-kdb')
         for name, value in self.project.Generics.items():
-            flags.add(f"-pvalue+{name}={value}")
+            args.add(f"-pvalue+{name}={value}")
         for name, value in self.project.Parameters.items():
-            flags.add(f"-pvalue+{name}={value}")
-        return ' '.join(list(flags) + [self.args.vcs_flags])
+            args.add(f"-pvalue+{name}={value}")
+        return ' '.join(list(args) + [self.args.vcs_args])
 
-    def simv_flags(self) -> str:
-        flags = set()
-        flags.add(f"+ntb_random_seed={self.args.seed}")
+    def simv_args(self) -> str:
+        args = set()
+        args.add(f"+ntb_random_seed={self.args.seed}")
         for name, value in self.project.PlusArgs.items():
-            flags.add(f"+{name}={value}")
-        return ' '.join(list(flags) + [self.args.simv_flags])
+            args.add(f"+{name}={value}")
+        return ' '.join(list(args) + [self.args.simv_args])
 
     def get_library(self, fileset: FileSet) -> str:
         try:

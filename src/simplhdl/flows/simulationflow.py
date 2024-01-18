@@ -106,11 +106,11 @@ class SimulationFlow(FlowBase):
 
     def generate_fileset_makefiles(self, environment: Environment, language: str, fileset: FileSet) -> List[Path]:
         table: Dict[str, Tuple[List[File], Callable]] = {
-            'verilog': ([VerilogSourceFile, VerilogIncludeFile], self.fileset_verilog_flags(fileset)),
-            'systemverilog': ([SystemVerilogSourceFile, VerilogIncludeFile], self.fileset_systemverilog_flags(fileset)),
-            'vhdl': ([VHDLSourceFile], self.fileset_vhdl_flags(fileset)),
+            'verilog': ([VerilogSourceFile, VerilogIncludeFile], self.fileset_verilog_args(fileset)),
+            'systemverilog': ([SystemVerilogSourceFile, VerilogIncludeFile], self.fileset_systemverilog_args(fileset)),
+            'vhdl': ([VHDLSourceFile], self.fileset_vhdl_args(fileset)),
         }
-        filetypes, flags = table[language]
+        filetypes, args = table[language]
         files = [f for f in fileset.GetFiles() if f.FileType in filetypes]
         name = md5sum(fileset.Name)
         base = self.builddir.joinpath(f"{name}-{language}")
@@ -126,7 +126,7 @@ class SimulationFlow(FlowBase):
             output = base.with_suffix('.fileset')
             includes = {f.Path.parent.absolute() for f in files if isinstance(f, VerilogIncludeFile)}
             files = [f.Path.absolute() for f in files if not isinstance(f, VerilogIncludeFile)]
-            generate_from_template(template, output, flags=flags, includes=includes, files=files)
+            generate_from_template(template, output, args=args, includes=includes, files=files)
             generated.append(output)
         return generated
 
@@ -135,6 +135,12 @@ class SimulationFlow(FlowBase):
             if plusarg.startswith('UVM_'):
                 return True
         return False
+
+    def get_libraries(self):
+        libraries = dict()
+        libraries.update(self.project.DefaultDesign.VHDLLibraries)
+        libraries.update(self.project.DefaultDesign.ExternalVHDLLibraries)
+        return libraries
 
 
 class FileSetWalker:

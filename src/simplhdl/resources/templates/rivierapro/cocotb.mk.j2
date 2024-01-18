@@ -3,7 +3,6 @@ VPI_SO_PATH = $(shell cocotb-config --lib-name-path vpi riviera)
 VHPI_SO_PATH = $(shell cocotb-config --lib-name-path vhpi riviera)
 
 VLOG_FLAGS += -pli libgpi
-VSIM_FLAGS +=  +access +rw
 
 export PYTHONPYCACHEPREFIX = ./pycache
 ifndef PYTHONPATH

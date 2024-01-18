@@ -42,28 +42,28 @@ class XsimFlow(SimulationFlow):
             help="Open project in GUI"
         )
         parser.add_argument(
-            '--xsim-flags',
+            '--xsim-args',
             default='',
             action='store',
-            help="Extra flags for Xsim xsim command"
+            help="Extra args for Xsim xsim command"
         )
         parser.add_argument(
-            '--xelab-flags',
+            '--xelab-args',
             default='',
             action='store',
-            help="Extra flags for Xsim xelab command"
+            help="Extra args for Xsim xelab command"
         )
         parser.add_argument(
-            '--xvhdl-flags',
+            '--xvhdl-args',
             default='',
             action='store',
-            help="Extra flags for Xsim xvhdl command"
+            help="Extra args for Xsim xvhdl command"
         )
         parser.add_argument(
-            '--xvlog-flags',
+            '--xvlog-args',
             default='',
             action='store',
-            help="Extra flags for Xsim xvlog command"
+            help="Extra args for Xsim xvlog command"
         )
         parser.add_argument(
             '--seed',
@@ -96,10 +96,10 @@ class XsimFlow(SimulationFlow):
 
     def get_globals(self) -> Dict[str, Any]:
         globals = super().get_globals()
-        globals['xvlog_flags'] = self.xvlog_flags()
-        globals['xvhdl_flags'] = self.xvhdl_flags()
-        globals['xelab_flags'] = self.xelab_flags()
-        globals['xsim_flags'] = self.xsim_flags()
+        globals['xvlog_args'] = self.xvlog_args()
+        globals['xvhdl_args'] = self.xvhdl_args()
+        globals['xelab_args'] = self.xelab_args()
+        globals['xsim_args'] = self.xsim_args()
         return globals
 
     def get_project_templates(self, environment) -> List[Template]:
@@ -116,51 +116,51 @@ class XsimFlow(SimulationFlow):
         else:
             return list()
 
-    def fileset_verilog_flags(self, fileset: FileSet) -> str:
+    def fileset_verilog_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"-work {library.Name}"
 
-    def fileset_systemverilog_flags(self, fileset: FileSet) -> str:
+    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"-sv -work {library.Name}"
 
-    def fileset_vhdl_flags(self, fileset: FileSet) -> str:
+    def fileset_vhdl_args(self, fileset: FileSet) -> str:
         library = fileset.VHDLLibrary
         return f"--2008 -work {library.Name}"
 
-    def xvlog_flags(self) -> str:
-        flags = set()
-        flags.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
+    def xvlog_args(self) -> str:
+        args = set()
+        args.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
         for name, value in self.project.Defines.items():
-            flags.add(f"-d {name}={value}")
-        return ' '.join(list(flags) + [self.args.xvlog_flags]).strip()
+            args.add(f"-d {name}={value}")
+        return ' '.join(list(args) + [self.args.xvlog_args]).strip()
 
-    def xvhdl_flags(self) -> str:
-        flags = set()
-        flags.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
-        return ' '.join(list(flags) + [self.args.xvhdl_flags])
+    def xvhdl_args(self) -> str:
+        args = set()
+        args.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
+        return ' '.join(list(args) + [self.args.xvhdl_args])
 
-    def xelab_flags(self) -> str:
-        flags = set()
+    def xelab_args(self) -> str:
+        args = set()
         verbosity = f"-v {self.args.verbose if self.args.verbose < 2 else 2}"
-        flags.add(verbosity)
+        args.add(verbosity)
         if self.args.timescale:
-            flags.add(f"--timescale={self.args.timescale}")
+            args.add(f"--timescale={self.args.timescale}")
         for name, value in self.project.Generics.items():
-            flags.add(f"--generic_top {name}={value}")
+            args.add(f"--generic_top {name}={value}")
         for name, value in self.project.Parameters.items():
-            flags.add(f"--generic_top {name}={value}")
-        return ' '.join(list(flags) + [self.args.xelab_flags])
+            args.add(f"--generic_top {name}={value}")
+        return ' '.join(list(args) + [self.args.xelab_args])
 
-    def xsim_flags(self) -> str:
-        flags = set()
-        flags.add(f"-sv_seed {self.args.seed}")
+    def xsim_args(self) -> str:
+        args = set()
+        args.add(f"-sv_seed {self.args.seed}")
         if self.cocotb.enabled:
             # xsim currently doesn't work with cocotb
             pass
         for name, value in self.project.PlusArgs.items():
-            flags.add(f"--testplusarg {name}={value}")
-        return ' '.join(list(flags) + [self.args.xsim_flags])
+            args.add(f"--testplusarg {name}={value}")
+        return ' '.join(list(args) + [self.args.xsim_args])
 
     def execute(self, step: str) -> None:
         self.run_hooks('pre')
