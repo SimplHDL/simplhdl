@@ -95,8 +95,9 @@ class RivieraProFlow(SimulationFlow):
         )
         parser.add_argument(
             '--timescale',
+            default='1ns/1ps',
             action='store',
-            help="Set the simulator timescale for Verilog"
+            help="Set the simulator timescale for Riviera PRO"
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -142,6 +143,8 @@ class RivieraProFlow(SimulationFlow):
         args = set()
         if self.args.verbose == 0:
             args.add('-quiet')
+        if self.args.timescale:
+            args.add(f"-timescale {self.args.timescale}")
         for name in self.get_libraries().keys():
             args.add(f"-l {name}")
         if self.args.gui:
@@ -171,8 +174,6 @@ class RivieraProFlow(SimulationFlow):
             args.add('-quiet')
         for name in self.get_libraries().keys():
             args.add(f"-L {name}")
-        if self.args.timescale:
-            args.add(f"-timescale {self.args.timescale}")
         for name, value in self.project.Generics.items():
             args.add(f"-g{name}={value}")
         for name, value in self.project.Parameters.items():

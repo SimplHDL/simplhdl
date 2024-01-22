@@ -95,8 +95,9 @@ class QuestaSimFlow(SimulationFlow):
         )
         parser.add_argument(
             '--timescale',
+            default='1ns/1ps',
             action='store',
-            help="Set the simulator timescale for Verilog"
+            help="Set the simulator timescale for QuestaSim"
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):

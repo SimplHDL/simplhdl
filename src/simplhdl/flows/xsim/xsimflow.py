@@ -80,7 +80,7 @@ class XsimFlow(SimulationFlow):
             '--timescale',
             default='1ns/1ps',
             action='store',
-            help="Set the simulator timescale for Verilog"
+            help="Set the simulator timescale for Xsim"
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
