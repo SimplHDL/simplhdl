@@ -43,3 +43,11 @@ set_global_assignment -name QSYS_FILE "{{file.Path}}"
 source "{{file.Path}}"
 {% endif %}
 {% endfor %}
+
+{% for file in project.DefaultDesign.Files(QuartusSignalTapFile) %}
+set_global_assignment -name SIGNALTAP_FILE "{{file.Path}}"
+{% if loop.last %}
+set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name USE_SIGNALTAP_FILE "{{file.Path}}"
+{% endif %}
+{% endfor %}

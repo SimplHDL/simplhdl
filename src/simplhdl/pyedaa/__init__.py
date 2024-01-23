@@ -87,6 +87,9 @@ class ConstraintFile(pm.ConstraintFile):
     pass
 
 
+class QuartusSignalTapFile(File):
+    pass
+
 class QuartusIPSpecificationFile(IPSpecificationFile):
     pass
 
