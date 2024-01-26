@@ -71,7 +71,7 @@ class Project(pm.Project):
             self._hooks[name] = [command]
 
     @property
-    def PlusArgs(self) -> dict[str, str]:
+    def PlusArgs(self) -> Dict[str, str]:
         return self._verilogPlusArgs
 
     def AddPlusArg(self, name: str, value: str) -> None:

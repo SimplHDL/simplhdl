@@ -2,7 +2,7 @@ import os
 import re
 import logging
 
-from typing import List
+from typing import List, Dict
 from pathlib import Path
 from xml.etree.ElementTree import Element, parse
 from zipfile import ZipFile
@@ -175,7 +175,7 @@ class VivadoIP(GeneratorBase):
         filename._path = dest.joinpath(filename.Path.name).with_suffix('.xml').absolute()
         return filename
 
-    def get_files(self, filename: Path) -> dict['str, str']:
+    def get_files(self, filename: Path) -> Dict[str, str]:
         component = Component()
         component.load(filename)
         files = list()
