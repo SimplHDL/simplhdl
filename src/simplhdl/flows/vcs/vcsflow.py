@@ -169,7 +169,8 @@ class VcsFlow(SimulationFlow):
 
     def simv_args(self) -> str:
         args = set()
-        args.add(f"+ntb_random_seed={self.args.seed}")
+        if self.args.seed != '1':
+            args.add(f"+ntb_random_seed={self.args.seed}")
         for name, value in self.project.PlusArgs.items():
             args.add(f"+{name}={value}")
         return ' '.join(list(args) + [self.args.simv_args])

@@ -136,6 +136,18 @@ class SimulationFlow(FlowBase):
                 return True
         return False
 
+    def has_verilog(self) -> bool:
+        if list(self.project.DefaultDesign.Files(VerilogSourceFile)):
+            return True
+        if list(self.project.DefaultDesign.Files(SystemVerilogSourceFile)):
+            return True
+        return False
+
+    def has_vhdl(self) -> bool:
+        if list(self.project.DefaultDesign.Files(VHDLSourceFile)):
+            return True
+        return False
+
     def get_libraries(self):
         libraries = dict()
         libraries.update(self.project.DefaultDesign.VHDLLibraries)
