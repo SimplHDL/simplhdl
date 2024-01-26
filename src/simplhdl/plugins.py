@@ -46,7 +46,11 @@ def load_external_plugins() -> None:
     except ImportError:
         from importlib_metadata import entry_points
 
-    plugins = entry_points(group='simplhdl.plugins')
+    try:
+        plugins = entry_points(group='simplhdl.plugins')
+    except TypeError:
+        plugins = list(entry_points().get('simplhdl.plugins', list()))
+
     for plugin in plugins:
         plugin.load()
 

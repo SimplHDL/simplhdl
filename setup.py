@@ -27,7 +27,7 @@ setup(
         'console_scripts': ['simpl=simplhdl.__main__:main'],
     },
     install_requires=[
-        'importlib-resources;python_version<"3.8"',
+        'importlib-resources;python_version<"3.9"',
         'pySVModel==0.3.5',
         'pyEDAA.ProjectModel==0.4.3',
         'pyyaml',
