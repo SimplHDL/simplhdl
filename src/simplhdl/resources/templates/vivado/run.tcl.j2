@@ -21,6 +21,14 @@ switch $step {
         archive_project -force [current_project].zip
         exit 0
     }
+    archive_exclude_results {
+        archive_project -force -exclude_run_results [current_project].zip
+        exit 0
+    }
+    archive_include_settings {
+        archive_project -force -include_config_settings [current_project].zip
+        exit 0
+    }
     default {
         set launch_args "-to_step ${step}_design"
     }

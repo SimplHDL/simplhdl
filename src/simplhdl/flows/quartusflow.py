@@ -43,7 +43,7 @@ class QuartusFlow(ImplementationFlow):
         )
         parser.add_argument(
             '--archive',
-            action='store_true',
+            choices=['project'],
             help="Archive Quartus project and results"
         )
 

@@ -47,8 +47,12 @@ class VivadoFlow(FlowBase):
         )
         parser.add_argument(
             '--archive',
-            action='store_true',
-            help="Archive Vivado project and results"
+            choices=[
+                'project',
+                'project-exclude-results',
+                'project-include-settings'
+            ],
+            help="Archive Vivado project, result can be excluded"
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -66,9 +70,15 @@ class VivadoFlow(FlowBase):
 
     def archive(self) -> None:
         name = self.project.Name
-        # command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs archive".split()
-        command = f"vivado {name}.xpr -mode batch -source run.tcl -tclargs archive".split()
-        print(command)
+        if self.args.archive == 'project':
+            tclargs = 'archive'
+        elif self.args.archive == 'project-exclude-results':
+            tclargs = 'archive_exclude_results'
+        elif self.args.archive == 'project-include-settings':
+            tclargs = 'archive_include_settings'
+        else:
+            raise Exception("Unknown value for argument --archive: {self.args.archive}")
+        command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {tclargs}".split()
         sh(command, cwd=self.builddir, output=True)
         raise SystemExit
 
