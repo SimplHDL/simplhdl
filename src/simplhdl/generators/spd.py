@@ -113,12 +113,12 @@ class QuartusIP(GeneratorBase):
 
     def unpack_ip(self, filename: QuartusIPSpecificationFile) -> QuartusIPSpecificationFile:
         ipdir = self.builddir.joinpath('ips')
-        dest = ipdir.joinpath(filename.Path.name).with_suffix('.ip')
+        dest = ipdir.joinpath(filename.Path.name).with_suffix('')
         md5file = dest.with_suffix('.md5')
         ipdir.mkdir(exist_ok=True)
         if filename.Path.suffix == '.qsys':
             return
-        elif filename.Path.suffix == '.ip.zip':
+        elif filename.Path.suffix == '.zip':
             update = True
             if md5file.exists():
                 update = not md5check(filename.Path, filename=md5file)
