@@ -12,6 +12,7 @@ from pathlib import Path
 
 from simplhdl.flow import FlowBase, FlowCategory, FlowError
 from simplhdl.pyedaa.project import Project
+from simplhdl.pyedaa.attributes import UsedIn
 from simplhdl.cocotb import Cocotb
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.pyedaa import (File, VerilogSourceFile, VerilogIncludeFile,
@@ -111,7 +112,7 @@ class SimulationFlow(FlowBase):
             'vhdl': ([VHDLSourceFile], self.fileset_vhdl_args(fileset)),
         }
         filetypes, args = table[language]
-        files = [f for f in fileset.GetFiles() if f.FileType in filetypes]
+        files = [f for f in fileset.GetFiles() if f.FileType in filetypes and 'simulation' in f[UsedIn]]
         name = md5sum(fileset.Name)
         base = self.builddir.joinpath(f"{name}-{language}")
         generated: List[str] = list()

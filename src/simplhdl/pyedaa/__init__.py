@@ -2,17 +2,36 @@ import pyEDAA.ProjectModel as pm
 
 from pathlib import Path
 from typing import Optional
+from pyTooling.MetaClasses import ExtendedType
+from .attributes import UsedIn
+
+
+class FileMixIn(metaclass=ExtendedType, mixin=True):
+    def _registerAttributes(self):
+        self._attributes[UsedIn] = {'simulation', 'implementation'}
+
+
+class File(pm.File, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
+
+
+class SourceFile(pm.SourceFile, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
 
 
 class HDLLibrary(pm.VHDLLibrary):
     pass
 
 
-class HDLIncludeFile(pm.SourceFile):
+class HDLIncludeFile(SourceFile):
     pass
 
 
-class HDLSourceFile(pm.HDLSourceFile):
+class HDLSourceFile(pm.HDLSourceFile, FileMixIn):
     _library: HDLLibrary
 
     def __init__(self,
@@ -21,6 +40,10 @@ class HDLSourceFile(pm.HDLSourceFile):
                  library: Optional[HDLLibrary] = None):
         super().__init__(path, project, design, fileset)
         self._library = library
+
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
 
     @property
     def Library(self) -> HDLLibrary:
@@ -47,48 +70,59 @@ class VHDLSourceFile(HDLSourceFile, pm.HumanReadableContent):
     pass
 
 
-class CocotbPythonFile(pm.CocotbPythonFile):
-    pass
+class CocotbPythonFile(pm.CocotbPythonFile, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
+        self[UsedIn] = {'simulation'}
 
 
 class TCLSourceFile(pm.TCLSourceFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
+
+
+class IPSpecificationFile(File, pm.XMLContent):
     pass
 
 
-class IPSpecificationFile(pm.File, pm.XMLContent):
-    pass
+class NetlistFile(pm.NetlistFile, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
 
 
-class NetlistFile(pm.NetlistFile):
-    pass
+class EDIFNetlistFile(pm.EDIFNetlistFile, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
 
 
-class EDIFNetlistFile(pm.EDIFNetlistFile):
-    pass
+class CSourceFile(pm.CSourceFile, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
 
 
-class CSourceFile(pm.CSourceFile):
-    pass
+class SettingFile(pm.SettingFile, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
 
 
-class File(pm.File):
-    pass
-
-
-class SourceFile(pm.SourceFile):
-    pass
-
-
-class SettingFile(pm.SettingFile):
-    pass
-
-
-class ConstraintFile(pm.ConstraintFile):
-    pass
+class ConstraintFile(pm.ConstraintFile, FileMixIn):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
+        self[UsedIn] = {'implementation'}
 
 
 class QuartusSignalTapFile(File):
-    pass
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[UsedIn] = {'implmentation'}
+
 
 class QuartusIPSpecificationFile(IPSpecificationFile):
     pass
@@ -108,4 +142,3 @@ class ScalaBuildFile(File):
 
 class ChiselBuildFile(ScalaBuildFile):
     pass
-

@@ -11,7 +11,7 @@ set_parameter -name {{generic}} {{value}}
 {% for define, value in project.Defines.items() %}
 set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% endfor %}
-{% for file in project.DefaultDesign.Files() %}
+{% for file in project.DefaultDesign.Files() if 'implementation' in file[UsedIn] %}
 {% if file.FileType == VerilogIncludeFile %}
 set_global_assignment -name VERILOG_INCLUDE_FILE "{{file.Path}}"
 {% endif %}

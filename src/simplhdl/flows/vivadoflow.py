@@ -16,6 +16,7 @@ from ..pyedaa import (VivadoIPSpecificationFile, VerilogIncludeFile, VerilogSour
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile)
 from ..pyedaa.project import Project
+from ..pyedaa.attributes import UsedIn
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,8 @@ class VivadoFlow(FlowBase):
                                VivadoIPSpecificationFile=VivadoIPSpecificationFile,
                                EDIFNetlistFile=EDIFNetlistFile,
                                NetlistFile=NetlistFile,
-                               project=self.project)
+                               project=self.project,
+                               UsedIn=UsedIn)
         template = environment.get_template('run.tcl.j2')
         generate_from_template(template, self.builddir,
                                project=self.project)

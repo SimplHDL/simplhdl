@@ -1,4 +1,5 @@
 from .flow import FlowBase, FlowFactory
+from .pyedaa.attributes import UsedIn
 from .pyedaa.fileset import FileSet
 
 
@@ -55,7 +56,7 @@ class Info(FlowBase):
         indent = ' '*level
         print(f"{indent}{fileset.Name}")
         for file in fileset.GetFiles():
-            print(f"{indent}    - {file.Path}")
+            print(f"{indent}    - {file.Path} {file[UsedIn]}")
         for child_filset in fileset.FileSets.values():
             self.print_fileset(child_filset, level+2)
 

@@ -69,7 +69,7 @@ foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
     set_property verilog_define "{{dict2str(project.Defines)}}" $fileset
 }
 {% endif %}
-{% for file in project.DefaultDesign.Files() %}
+{% for file in project.DefaultDesign.Files() if 'implementation' in file[UsedIn] %}
 {% if file.FileType == VerilogIncludeFile %}
 add_files "{{file.Path}}"
 {% elif file.FileType == SystemVerilogSourceFile %}
