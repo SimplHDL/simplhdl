@@ -118,7 +118,7 @@ class QuartusIP(GeneratorBase):
         ipdir.mkdir(exist_ok=True)
         if filename.Path.suffix == '.qsys':
             return
-        elif filename.Path.suffix == '.ipx':
+        elif filename.Path.suffix == '.ip.zip':
             update = True
             if md5file.exists():
                 update = not md5check(filename.Path, filename=md5file)
