@@ -2,9 +2,17 @@ package require Vivado
 
 proc source_script {filename} {
     if {[catch {source -notrace $filename} err]} {
-        send_msg_id {SDK SOURCE-1} {ERROR} "Error sourcing $filename: $err"
+        send_msg_id {SimplHDL SOURCE-1} {ERROR} "Error sourcing $filename: $err"
     }
 }
+
+proc source_step_script {filename} {
+    # NOTE: make get_files fail if not files are found
+    set_msg_config -id {Vivado 12-818} -new_severity {ERROR}
+    source_script $filename
+    reset_msg_config -id {Vivado 12-818} -default_severity
+}
+
 
 proc set_hooks {filename} {
     foreach run [get_runs -filter {IS_SYNTHESIS==true}] {
@@ -93,14 +101,14 @@ read_edif "{{file.Path}}"
 {% elif file.Path.suffix == '.bd' %}
 read_bd "{{file.Path}}"
 {% elif file.Path.name.endswith('.bd.tcl') %}
-send_msg_id {SDK PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path}}: this might take some time."
+send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path}}: this might take some time."
 source_script "{{file.Path}}"
 {% elif file.Path.name.endswith('.steps.tcl') %}
 add_files -fileset utils_1 "{{file.Path}}"
 global step
 set step {project}
-send_msg_id {SDK PRJ-2} {INFO} "Sourcing step tcl file {{file.Path}}."
-source_script "{{file.Path}}"
+send_msg_id {SimplHDL PRJ-2} {INFO} "Sourcing step tcl file {{file.Path}}."
+source_step_script "{{file.Path}}"
 unset step
 {% else %}
 add_files -fileset utils_1 "{{file.Path}}"
