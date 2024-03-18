@@ -134,7 +134,7 @@ class QuartusIP(GeneratorBase):
                 if md5file.exists():
                     update = not md5check(filename.Path, dir, filename=md5file)
             if update:
-                copy(str(filename.Path), str(dest))
+                copy(str(filename.Path), str(dest.with_suffix('.ip')))
                 md5write(filename.Path, filename=md5file)
                 if dir.exists():
                     copytree(str(dir), str(dest.with_suffix('')), dirs_exist_ok=True)
