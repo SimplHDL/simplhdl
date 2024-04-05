@@ -1,9 +1,8 @@
 import pyEDAA.ProjectModel as pm
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
-from pyEDAA.ProjectModel import VHDLLibrary
 from .vhdllibrary import VHDLLibrary
 
 

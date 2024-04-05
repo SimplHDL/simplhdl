@@ -103,7 +103,7 @@ class Component:
             fileset.AddFile(self.element_to_file(file))
         return fileset
 
-    def element_to_file(self, element: Element) -> File:
+    def element_to_file(self, element: Element) -> File:  # noqa C901
         if not element.tag.endswith('file'):
             raise Exception(f"Wrong tag {element.tag}")
         filepath = element.find('ipxact:name', self.namespaces).text
