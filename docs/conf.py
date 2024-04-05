@@ -11,21 +11,22 @@ import time
 from os import environ
 from os.path import abspath, join
 from pathlib import Path
-from pyTooling.Packaging import extractVersionInformation
+from sphinx_pyproject import SphinxConfig
+from simplhdl import __version__
 
 sys.path.insert(0, abspath('.'))
 sys.path.insert(0, abspath('..'))
 sys.path.insert(0, abspath('../src/simplhdl'))
 
-packageInformationFile = Path("../src/simplhdl/__init__.py")
-info = extractVersionInformation(packageInformationFile)
+config = SphinxConfig(
+    "../pyproject.toml",
+    globalns=globals(),
+    config_overrides={'version': __version__})
 
-project = 'SimplHDL'
-author = info.Author
+
+project = name
 copyright = f"2016-{time.strftime('%Y')}, {author}"
-
-version = info.Version
-release = info.Version
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
