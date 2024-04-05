@@ -47,7 +47,7 @@ class SimplHdlParser(ParserBase):
             if self.is_valid_format(file):
                 return self.parse_core(file, project)
 
-    def parse_core(self, filename: Path, project: Project) -> FileSet:
+    def parse_core(self, filename: Path, project: Project) -> FileSet:  # noqa C901
         self._core_stack.append(filename)
         spec = self.read_spec(filename)
         # TODO: The library should be handled differently
