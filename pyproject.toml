@@ -1,0 +1,54 @@
+[build-system]
+requires = [
+    "setuptools>=60",
+    "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "simplhdl.__version__"}
+
+[project]
+name = "SimplHDL"
+description = "A framework for simulating and implementing HDL designs"
+dynamic = ["version"]
+dependencies = [
+    "importlib-resources;python_version<'3.9'",
+    "pySVModel==0.3.5",
+    "pyEDAA.ProjectModel==0.4.3",
+    "pyyaml",
+    "types-PyYAML",
+    "argcomplete",
+    "jinja2",
+    "GitPython",
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
+]
+maintainers = [
+  {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
+]
+
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: ",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT Licens",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+simpl = "simplhdl.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/SimplHDL"
+Documentation = "https://simplhdl.readthedocs.io/en/latest/"
+Repository = "https://github.com/SimplHDL/simplhdl.git"
+Issues = "https://github.com/SimplHDL/simplhdl/issues"
