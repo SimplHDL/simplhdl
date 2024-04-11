@@ -17,7 +17,7 @@ from ..utils import sh, generate_from_template
 from ..pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile, SettingFile, QuartusSignalTapFile,
-                      QuartusIniFile)
+                      QuartusIniFile, QuartusQIPSpecificationFile, QuartusQSYSSpecificationFile)
 from ..pyedaa.project import Project
 from ..pyedaa.attributes import UsedIn
 
@@ -95,6 +95,8 @@ class QuartusFlow(ImplementationFlow):
             NetlistFile=NetlistFile,
             SettingFile=SettingFile,
             QuartusSignalTapFile=QuartusSignalTapFile,
+            QuartusQIPSpecificationFile=QuartusQIPSpecificationFile,
+            QuartusQSYSSpecificationFile=QuartusQSYSSpecificationFile,
             QuartusIniFile=QuartusIniFile,
             project=self.project,
             UsedIn=UsedIn)
