@@ -10,7 +10,8 @@ from shutil import copy, copytree
 
 from ..pyedaa import (
     File, SystemVerilogSourceFile, VHDLSourceFile, VerilogSourceFile,
-    QuartusIPSpecificationFile, HDLLibrary, ConstraintFile, HDLSourceFile
+    QuartusIPSpecificationFile, HDLLibrary, ConstraintFile, HDLSourceFile,
+    QuartusIPCompressedSpecificationFile, QuartusQSYSSpecificationFile
 )
 from ..pyedaa.fileset import FileSet
 from ..flow import FlowBase, FlowCategory, FlowTools
@@ -111,14 +112,15 @@ class Spd:
 @GeneratorFactory.register('QuartusIP')
 class QuartusIP(GeneratorBase):
 
-    def unpack_ip(self, filename: QuartusIPSpecificationFile) -> QuartusIPSpecificationFile:
+    def unpack_ip(self, filename: QuartusIPSpecificationFile) -> QuartusIPSpecificationFile:  # noqa: C901
         ipdir = self.builddir.joinpath('ips')
         dest = ipdir.joinpath(filename.Path.name).with_suffix('')
         md5file = dest.with_suffix('.md5')
         ipdir.mkdir(exist_ok=True)
-        if filename.Path.suffix == '.qsys':
-            return
-        elif filename.Path.suffix == '.zip':
+        if filename.FileType == QuartusQSYSSpecificationFile:
+            pass
+
+        elif filename.FileType == QuartusIPCompressedSpecificationFile:
             update = True
             if md5file.exists():
                 update = not md5check(filename.Path, filename=md5file)
@@ -127,7 +129,14 @@ class QuartusIP(GeneratorBase):
                     zip.extractall(ipdir)
                 md5write(filename.Path, filename=md5file)
                 logger.debug(f"Copy {filename.Path} to {dest}")
-        elif filename.Path.suffix == '.ip':
+
+            if filename.Path.suffix == '.zip':
+                filename._path = dest.absolute()
+            else:
+                filename._path = dest.with_suffix('.ip').absolute()
+            filename._fileType = QuartusIPSpecificationFile
+
+        elif filename.FileType == QuartusIPSpecificationFile:
             update = True
             dir = filename.Path.with_suffix('')
             if dir.exists():
@@ -140,10 +149,8 @@ class QuartusIP(GeneratorBase):
                     copytree(str(dir), str(dest.with_suffix('')), dirs_exist_ok=True)
                     md5write(filename.Path, dir, filename=md5file)
                     logger.debug(f"Copy {filename.Path} to {dest}")
-        else:
-            # Non Qartus IP files
-            return filename
-        filename._path = dest.absolute()
+            filename._path = dest.with_suffix('.ip').absolute()
+
         return filename
 
     def run(self, flow: FlowBase):

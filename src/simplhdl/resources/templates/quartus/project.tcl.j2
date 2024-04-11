@@ -14,35 +14,25 @@ set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% for file in project.DefaultDesign.Files() if 'implementation' in file[UsedIn] %}
 {% if file.FileType == VerilogIncludeFile %}
 set_global_assignment -name VERILOG_INCLUDE_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == SystemVerilogSourceFile %}
+{% elif file.FileType == SystemVerilogSourceFile %}
 set_global_assignment -name SYSTEMVERILOG_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == VerilogSourceFile %}
+{% elif file.FileType == VerilogSourceFile %}
 set_global_assignment -name VERILOG_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == VHDLSourceFile %}
+{% elif file.FileType == VHDLSourceFile %}
 set_global_assignment -name VHDL_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == ConstraintFile %}
+{% elif file.FileType == ConstraintFile %}
 set_global_assignment -name SDC_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == TCLSourceFile %}
+{% elif file.FileType == TCLSourceFile %}
 set_global_assignment -name TCL_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == QuartusIPSpecificationFile and file.Path.suffix == '.ip' %}
+{% elif file.FileType == QuartusIPSpecificationFile %}
 set_global_assignment -name IP_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == QuartusIPSpecificationFile and file.Path.suffix == '.qip' %}
+{% elif file.FileType == QuartusQIPSpecificationFile %}
 set_global_assignment -name QIP_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == QuartusIPSpecificationFile and file.Path.suffix == '.qsys' %}
+{% elif file.FileType == QuartusQSYSSpecificationFile %}
 set_global_assignment -name QSYS_FILE "{{file.Path}}"
-{% endif %}
-{% if file.FileType == SettingFile and file.Path.suffix == '.qsf' %}
+{% elif file.FileType == SettingFile and file.Path.suffix == '.qsf' %}
 source "{{file.Path}}"
-{% endif %}
-{% if file.FileType == QuartusIniFile %}
+{% elif file.FileType == QuartusIniFile %}
 file copy -force "{{file.Path}}" "quartus.ini"
 {% endif %}
 {% endfor %}

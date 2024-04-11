@@ -128,13 +128,25 @@ class QuartusIPSpecificationFile(IPSpecificationFile):
     pass
 
 
+class QuartusIPCompressedSpecificationFile(QuartusIPSpecificationFile):
+    pass
+
+
+class QuartusQSYSSpecificationFile(QuartusIPSpecificationFile):
+    pass
+
+
+class QuartusQIPSpecificationFile(QuartusIPSpecificationFile):
+    pass
+
+
 class QuartusIniFile(File):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
         self[UsedIn] = {'implementation'}
 
-    
+
 class VivadoIPSpecificationFile(IPSpecificationFile):
     pass
 
