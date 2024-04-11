@@ -42,6 +42,9 @@ set_global_assignment -name QSYS_FILE "{{file.Path}}"
 {% if file.FileType == SettingFile and file.Path.suffix == '.qsf' %}
 source "{{file.Path}}"
 {% endif %}
+{% if file.FileType == QuartusIniFile %}
+file copy -force "{{file.Path}}" "quartus.ini"
+{% endif %}
 {% endfor %}
 
 {% for file in project.DefaultDesign.Files(QuartusSignalTapFile) %}

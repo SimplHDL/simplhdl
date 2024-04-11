@@ -16,7 +16,8 @@ from ..resources.templates import quartus as templates
 from ..utils import sh, generate_from_template
 from ..pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
-                      EDIFNetlistFile, NetlistFile, SettingFile, QuartusSignalTapFile)
+                      EDIFNetlistFile, NetlistFile, SettingFile, QuartusSignalTapFile,
+                      QuartusIniFile)
 from ..pyedaa.project import Project
 from ..pyedaa.attributes import UsedIn
 
@@ -94,6 +95,7 @@ class QuartusFlow(ImplementationFlow):
             NetlistFile=NetlistFile,
             SettingFile=SettingFile,
             QuartusSignalTapFile=QuartusSignalTapFile,
+            QuartusIniFile=QuartusIniFile,
             project=self.project,
             UsedIn=UsedIn)
         template = environment.get_template('run.tcl.j2')
