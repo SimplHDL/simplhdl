@@ -3,10 +3,10 @@ XVHDL := xvhdl
 XELAB := xelab
 XSIM := xsim
 
-XVLOG_FLAGS := {{xvlog_args}}
-XVHDL_FLAGS := {{xvhdl_args}}
-XELAB_FLAGS := {{xelab_args}}
-XSIM_FLAGS := {{xsim_args}}
+XVLOG_FLAGS := {{xvlog_args|replace('#', '\#')}}
+XVHDL_FLAGS := {{xvhdl_args|replace('#', '\#')}}
+XELAB_FLAGS := {{xelab_args|replace('#', '\#')}}
+XSIM_FLAGS := {{xsim_args|replace('#', '\#')}}
 
 include project.mk
 -include cocotb.mk

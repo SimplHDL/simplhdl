@@ -6,11 +6,11 @@ VOPT := vopt
 VSIM := vsim
 
 VLIB_FLAGS :=
-VMAP_FLAGS := {{vmap_args}}
-VCOM_FLAGS := {{vcom_args}}
-VLOG_FLAGS := {{vlog_args}}
-VOPT_FLAGS := {{vopt_args}}
-VSIM_FLAGS := {{vsim_args}}
+VMAP_FLAGS := {{vmap_args|replace('#', '\#')}}
+VCOM_FLAGS := {{vcom_args|replace('#', '\#')}}
+VLOG_FLAGS := {{vlog_args|replace('#', '\#')}}
+VOPT_FLAGS := {{vopt_args|replace('#', '\#')}}
+VSIM_FLAGS := {{vsim_args|replace('#', '\#')}}
 
 VOPT_DESIGN ?= simvopt
 
