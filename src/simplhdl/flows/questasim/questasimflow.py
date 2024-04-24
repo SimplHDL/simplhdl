@@ -143,8 +143,6 @@ class QuestaSimFlow(SimulationFlow):
         args = set()
         if self.args.verbose == 0:
             args.add('-quiet')
-        for name in self.get_libraries().keys():
-            args.add(f"-L {name}")
         for name, value in self.project.Defines.items():
             args.add(f"+define+{name}={value}")
         return ' '.join(list(args) + [self.args.vlog_args])
