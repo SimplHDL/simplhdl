@@ -29,6 +29,8 @@ endif
 simulate: $(VOPT_DESIGN)
 	$(VSIM) $(VSIM_FLAGS) $< -c $(DO_CMD)
 
+elaborate: $(VOPT_DESIGN)
+
 $(VOPT_DESIGN): compile
 	$(VOPT) $(VOPT_FLAGS) $(TOPLEVELS) -o $@
 
