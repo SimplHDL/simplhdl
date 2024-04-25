@@ -3,7 +3,7 @@ import logging
 import shutil
 
 from pathlib import Path
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 from argparse import Namespace
 from jinja2 import Template
 from simplhdl.pyedaa.project import Project
@@ -169,13 +169,16 @@ class QuestaSimFlow(SimulationFlow):
             args.add(f"-g{name}={value}")
         for name, value in self.project.Parameters.items():
             args.add(f"-g{name}={value}")
-        if self.args.gui or self.cocotb.enabled:
+        if self.args.gui or self.args.do or self.args.wave or self.cocotb.enabled:
             args.add('+acc=npr')
         return ' '.join(list(args) + [self.args.vopt_args])
 
     def vsim_args(self) -> str:
         args = set()
         args.add(f"-sv_seed {self.args.seed}")
+        timescale = self.timescale()
+        if timescale:
+            args.add(timescale)
         if self.args.verbose == 0:
             args.add('-quiet')
         for name, value in self.project.PlusArgs.items():
@@ -225,6 +228,16 @@ class QuestaSimFlow(SimulationFlow):
         except KeyError:
             # NOTE: Continue if no hook is registret
             pass
+
+    def timescale(self) -> Optional[str]:
+        """
+        Sets the timescale for VHDL based on the Verilog timescale
+        resolution.
+        """
+        if self.args.timescale.endswith('ps'):
+            return "-t ps"
+        elif self.args.timescale.endswith('fs'):
+            return "-t fs"
 
     def is_tool_setup(self) -> None:
         if (shutil.which('vlog') is None or
