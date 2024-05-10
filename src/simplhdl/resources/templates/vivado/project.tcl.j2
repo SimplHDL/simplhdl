@@ -85,7 +85,7 @@ read_verilog -sv "{{file.Path}}"
 {% elif file.FileType == VerilogSourceFile %}
 read_verilog "{{file.Path}}"
 {% elif file.FileType == VHDLSourceFile %}
-read_vhdl -vhdl2008 "{{file.Path}}"
+read_vhdl -vhdl2008 -library {{file.Library}} "{{file.Path}}"
 {% elif file.FileType == ConstraintFile %}
 read_xdc "{{file.Path}}"
 {% elif file.FileType == VivadoIPSpecificationFile %}

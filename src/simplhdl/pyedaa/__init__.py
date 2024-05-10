@@ -47,7 +47,10 @@ class HDLSourceFile(pm.HDLSourceFile, FileMixIn):
 
     @property
     def Library(self) -> HDLLibrary:
-        return self._library
+        if self._library is not None:
+            return self._library
+        elif self.FileSet.VHDLLibrary is not None:
+            return self.FileSet.VHDLLibrary
 
     @Library.setter
     def Library(self, value) -> None:
