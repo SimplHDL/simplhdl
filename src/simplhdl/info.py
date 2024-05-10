@@ -1,3 +1,10 @@
+from argparse import Namespace
+from pathlib import Path
+from rich.console import Console
+from rich.tree import Tree
+from rich.style import Style
+
+from simplhdl.pyedaa.project import Project
 from .flow import FlowBase, FlowFactory
 from .pyedaa.attributes import UsedIn
 from .pyedaa.fileset import FileSet
@@ -5,6 +12,16 @@ from .pyedaa.fileset import FileSet
 
 @FlowFactory.register('info')
 class Info(FlowBase):
+
+    def __init__(self, name, args: Namespace, project: Project, builddir: Path):
+        super().__init__(name, args, project, builddir)
+        self.console = Console()
+        self.style = {
+            'fileset': Style(color="color(4)", reverse=True),
+            'ifile': Style(color="color(2)", reverse=False),
+            'sfile': Style(color="color(3)", reverse=False),
+            'file': Style(color="default", reverse=False),
+        }
 
     @classmethod
     def parse_args(self, subparsers) -> None:
@@ -48,90 +65,98 @@ class Info(FlowBase):
             self.print_info()
 
     def print_files(self) -> None:
-        print('FILES:')
+        self.console.print('FILES:')
         for file in self.project.DefaultDesign.Files():
-            print(f"{file.Path}")
+            self.console.print(f"{file.Path}")
 
-    def print_fileset(self, fileset: FileSet, level: int) -> None:
-        indent = ' '*level
-        print(f"{indent}{fileset.Name}")
+    def print_fileset(self, fileset: FileSet, level: Tree) -> None:
+        # indent = ' '*level
+        tree = level.add(f"[bold]{fileset.Name}[/bold] ({fileset.VHDLLibrary})", style=self.style['fileset'])
         for file in fileset.GetFiles():
-            print(f"{indent}    - {file.Path} {file[UsedIn]}")
+            if "implementation" in file[UsedIn] and "simulation" not in file[UsedIn]:
+                style = self.style['ifile']
+            elif "simulation" in file[UsedIn] and "implementation" not in file[UsedIn]:
+                style = self.style['sfile']
+            else:
+                style = self.style['file']
+
+            tree.add(f"{file.Path}", style=style)
         for child_filset in fileset.FileSets.values():
-            self.print_fileset(child_filset, level+2)
+            self.print_fileset(child_filset, tree)
 
     def print_filesets(self) -> None:
-        print('FILESETS:')
+        tree = Tree('FILESETS:')
         for fileset in self.project.DefaultDesign.FileSets.values():
-            self.print_fileset(fileset, level=0)
+            self.print_fileset(fileset, tree)
+        self.console.print(tree)
 
     def print_hooks(self) -> None:
-        print('HOOKS:')
+        self.console.print('HOOKS:')
         for name, value in self.project.Hooks.items():
-            print(f"  - {name}: {value}")
+            self.console.print(f"  - {name}: {value}")
 
     def print_libraries(self) -> None:
-        print('LIBRARIES:')
+        self.console.print('LIBRARIES:')
         for library in self.project.DefaultDesign.VHDLLibraries.values():
-            print(f"  - {library.Name}")
+            self.console.print(f"  - {library.Name}")
 
     def print_parameters(self) -> None:
-        print('PARAMETERS')
+        self.console.print('PARAMETERS')
         for name, value in self.project.Parameters.items():
-            print(f"  - {name}: {value}")
+            self.console.print(f"  - {name}: {value}")
 
     def print_generics(self) -> None:
-        print('GENERICS')
+        self.console.print('GENERICS')
         for name, value in self.project.Generics.items():
-            print(f"  - {name}: {value}")
+            self.console.print(f"  - {name}: {value}")
 
     def print_defines(self) -> None:
-        print('DEFINES')
+        self.console.print('DEFINES')
         for name, value in self.project.Defines.items():
-            print(f"  - {name}: {value}")
+            self.console.print(f"  - {name}: {value}")
 
     def print_plusargs(self) -> None:
-        print('PLUSARGS')
+        self.console.print('PLUSARGS')
         for name, value in self.project.PlusArgs.items():
-            print(f"  - {name}: {value}")
+            self.console.print(f"  - {name}: {value}")
 
     def print_toplevels(self) -> None:
-        print('TOPLEVELS')
+        self.console.print('TOPLEVELS')
         for top in self.project.DefaultDesign.TopLevel.split():
-            print(f"  - {top}")
+            self.console.print(f"  - {top}")
 
     def print_resources(self) -> None:
-        print('RESOURCES')
+        self.console.print('RESOURCES')
         for resource in self.project.DefaultDesign.ExternalVHDLLibraries.values():
-            print(f"  - {resource.Name}: {resource.Path}")
+            self.console.print(f"  - {resource.Name}: {resource.Path}")
 
     def print_project(self) -> None:
-        print('PROJECTNAME')
-        print(f"  - {self.project.Name}")
+        self.console.print('PROJECTNAME')
+        self.console.print(f"  - {self.project.Name}")
 
     def print_part(self) -> None:
-        print('PART')
-        print(f"  - {self.project.Part}")
+        self.console.print('PART')
+        self.console.print(f"  - {self.project.Part}")
 
     def print_info(self) -> None:
         self.print_project()
-        print()
+        self.console.print()
         self.print_part()
-        print()
+        self.console.print()
         self.print_toplevels()
-        print()
+        self.console.print()
         self.print_plusargs()
-        print()
+        self.console.print()
         self.print_defines()
-        print()
+        self.console.print()
         self.print_parameters()
-        print()
+        self.console.print()
         self.print_generics()
-        print()
+        self.console.print()
         self.print_hooks()
-        print()
+        self.console.print()
         self.print_resources()
-        print()
+        self.console.print()
         self.print_libraries()
-        print()
+        self.console.print()
         self.print_filesets()
