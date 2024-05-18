@@ -3,6 +3,7 @@ import os
 import logging
 from pathlib import Path
 import shutil
+import re
 
 from typing import Dict, Any, List
 from jinja2 import Template
@@ -95,13 +96,34 @@ class VcsFlow(SimulationFlow):
         globals['vhdlan_args'] = self.vhdlan_args()
         globals['vcs_args'] = self.vcs_args()
         globals['simv_args'] = self.simv_args()
+        globals['parameters'] = {**self.project.Generics, **self.project.Parameters}
+        globals['format'] = self.format
         return globals
+
+    def format(self, value: str) -> str:
+        """
+        Format the parameter value in relation to it's type.
+        """
+        isformat_a = re.compile(r"^\d+#[0-9a-gA-G]+#")
+        isformat_b = re.compile(r"^\d*'(h|d|b)[0-9a-fA-F]+")
+        isformat_c = re.compile(r"^\d+\.\d+")
+
+        if (
+            value.isnumeric() or
+            isformat_a.match(value) or
+            isformat_b.match(value) or
+            isformat_c.match(value)
+        ):
+            return value
+        else:
+            return f'"{value}"'
 
     def get_project_templates(self, environment) -> List[Template]:
         return [
             environment.get_template('Makefile.j2'),
             environment.get_template('synopsys_sim.setup.j2'),
-            environment.get_template('project.mk.j2')
+            environment.get_template('project.mk.j2'),
+            environment.get_template('vcs.parameters.j2'),
         ]
 
     def get_cocotb_templates(self, environment):
@@ -161,10 +183,10 @@ class VcsFlow(SimulationFlow):
             args.add('-debug_access+all')
             if self.is_verdi():
                 args.add('-kdb')
-        for name, value in self.project.Generics.items():
-            args.add(f"-pvalue+{name}={value}")
-        for name, value in self.project.Parameters.items():
-            args.add(f"-pvalue+{name}={value}")
+        parameters = {**self.project.Generics, **self.project.Parameters}
+        if parameters:
+            args.add('-gfile vcs.parameters -lca')
+
         return ' '.join(list(args) + [self.args.vcs_args])
 
     def simv_args(self) -> str:
