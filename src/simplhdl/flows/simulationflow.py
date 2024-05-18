@@ -97,7 +97,7 @@ class SimulationFlow(FlowBase):
             name = md5sum(fileset.Name)
             dependencies = []
             for language_fileset in [f for f in filelist if f.stem.startswith(name)]:
-                for child in fileset.FileSets.values():
+                for child in fileset.Dependencies(usedin='simulation'):
                     child_name = md5sum(child.Name)
                     dependencies += [append_suffix(f, '.com').name for f in filelist
                                      if f.stem.startswith(child_name)]

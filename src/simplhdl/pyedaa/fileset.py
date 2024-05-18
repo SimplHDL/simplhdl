@@ -1,6 +1,8 @@
 import pyEDAA.ProjectModel as pm  # type: ignore
+from simplhdl.pyedaa.attributes import UsedIn
+from simplhdl.pyedaa import File
 
-from typing import Dict, Generator
+from typing import Dict, Generator, List, Optional
 
 
 class FileSet(pm.FileSet):
@@ -31,7 +33,7 @@ class FileSet(pm.FileSet):
     def VHDLLibrary(self, value: 'VHDLLibrary') -> None:
         self._vhdlLibrary = value
 
-    def GetFiles(self) -> Generator[pm.File, None, None]:
+    def GetFiles(self) -> Generator[File, None, None]:
         for file in self._files:
             yield file
 
@@ -44,10 +46,26 @@ class FileSet(pm.FileSet):
             libraries.update(fileset.VHDLLibraries)
         return libraries
 
-    def InsertFile(self, position: int, file: pm.File) -> None:
+    def InsertFile(self, position: int, file: File) -> None:
         # file.FileSet = self
         self._files.insert(position, file)
 
-    def InsertFileAfter(self, listfile: pm.File, newfile: pm.File) -> None:
+    def InsertFileAfter(self, listfile: File, newfile: File) -> None:
         position = self._files.index(listfile)
         self.InsertFile(position, newfile)
+
+    def Dependencies(self, usedin: Optional[str] = None, isrecursive: bool = False) -> List['FileSet']:
+        """
+        Return a list of filesets that this fileset depends on. if dependent fileset is empty search recursive
+        in children until a fileset that is not empty is found.
+        """
+        if isrecursive:
+            files = [f for f in self.GetFiles()]
+            if usedin:
+                files = [f for f in files if usedin in f[UsedIn]]
+            if files:
+                return [self]
+        dependencies = list()
+        for fileset in self.FileSets.values():
+            dependencies += fileset.Dependencies(usedin=usedin, isrecursive=True)
+        return dependencies
