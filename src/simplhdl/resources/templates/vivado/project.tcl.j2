@@ -65,7 +65,6 @@ proc add_filesets {} {
 
 
 create_project -force -part {{project.Part}} {{project.Name}} [pwd]
-add_reports
 add_filesets
 {% if project.Parameters or project.Generics %}
 foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
@@ -121,4 +120,5 @@ set_property generic "{{dict2str(project.Parameters, project.Generics)}}" [curre
 set_property verilog_define "{{dict2str(project.Defines)}}" [current_fileset]
 {% endif %}
 set_property top {{project.DefaultDesign.DefaultFileSet.TopLevel}} [current_fileset]
+add_reports
 update_compile_order -fileset [current_fileset]
