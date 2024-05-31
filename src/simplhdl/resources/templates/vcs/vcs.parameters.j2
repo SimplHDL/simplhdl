@@ -1,3 +1,3 @@
 {% for name, value in parameters.items() %}
-assign {{format(value)}} {{name}}
+assign {{format(value)}} {{name|replace('.', '/')}}
 {% endfor %}

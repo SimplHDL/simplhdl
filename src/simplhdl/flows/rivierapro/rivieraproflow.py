@@ -8,7 +8,7 @@ from argparse import Namespace
 from jinja2 import Template
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.fileset import FileSet
-from simplhdl.utils import sh
+from simplhdl.utils import sh, escape
 from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.resources.templates import rivierapro as rivieraprotemplates
 from simplhdl.flows.simulationflow import SimulationFlow
@@ -150,7 +150,7 @@ class RivieraProFlow(SimulationFlow):
         if self.args.gui:
             args.add('-dbg')
         for name, value in self.project.Defines.items():
-            args.add(f"+define+{name}={value}")
+            args.add(f"+define+{name}={escape(value)}")
         return ' '.join(list(args) + [self.args.vlog_args])
 
     def vcom_args(self) -> str:
@@ -175,11 +175,11 @@ class RivieraProFlow(SimulationFlow):
         for name in self.get_libraries().keys():
             args.add(f"-L {name}")
         for name, value in self.project.Generics.items():
-            args.add(f"-g{name}={value}")
+            args.add(f"-g{name}={escape(value)}")
         for name, value in self.project.Parameters.items():
-            args.add(f"-g{name}={value}")
+            args.add(f"-g{name}={escape(value)}")
         for name, value in self.project.PlusArgs.items():
-            args.add(f"+{name}={value}")
+            args.add(f"+{name}={escape(value)}")
         if self.args.gui:
             args.add('-dbg +access +r')
         if self.cocotb.enabled:

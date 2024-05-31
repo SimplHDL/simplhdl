@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 from jinja2 import Template
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.pyedaa.project import Project
-from simplhdl.utils import sh
+from simplhdl.utils import sh, escape
 from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.resources.templates import vcs as vcstemplates
 from ..simulationflow import SimulationFlow
@@ -150,7 +150,7 @@ class VcsFlow(SimulationFlow):
     def vlogan_args(self) -> str:
         args = set()
         for name, value in self.project.Defines.items():
-            args.add(f"+define+{name}={value}")
+            args.add(f"+define+{name}={escape(value)}")
         if self.args.verbose == 0:
             args.add('-q')
         elif self.args.verbose > 1:
@@ -194,7 +194,7 @@ class VcsFlow(SimulationFlow):
         if self.args.seed != '1':
             args.add(f"+ntb_random_seed={self.args.seed}")
         for name, value in self.project.PlusArgs.items():
-            args.add(f"+{name}={value}")
+            args.add(f"+{name}={escape(value)}")
         return ' '.join(list(args) + [self.args.simv_args])
 
     def get_library(self, fileset: FileSet) -> str:

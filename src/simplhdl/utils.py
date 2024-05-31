@@ -120,6 +120,13 @@ def mkdir(name: Path) -> bool:
         return False
 
 
+def escape(a: str) -> str:
+    """
+    Escape characther for command line and add "<str>" around string
+    """
+    return f'"{a}"'
+
+
 @contextmanager
 def lock(directory: Path) -> Path:
     while not mkdir(directory):

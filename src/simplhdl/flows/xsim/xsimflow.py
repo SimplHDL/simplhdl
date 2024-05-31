@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from jinja2 import Template
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.fileset import FileSet
-from simplhdl.utils import sh
+from simplhdl.utils import sh, escape
 from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.resources.templates import xsim as xsimtemplates
 from simplhdl.flows.simulationflow import SimulationFlow
@@ -132,7 +132,7 @@ class XsimFlow(SimulationFlow):
         args = set()
         args.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
         for name, value in self.project.Defines.items():
-            args.add(f"-d {name}={value}")
+            args.add(f"-d {name}={escape(value)}")
         return ' '.join(list(args) + [self.args.xvlog_args]).strip()
 
     def xvhdl_args(self) -> str:
@@ -147,9 +147,9 @@ class XsimFlow(SimulationFlow):
         if self.args.timescale:
             args.add(f"--timescale={self.args.timescale}")
         for name, value in self.project.Generics.items():
-            args.add(f"--generic_top {name}={value}")
+            args.add(f"--generic_top {name}={escape(value)}")
         for name, value in self.project.Parameters.items():
-            args.add(f"--generic_top {name}={value}")
+            args.add(f"--generic_top {name}={escape(value)}")
         return ' '.join(list(args) + [self.args.xelab_args])
 
     def xsim_args(self) -> str:
@@ -159,7 +159,7 @@ class XsimFlow(SimulationFlow):
             # xsim currently doesn't work with cocotb
             pass
         for name, value in self.project.PlusArgs.items():
-            args.add(f"--testplusarg {name}={value}")
+            args.add(f"--testplusarg {name}={escape(value)}")
         return ' '.join(list(args) + [self.args.xsim_args])
 
     def execute(self, step: str) -> None:

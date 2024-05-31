@@ -8,7 +8,7 @@ from argparse import Namespace
 from jinja2 import Template
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.fileset import FileSet
-from simplhdl.utils import sh
+from simplhdl.utils import sh, escape
 from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.resources.templates import questasim as questasimtemplates
 from simplhdl.flows.simulationflow import SimulationFlow
@@ -144,7 +144,7 @@ class QuestaSimFlow(SimulationFlow):
         if self.args.verbose == 0:
             args.add('-quiet')
         for name, value in self.project.Defines.items():
-            args.add(f"+define+{name}={value}")
+            args.add(f"+define+{name}={escape(value)}")
         return ' '.join(list(args) + [self.args.vlog_args])
 
     def vcom_args(self) -> str:
@@ -166,9 +166,9 @@ class QuestaSimFlow(SimulationFlow):
         if self.args.timescale:
             args.add(f"-timescale {self.args.timescale}")
         for name, value in self.project.Generics.items():
-            args.add(f"-g{name}={value}")
+            args.add(f"-g{name}={escape(value)}")
         for name, value in self.project.Parameters.items():
-            args.add(f"-g{name}={value}")
+            args.add(f"-g{name}={escape(value)}")
         if self.args.gui or self.args.do or self.args.wave or self.cocotb.enabled:
             args.add('+acc=npr')
         return ' '.join(list(args) + [self.args.vopt_args])
@@ -182,7 +182,7 @@ class QuestaSimFlow(SimulationFlow):
         if self.args.verbose == 0:
             args.add('-quiet')
         for name, value in self.project.PlusArgs.items():
-            args.add(f"+{name}={value}")
+            args.add(f"+{name}={escape(value)}")
         if self.args.gui:
             args.add('-onfinish final')
         else:
