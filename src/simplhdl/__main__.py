@@ -73,6 +73,8 @@ def main():
         logger.debug(traceback.format_exc())
         logger.error(e)
         return 1
+    except SystemError:
+        return 1
 
 
 if __name__ == '__main__':

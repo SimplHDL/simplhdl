@@ -21,6 +21,7 @@ dependencies = [
     "jinja2",
     "GitPython",
     "rich",
+    "vsg",
 ]
 requires-python = ">=3.8"
 authors = [

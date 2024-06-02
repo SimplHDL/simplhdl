@@ -1,0 +1,7 @@
+{
+    "file_list":[
+{% for file in project.DefaultDesign.Files(VHDLSourceFile) %}
+        {{file.Path}}{{ "," if not loop.last }}
+{% endfor %}
+    ]
+}
