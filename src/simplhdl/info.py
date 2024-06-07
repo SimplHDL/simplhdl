@@ -65,7 +65,6 @@ class Info(FlowBase):
             self.print_info()
 
     def print_files(self) -> None:
-        self.console.print('FILES:')
         for file in self.project.DefaultDesign.Files():
             self.console.print(f"{file.Path}")
 
