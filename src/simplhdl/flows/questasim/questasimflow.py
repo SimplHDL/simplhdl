@@ -25,7 +25,7 @@ class QuestaSimFlow(SimulationFlow):
         parser.add_argument(
             '--step',
             action='store',
-            choices=['compile', 'elaborate', 'simulate'],
+            choices=['generate', 'compile', 'elaborate', 'simulate'],
             default='simulate',
             help="flow step to run"
         )
@@ -202,8 +202,12 @@ class QuestaSimFlow(SimulationFlow):
 
     def execute(self, step: str) -> None:
         self.run_hooks('pre')
-        sh(['make', 'compile'], cwd=self.builddir, output=True)
+
+        if step == 'generate':
+            return
+
         if step == 'compile':
+            sh(['make', 'compile'], cwd=self.builddir, output=True)
             return
 
         if self.args.do:

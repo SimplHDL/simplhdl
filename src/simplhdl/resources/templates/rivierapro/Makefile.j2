@@ -6,18 +6,18 @@ VLOG := vlog
 VOPT := :
 VSIM := vsim
 
+include project.mk
+-include cocotb.mk
+
 VLIB_FLAGS :=
 VMAP_FLAGS := {{vmap_args|replace('#', '\#')}}
 VCOM_FLAGS := {{vcom_args|replace('#', '\#')}}
 VLOG_FLAGS := {{vlog_args|replace('#', '\#')}}
 VOPT_FLAGS := {{vopt_args|replace('#', '\#')}}
-VSIM_FLAGS := {{vsim_args|replace('#', '\#')}}
+VSIM_FLAGS := {{vsim_args|replace('#', '\#')}} $(COCOTB_FLAGS)
 
 VOPT_DESIGN ?= simvopt
 
-
-include project.mk
--include cocotb.mk
 
 .PHONY: clean compile simulate gui
 

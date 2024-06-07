@@ -56,9 +56,13 @@ class SimulationFlow(FlowBase):
         globals['libraries'] = (list(self.project.DefaultDesign.VHDLLibraries.values()))
         globals['external_libraries'] = list(self.project.DefaultDesign.ExternalVHDLLibraries.values())
         globals['defaultlib'] = 'work'
-        globals['toplevels'] = ' '.join(
-            [t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()])
+        globals['toplevels'] = self.cocotb.toplevels
         globals['pythonpath'] = self.cocotb.pythonpath
+        globals['cocotbtop'] = self.cocotb.top
+        globals['cocotbhdltype'] = self.cocotb.duttype
+        globals['cocotbdut'] = self.cocotb.dut
+        globals['VerilogSourceFile'] = VerilogSourceFile
+        globals['VHDLSourceFile'] = VHDLSourceFile
         globals['uvm'] = self.is_uvm()
         return globals
 
