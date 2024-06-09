@@ -78,39 +78,39 @@ foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
 {% endif %}
 {% for file in project.DefaultDesign.Files() if 'implementation' in file[UsedIn] %}
 {% if file.FileType == VerilogIncludeFile %}
-add_files "{{file.Path}}"
+add_files "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == SystemVerilogSourceFile %}
-read_verilog -sv "{{file.Path}}"
+read_verilog -sv "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VerilogSourceFile %}
-read_verilog "{{file.Path}}"
+read_verilog "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VHDLSourceFile %}
-read_vhdl -vhdl2008 -library {{file.Library}} "{{file.Path}}"
+read_vhdl -vhdl2008 -library {{file.Library}} "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == ConstraintFile %}
-read_xdc "{{file.Path}}"
+read_xdc "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VivadoIPSpecificationFile %}
 {% if file.Path.suffix == '.xcix' %}
-read_ip "{{file.Path}}"
+read_ip "{{file.Path|replace('\\', '/')}}"
 {% else %}
-import_ip "{{file.Path}}"
+import_ip "{{file.Path|replace('\\', '/')}}"
 {% endif %}
 {% elif file.Path.suffix == '.dcp' %}
-add_files "{{file.Path}}"
+add_files "{{file.Path|replace('\\', '/')}}"
 {% elif file.Path.suffix in ['.edif', '.ngc'] %}
-read_edif "{{file.Path}}"
+read_edif "{{file.Path|replace('\\', '/')}}"
 {% elif file.Path.suffix == '.bd' %}
-read_bd "{{file.Path}}"
+read_bd "{{file.Path|replace('\\', '/')}}"
 {% elif file.Path.name.endswith('.bd.tcl') %}
-send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path}}: this might take some time."
-source_script "{{file.Path}}"
+send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path|replace('\\', '/')}}: this might take some time."
+source_script "{{file.Path|replace('\\', '/')}}"
 {% elif file.Path.name.endswith('.steps.tcl') %}
-add_files -fileset utils_1 "{{file.Path}}"
+add_files -fileset utils_1 "{{file.Path|replace('\\', '/')}}"
 global step
 set step {project}
-send_msg_id {SimplHDL PRJ-2} {INFO} "Sourcing step tcl file {{file.Path}}."
-source_step_script "{{file.Path}}"
+send_msg_id {SimplHDL PRJ-2} {INFO} "Sourcing step tcl file {{file.Path|replace('\\', '/')}}."
+source_step_script "{{file.Path|replace('\\', '/')}}"
 unset step
 {% else %}
-add_files -fileset utils_1 "{{file.Path}}"
+add_files -fileset utils_1 "{{file.Path|replace('\\', '/')}}"
 {% endif %}
 {% endfor %}
 {% if project.Parameters or project.Generics %}

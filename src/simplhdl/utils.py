@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 
@@ -17,6 +18,9 @@ class CalledShError(Exception):
 
 
 def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False):
+    if os.name == 'nt':
+        shell = True
+
     with Popen(command, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell) as p:
         if output:
             stdout: str = ''
