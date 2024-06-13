@@ -21,7 +21,7 @@ VOPT_DESIGN ?= simvopt
 .PHONY: clean compile simulate gui
 
 ifeq ($(DO_CMD),)
-DO_CMD := -do "run -all"
+DO_CMD := -do "run -all; quit"
 else
 GUI_DO_CMD := $(DO_CMD)
 endif
