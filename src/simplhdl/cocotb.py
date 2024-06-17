@@ -32,7 +32,7 @@ class Cocotb:
         set_ = set()
         try:
             modules = self.project.DefaultDesign._topLevel.split()
-        except AttributeError as e:
+        except AttributeError:
             raise FlowError("No top levels found")
 
         for module in modules:
@@ -49,16 +49,16 @@ class Cocotb:
     def hdltoplevels(self) -> str:
         tops = []
         for t in self.project.DefaultDesign._topLevel.split():
-             if t != self.top:
+            if t != self.top:
                 tops.append(t)
         return ' '.join(tops)
 
     def get_dut(self) -> str:
         for top in self.project.DefaultDesign._topLevel.split():
-             if top != self.top:
+            if top != self.top:
                 return top
 
-    def hdltype(self):
+    def hdltype(self):  # noqa: C901
         logger.debug(f"Cocotb hdl dut '{self.dut}'")
         lib = next(iter(self.project.DefaultDesign.VHDLLibraries))
         if '.' in self.dut:
@@ -78,7 +78,8 @@ class Cocotb:
                                     logger.info(f"Cocotb dut '{self.dut}' is VHDL")
                                     return VHDLSourceFile
                                 else:
-                                    logger.warning(f"Found HDL entity {name} in library '{file.Library.Name}' expected '{lib}'")
+                                    logger.warning(f"Found HDL entity {name} in ",
+                                                   f"library '{file.Library.Name}' expected '{lib}'")
                 if file.FileType in [VerilogIncludeFile, VerilogSourceFile, SystemVerilogSourceFile]:
                     with open(file.Path, 'r', errors='replace') as f:
                         lines = f.readlines()
@@ -89,13 +90,13 @@ class Cocotb:
                                     logger.info(f"Cocotb dut '{self.dut}' is Verilog")
                                     return VerilogSourceFile
                                 else:
-                                    logger.warning(f"Found HDL module {name} in library '{file.Library.Name}' expected '{lib}'")
+                                    logger.warning(f"Found HDL module {name} in ",
+                                                   f"library '{file.Library.Name}' expected '{lib}'")
                 else:
                     continue
-        except UnicodeDecodeError as e:
+        except UnicodeDecodeError:
             logger.warning(f"Can't decode {file.Path}")
         raise FlowError(f"Could not find HDL entity/module '{name}' in library '{lib}'")
-
 
     def is_python_module(self, name: str):
         # TODO: Should we also search in installed packages?

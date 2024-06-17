@@ -41,7 +41,6 @@ class VeribleFlow(FlowBase):
             help="Manually specify file list"
         )
 
-
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.templates = templates
@@ -74,7 +73,6 @@ class VeribleFlow(FlowBase):
         # else:
         #     command += f"-ap -of {self.args.output_format}".split()
 
-
         file_types = [VerilogIncludeFile, VerilogSourceFile, SystemVerilogSourceFile]
         files = [f for f in self.project.DefaultDesign.Files() if f.FileType in file_types]
         for file in files:
@@ -87,7 +85,6 @@ class VeribleFlow(FlowBase):
 
         if errors:
             return SystemError
-
 
     def run(self) -> None:
         self.setup()

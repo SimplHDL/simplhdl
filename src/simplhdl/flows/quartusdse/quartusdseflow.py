@@ -1,26 +1,15 @@
-try:
-    from importlib.resources import files as resources_files
-except ImportError:
-    from importlib_resources import files as resources_files
-import os
 import shutil
 import logging
 
 from argparse import Namespace
-from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 
 from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.flows.implementationflow import ImplementationFlow
 from simplhdl.flows.quartusflow import QuartusFlow
 from simplhdl.resources.templates import quartus as templates
-from simplhdl.utils import sh, generate_from_template
-from simplhdl.pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
-                      SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
-                      EDIFNetlistFile, NetlistFile, SettingFile, QuartusSignalTapFile,
-                      QuartusIniFile, QuartusQIPSpecificationFile, QuartusQSYSSpecificationFile)
+from simplhdl.utils import sh
 from simplhdl.pyedaa.project import Project
-from simplhdl.pyedaa.attributes import UsedIn
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +41,14 @@ class QuartusDseFlow(ImplementationFlow):
         parser.add_argument(
             '--num-seeds',
             action='store',
-            help="Number of seeds to sweep as part of the exploration space. DSE auto-generates seed values when this is provided"
+            help="Number of seeds to sweep as part of the exploration space. "
+                 + "DSE auto-generates seed values when this is provided"
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.templates = templates
         self.tools.add(FlowTools.QUARTUS)
-
 
     def run(self) -> None:
         quartus = QuartusFlow('quartus', None, self.project, self.builddir)

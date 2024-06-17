@@ -52,7 +52,6 @@ class VsgFlow(FlowBase):
             help="Manually specify file list"
         )
 
-
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.templates = templates
