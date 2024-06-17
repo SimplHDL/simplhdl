@@ -17,6 +17,8 @@ VSIM_FLAGS := {{vsim_args|replace('#', '\#')}} $(COCOTB_FLAGS)
 
 VOPT_DESIGN ?= simvopt
 
+# Used in Questa gui functions 'gui.do'
+export VSIM_COMMAND := $(VSIM) $(VSIM_FLAGS) $(VOPT_DESIGN)
 
 .PHONY: clean compile simulate gui
 
@@ -35,7 +37,7 @@ $(VOPT_DESIGN): compile
 	$(VOPT) $(VOPT_FLAGS) $(TOPLEVELS) -o $@
 
 gui: $(VOPT_DESIGN)
-	$(VSIM) $(VSIM_FLAGS) $< $(GUI_DO_CMD)
+	$(VSIM) $(VSIM_FLAGS) $< -do gui.do $(GUI_DO_CMD)
 
 
 compile: $(VERILOG_FILESETS) $(VHDL_FILESETS)

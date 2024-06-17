@@ -30,8 +30,12 @@ class Cocotb:
 
     def module(self) -> Optional[str]:
         set_ = set()
-        modules = self.project.DefaultDesign._topLevel
-        for module in modules.split():
+        try:
+            modules = self.project.DefaultDesign._topLevel.split()
+        except AttributeError as e:
+            raise FlowError("No top levels found")
+
+        for module in modules:
             if self.is_python_module(module):
                 # TODO: What if more than one module match?
                 set_.add(module)

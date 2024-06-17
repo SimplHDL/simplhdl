@@ -116,7 +116,8 @@ class QuestaSimFlow(SimulationFlow):
     def get_project_templates(self, environment) -> List[Template]:
         return [
             environment.get_template('Makefile.j2'),
-            environment.get_template('project.mk.j2')
+            environment.get_template('project.mk.j2'),
+            environment.get_template('gui.do.j2')
         ]
 
     def get_cocotb_templates(self, environment):

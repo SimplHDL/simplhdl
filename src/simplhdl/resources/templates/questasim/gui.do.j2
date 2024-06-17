@@ -1,0 +1,18 @@
+{% if cocotbtop %}
+proc restart {} {
+    reload
+}
+{% endif %}
+
+proc recompile {} {
+    exec make elaborate
+    restart
+}
+
+proc reload {} {
+    set file wave.backup.do
+    write format wave $file
+    quit -sim
+    eval $::env(VSIM_COMMAND)
+    do $file
+}
