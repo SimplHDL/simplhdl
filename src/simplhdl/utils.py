@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Generator
 from pathlib import Path
 from contextlib import contextmanager
 from time import sleep
@@ -132,7 +132,7 @@ def escape(a: str) -> str:
 
 
 @contextmanager
-def lock(directory: Path) -> Path:
+def lock(directory: Path) -> Generator[Path, None, None]:
     while not mkdir(directory):
         sleep(1)
     try:
