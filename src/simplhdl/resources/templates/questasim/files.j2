@@ -1,4 +1,5 @@
 {{target}}.com: \
+{{hashfile}} \
 {% for file in files %}
 {{file}} {{ '\\' if not loop.last else '' }}
 {% endfor %}

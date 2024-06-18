@@ -17,7 +17,7 @@ from simplhdl.cocotb import Cocotb
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.pyedaa import (File, VerilogSourceFile, VerilogIncludeFile,
                              SystemVerilogSourceFile, VHDLSourceFile)
-from simplhdl.utils import generate_from_template, md5sum, append_suffix
+from simplhdl.utils import generate_from_template, md5sum, md5check, md5write, append_suffix
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +28,11 @@ class SimulationFlow(FlowBase):
         super().__init__(name, args, project, builddir)
         self.category = FlowCategory.SIMULATION
         self.hdl_language = None
-        self.cocotb = Cocotb(project)
         self.templates = None
+        self.hashfile = self.builddir.joinpath('filesets.hash')
 
     def run(self) -> None:
+        self.cocotb = Cocotb(self.project)
         self.validate()
         self.configure()
         self.generate()
@@ -74,6 +75,7 @@ class SimulationFlow(FlowBase):
         for template in self.get_project_templates(env) + self.get_cocotb_templates(env):
             generate_from_template(template, self.builddir, self.get_globals())
         self.generate_make_rules(env)
+        self.is_filesets_changed()
 
     def generate_make_rules(self, environment):
         walker = FileSetWalker()
@@ -126,7 +128,8 @@ class SimulationFlow(FlowBase):
                 template,
                 base.with_suffix('.files'),
                 target=base.with_suffix('.fileset').name,
-                files=[f.Path.absolute() for f in files])
+                files=[f.Path.absolute() for f in files],
+                hashfile=self.hashfile.name)
             template = environment.get_template('fileset.j2')
             output = base.with_suffix('.fileset')
             includes = {f.Path.parent.absolute() for f in files if isinstance(f, VerilogIncludeFile)}
@@ -158,6 +161,20 @@ class SimulationFlow(FlowBase):
         libraries.update(self.project.DefaultDesign.VHDLLibraries)
         libraries.update(self.project.DefaultDesign.ExternalVHDLLibraries)
         return libraries
+
+    def is_filesets_changed(self) -> bool:
+        """
+        Check if there are any changes in filesets since last run.
+        """
+        filesets = []
+        walker = FileSetWalker()
+        for fileset in walker.walk(self.project.DefaultDesign.DefaultFileSet):
+            filesets += [Path(f.Name) for f in FileSetWalker().walk(fileset) if Path(f.Name).is_file()]
+        if self.hashfile.is_file() and md5check(*filesets, filename=self.hashfile):
+            return True
+        else:
+            md5write(*filesets, filename=self.hashfile)
+            return False
 
 
 class FileSetWalker:
