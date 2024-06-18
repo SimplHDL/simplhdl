@@ -85,7 +85,6 @@ class Cocotb:
                         lines = f.readlines()
                         for line in lines:
                             if re.search(rf'^\s*module\s+{name}(\s+|\(|;|$)', line):
-                                print(file.Path)
                                 if file.Library.Name == lib:
                                     logger.info(f"Cocotb dut '{self.dut}' is Verilog")
                                     return VerilogSourceFile
