@@ -1,0 +1,10 @@
+[flake8]
+exclude =
+    .hg,
+    .git,
+    __pycache__,
+    _*
+per-file-ignores =
+    # imported but unused
+    __init__.py: F401
+max-line-length = 100

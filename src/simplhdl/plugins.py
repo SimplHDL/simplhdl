@@ -30,6 +30,8 @@ def load_builtin_plugins() -> None:
     import_module('simplhdl.flows.quartusdse.quartusdseflow')
     import_module('simplhdl.flows.vsg.vsgflow')
     import_module('simplhdl.flows.verible.veribleflow')
+    import_module('simplhdl.flows.lint.lintflow')
+    import_module('simplhdl.flows.flake8.flake8flow')
     packages = chain(
         iter_namespace(simplhdl.parsers),
         iter_namespace(simplhdl.flows),

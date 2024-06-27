@@ -8,12 +8,13 @@ from argparse import Namespace
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-from simplhdl.flow import FlowFactory, FlowBase
+from simplhdl.flow import FlowFactory, FlowBase, FlowError
 from simplhdl.resources.templates import vsg as templates
 from simplhdl.utils import sh, CalledShError, generate_from_template
 from simplhdl.pyedaa import VHDLSourceFile
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.attributes import UsedIn
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class VsgFlow(FlowBase):
                 'syntastic',
                 'summary'
             ],
-            default='vsg',
+            default=None,
             help="Display output format"
         )
         parser.add_argument(
@@ -55,6 +56,8 @@ class VsgFlow(FlowBase):
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.templates = templates
+        # file limit to change output for to summary
+        self.file_limit: int = 5
 
     def setup(self):
         os.makedirs(self.builddir, exist_ok=True)
@@ -69,29 +72,41 @@ class VsgFlow(FlowBase):
                                VHDLSourceFile=VHDLSourceFile,
                                project=self.project,
                                UsedIn=UsedIn)
-        template = environment.get_template('rules.yml.j2')
-        generate_from_template(template, self.builddir)
+        if self.args.rules:
+            self.rules = self.args.rules
+        elif os.getenv('SIMPLHDL_VSG_RULES'):
+            self.rules = self.args.rules
+        else:
+            template = environment.get_template('rules.yml.j2')
+            generate_from_template(template, self.builddir)
+            self.rules = 'rules.yml'
 
     def execute(self):
         command = ["vsg"]
-        if self.args.rules:
-            rules = self.args.rules
-        elif os.getenv('SIMPLHDL_VSG_RULES'):
-            rules = self.args.rules
-        else:
-            rules = 'rules.yml'
+        user_files = len(self.args.files)
+        project_files = len(list(self.project.DefaultDesign.DefaultFileSet.Files(VHDLSourceFile)))
 
         if self.args.fix:
             command.append("--fix")
+        elif self.args.output_format is None:
+            if user_files > self.file_limit:
+                format = "summary"
+            elif project_files > self.file_limit and not user_files:
+                format = "summary"
+            else:
+                format = "vsg"
+            command += f"-ap -of {format}".split()
         else:
             command += f"-ap -of {self.args.output_format}".split()
 
-        if self.args.files:
-            if rules:
-                command += f"-c {rules}".split()
+        if user_files:
+            if self.rules:
+                command += f"-c {self.rules}".split()
             command += ['-f'] + self.args.files
+        elif project_files:
+            command += f"-c {self.rules} files.json".split()
         else:
-            command += f"-c {rules} files.json".split()
+            raise FlowError("No VHDL files")
 
         try:
             logger.debug(command)

@@ -1,3 +1,5 @@
+import logging
+
 from pathlib import Path
 from typing import Callable
 from abc import ABCMeta, abstractmethod
@@ -5,6 +7,8 @@ from argparse import Namespace
 
 from .pyedaa.fileset import FileSet
 from .pyedaa.project import Project
+
+logger = logging.getLogger(__name__)
 
 
 class ParserBase(metaclass=ABCMeta):
@@ -19,6 +23,17 @@ class ParserBase(metaclass=ABCMeta):
     @abstractmethod
     def parse(self, filename: Path, project: Project, args: Namespace) -> 'FileSet':
         pass
+
+
+class NoParser(ParserBase):
+    """
+    This parser always returns an empty fileset
+    """
+    def is_valid_format(self, filename: Path) -> bool:
+        return True
+
+    def parse(self, filename: Path, project: Project, args: Namespace) -> 'FileSet':
+        return FileSet('Empty')
 
 
 class ParserFactory:
@@ -47,7 +62,8 @@ class ParserFactory:
             if parser.is_valid_format(filename):
                 return parser
         if filename is None:
-            raise ParserError("Couldn't find Parser for parsing, try using the --projectspec <filename>")
+            logger.info("No project specification found, continue with empty project")
+            return NoParser()
         else:
             raise ParserError(f"Couldn't find Parser for parsing '{filename}'")
 

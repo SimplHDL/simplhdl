@@ -73,7 +73,11 @@ class VHDLSourceFile(HDLSourceFile, pm.HumanReadableContent):
     pass
 
 
-class CocotbPythonFile(pm.CocotbPythonFile, FileMixIn):
+class PythonSourceFile(pm.PythonSourceFile):
+    pass
+
+
+class CocotbPythonFile(PythonSourceFile, FileMixIn):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
