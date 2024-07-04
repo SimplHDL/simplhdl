@@ -5,10 +5,12 @@ VERILOG_FILESETS := $(addsuffix .com,$(wildcard *verilog.fileset))
 
 {% set libpaths = [] %}
 {% for library in libraries %}
-{{ libpaths.append(library.Path) or '' }}
-{{library.Path}}:
+{% set libpath = library.Path or library.Name %}
+{{ libpaths.append(libpath) or ''}}
+
+{{libpath}}:
 	$(VLIB) {{library.Name}}
-	$(VMAP) {{library.Name}} {{library.Path}}
+	$(VMAP) {{library.Name}} {{libpath}}
 
 {% endfor %}
 

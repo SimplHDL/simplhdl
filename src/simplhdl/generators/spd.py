@@ -11,12 +11,13 @@ from shutil import copy, copytree
 from ..pyedaa import (
     File, SystemVerilogSourceFile, VHDLSourceFile, VerilogSourceFile,
     QuartusIPSpecificationFile, HDLLibrary, ConstraintFile, HDLSourceFile,
-    QuartusIPCompressedSpecificationFile, QuartusQSYSSpecificationFile
+    QuartusIPCompressedSpecificationFile, QuartusQSYSSpecificationFile,
+    MemoryInitFile
 )
 from ..pyedaa.fileset import FileSet
 from ..flow import FlowBase, FlowCategory, FlowTools
 from ..generator import GeneratorFactory, GeneratorBase, GeneratorError
-from ..utils import md5write, md5check
+from ..utils import md5write, md5check, sh
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ FILETYPE_MAP = {
     'VHDL': VHDLSourceFile,
     'VHDL_ENCRYPT': VHDLSourceFile,
     'SDC_ENTITY': ConstraintFile,
+    'HEX': MemoryInitFile
 }
 
 TOOL_MAP = {
@@ -51,7 +53,10 @@ class Spd:
         self.simulators = set()
         spdfile = filename.parent.joinpath(filename.stem, filename.name).with_suffix('.spd')
         if not spdfile.exists():
-            raise FileNotFoundError(f"{spdfile}: doesn't exits")
+            command = f"qsys-generate --simulation=VERILOG {filename.absolute()}".split()
+            sh(command, cwd=filename.parent)
+            if not spdfile.exists():
+                raise FileNotFoundError(f"{spdfile}: doesn't exits")
         self.tree = parse(spdfile)
         self.root = self.tree.getroot()
         self.location = spdfile.parent.absolute()

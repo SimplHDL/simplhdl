@@ -4,6 +4,7 @@ except ImportError:
     from importlib_resources import files as resources_files
 import os
 import logging
+import shutil
 
 from typing import Callable, Generator, List, Dict, Tuple, Any
 from jinja2 import Environment, FileSystemLoader
@@ -15,8 +16,10 @@ from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.attributes import UsedIn
 from simplhdl.cocotb import Cocotb
 from simplhdl.pyedaa.fileset import FileSet
-from simplhdl.pyedaa import (File, VerilogSourceFile, VerilogIncludeFile,
-                             SystemVerilogSourceFile, VHDLSourceFile)
+from simplhdl.pyedaa import (
+    File, VerilogSourceFile, VerilogIncludeFile, SystemVerilogSourceFile, VHDLSourceFile,
+    MemoryInitFile
+)
 from simplhdl.utils import generate_from_template, md5sum, md5check, md5write, append_suffix
 
 logger = logging.getLogger(__name__)
@@ -75,6 +78,7 @@ class SimulationFlow(FlowBase):
         for template in self.get_project_templates(env) + self.get_cocotb_templates(env):
             generate_from_template(template, self.builddir, self.get_globals())
         self.generate_make_rules(env)
+        self.copy_memory_files()
         self.is_filesets_changed()
 
     def generate_make_rules(self, environment):
@@ -137,6 +141,10 @@ class SimulationFlow(FlowBase):
             generate_from_template(template, output, args=args, includes=includes, files=files)
             generated.append(output)
         return generated
+
+    def copy_memory_files(self):
+        for file in self.project.DefaultDesign.Files(MemoryInitFile):
+            shutil.copy(file.Path.absolute(), self.builddir.absolute())
 
     def is_uvm(self):
         for plusarg in self.project.PlusArgs.keys():
