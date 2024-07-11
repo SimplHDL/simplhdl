@@ -31,9 +31,16 @@ class QuestaSimFlow(SimulationFlow):
         )
         parser.add_argument(
             '-w',
-            '--wave',
+            '--wavedump',
             action='store_true',
             help="Dump waveforms"
+        )
+        parser.add_argument(
+            '--waveformat',
+            action='store',
+            choices=['wlf', 'vcd', 'evcd'],
+            default='wlf',
+            help="Wave file format"
         )
         parser.add_argument(
             '--gui',
@@ -111,13 +118,16 @@ class QuestaSimFlow(SimulationFlow):
         globals['vcom_args'] = self.vcom_args()
         globals['vopt_args'] = self.vopt_args()
         globals['vsim_args'] = self.vsim_args()
+        globals['wavedump'] = self.args.wavedump
+        globals['waveformat'] = self.args.waveformat
         return globals
 
     def get_project_templates(self, environment) -> List[Template]:
         return [
             environment.get_template('Makefile.j2'),
             environment.get_template('project.mk.j2'),
-            environment.get_template('gui.do.j2')
+            environment.get_template('gui.do.j2'),
+            environment.get_template('run.do.j2')
         ]
 
     def get_cocotb_templates(self, environment):
@@ -172,7 +182,7 @@ class QuestaSimFlow(SimulationFlow):
             args.add(f"-g{name}={escape(value)}")
         for name, value in self.project.Parameters.items():
             args.add(f"-g{name}={escape(value)}")
-        if self.args.gui or self.args.do or self.args.wave or self.cocotb.enabled:
+        if self.args.gui or self.args.do or self.args.wavedump or self.cocotb.enabled:
             args.add('+acc=npr')
         return ' '.join(list(args) + [self.args.vopt_args])
 
