@@ -43,6 +43,11 @@ class QuestaSimFlow(SimulationFlow):
             help="Wave file format"
         )
         parser.add_argument(
+            '--debug',
+            action='store_true',
+            help="Enable full debug capabilities"
+        )
+        parser.add_argument(
             '--gui',
             action='store_true',
             help="Open project in QuestaSim GUI"
@@ -182,7 +187,11 @@ class QuestaSimFlow(SimulationFlow):
             args.add(f"-g{name}={escape(value)}")
         for name, value in self.project.Parameters.items():
             args.add(f"-g{name}={escape(value)}")
-        if self.args.gui or self.args.do or self.args.wavedump or self.cocotb.enabled:
+        if self.args.debug:
+            args.add('+acc')
+            args.add('-debugdb')
+            args.add('-fsmdebug')
+        elif self.args.gui or self.args.do or self.args.wavedump or self.cocotb.enabled:
             args.add('+acc=npr')
         return ' '.join(list(args) + [self.args.vopt_args])
 
@@ -200,6 +209,8 @@ class QuestaSimFlow(SimulationFlow):
             args.add('-onfinish final')
         else:
             args.add('-onfinish exit')
+        if self.args.debug:
+            args.add('-debugDB')
 
         return ' '.join(list(args) + [self.args.vsim_args])
 
