@@ -15,11 +15,11 @@ set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% if file.FileType == VerilogIncludeFile %}
 set_global_assignment -name VERILOG_INCLUDE_FILE "{{file.Path}}"
 {% elif file.FileType == SystemVerilogSourceFile %}
-set_global_assignment -name SYSTEMVERILOG_FILE "{{file.Path}}"
+set_global_assignment -library {{file.Library}} -name SYSTEMVERILOG_FILE "{{file.Path}}"
 {% elif file.FileType == VerilogSourceFile %}
-set_global_assignment -name VERILOG_FILE "{{file.Path}}"
+set_global_assignment -library {{file.Library}} -name VERILOG_FILE "{{file.Path}}"
 {% elif file.FileType == VHDLSourceFile %}
-set_global_assignment -name VHDL_FILE "{{file.Path}}"
+set_global_assignment -library {{file.Library}} -name VHDL_FILE "{{file.Path}}"
 {% elif file.FileType == ConstraintFile %}
 set_global_assignment -name SDC_FILE "{{file.Path}}"
 {% elif file.FileType == TCLSourceFile %}
