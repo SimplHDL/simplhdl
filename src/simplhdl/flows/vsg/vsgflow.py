@@ -102,14 +102,13 @@ class VsgFlow(FlowBase):
         if user_files:
             if self.rules:
                 command += f"-c {self.rules}".split()
-            command += ['-f'] + self.args.files
+            command += ['-f'] + [str(f.absolute()) for f in self.args.files]
         elif project_files:
             command += f"-c {self.rules} files.json".split()
         else:
             raise FlowError("No VHDL files")
 
         try:
-            logger.debug(command)
             sh(command, cwd=self.builddir, output=True)
         except CalledShError as e:
             print(e)
