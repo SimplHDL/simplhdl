@@ -45,8 +45,12 @@ class QuartusFlow(ImplementationFlow):
         )
         parser.add_argument(
             '--archive',
-            choices=['project'],
-            help="Archive Quartus project and results"
+            choices=[
+                'project',
+                'project-service-request',
+                'project-source'
+            ],
+            help="Archive Quartus project, settings and results"
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -64,7 +68,15 @@ class QuartusFlow(ImplementationFlow):
 
     def archive(self) -> None:
         name = self.project.Name
-        command = f"quartus_sh --archive -use_file_set full_db -revision {name} -no_discover -output {name}.qar {name}"
+        if self.args.archive == 'project':
+            fileset = 'full_db'
+        elif self.args.archive == 'project-service-request':
+            fileset = 'sr'
+        elif self.args.archive == 'project-source':
+            fileset = 'basic'
+        else:
+            raise Exception("Unknown value for argument --archive: {self.args.archive}")
+        command = f"quartus_sh --archive -use_file_set {fileset} -revision {name} -no_discover -output {name}.qar {name}"  # noqa
         sh(command.split(), output=True, cwd=self.builddir)
         raise SystemExit
 
