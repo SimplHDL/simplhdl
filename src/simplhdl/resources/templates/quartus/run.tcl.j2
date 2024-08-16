@@ -6,6 +6,9 @@ set step [lindex $argv 0]
 project_open {{project.Name}}
 
 switch $step {
+   project {
+      puts "\nINFO: Project creation was successful.\n"
+   }
    compile {
       if {[catch {execute_flow -compile} result]} {
       	puts "\nResult: $result\n"
