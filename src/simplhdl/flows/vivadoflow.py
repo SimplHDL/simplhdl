@@ -14,7 +14,7 @@ from ..resources.templates import vivado as templates
 from ..utils import sh, generate_from_template, dict2str
 from ..pyedaa import (VivadoIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
-                      EDIFNetlistFile, NetlistFile)
+                      EDIFNetlistFile, NetlistFile, VivadoBDTclFile, VivadoProjectStepFile)
 from ..pyedaa.project import Project
 from ..pyedaa.attributes import UsedIn
 
@@ -101,6 +101,8 @@ class VivadoFlow(FlowBase):
                                VHDLSourceFile=VHDLSourceFile,
                                ConstraintFile=ConstraintFile,
                                VivadoIPSpecificationFile=VivadoIPSpecificationFile,
+                               VivadoProjectStepFile=VivadoProjectStepFile,
+                               VivadoBDTclFile=VivadoBDTclFile,
                                EDIFNetlistFile=EDIFNetlistFile,
                                NetlistFile=NetlistFile,
                                project=self.project,

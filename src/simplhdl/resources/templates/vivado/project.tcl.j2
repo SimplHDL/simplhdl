@@ -99,10 +99,10 @@ add_files "{{file.Path|replace('\\', '/')}}"
 read_edif "{{file.Path|replace('\\', '/')}}"
 {% elif file.Path.suffix == '.bd' %}
 read_bd "{{file.Path|replace('\\', '/')}}"
-{% elif file.Path.name.endswith('.bd.tcl') %}
+{% elif file.FileType == VivadoBDTclFile %}
 send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path|replace('\\', '/')}}: this might take some time."
 source_script "{{file.Path|replace('\\', '/')}}"
-{% elif file.Path.name.endswith('.steps.tcl') %}
+{% elif file.FileType == VivadoProjectStepFile %}
 add_files -fileset utils_1 "{{file.Path|replace('\\', '/')}}"
 global step
 set step {project}

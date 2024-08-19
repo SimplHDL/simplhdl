@@ -158,6 +158,14 @@ class VivadoIPSpecificationFile(IPSpecificationFile):
     pass
 
 
+class VivadoBDTclFile(TCLSourceFile):
+    pass
+
+
+class VivadoProjectStepFile(TCLSourceFile):
+    pass
+
+
 class SystemRDLSourceFile(File):
     pass
 
