@@ -185,8 +185,9 @@ class VivadoIP(GeneratorBase):
             for fileset in filesets:
                 corefiles += component.files(fileset)
             for file_element in corefiles:
-                file = component.filepath(file_element)
-                if file.exists() and file.suffix == '.xml':
+                # Get the .xml file next to the .xci file
+                file = component.filepath(file_element).with_suffix('.xml')
+                if file.exists():
                     files += self.get_files(file)
         for view in component.views('.*simulation.*'):
             filesets = component.filesets(view)
