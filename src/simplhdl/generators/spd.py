@@ -123,7 +123,19 @@ class QuartusIP(GeneratorBase):
         md5file = dest.with_suffix('.md5')
         ipdir.mkdir(exist_ok=True)
         if filename.FileType == QuartusQSYSSpecificationFile:
-            pass
+            update = True
+            dir = filename.Path.with_suffix('')
+            if dir.exists():
+                if md5file.exists():
+                    update = not md5check(filename.Path, dir, filename=md5file)
+            if update:
+                copy(str(filename.Path), str(dest.with_suffix('.qsys')))
+                md5write(filename.Path, filename=md5file)
+                if dir.exists():
+                    copytree(str(dir), str(dest.with_suffix('')), dirs_exist_ok=True)
+                    md5write(filename.Path, dir, filename=md5file)
+                    logger.debug(f"Copy {filename.Path} to {dest}")
+            filename._path = dest.with_suffix('.qsys').absolute()
 
         elif filename.FileType == QuartusIPCompressedSpecificationFile:
             update = True
