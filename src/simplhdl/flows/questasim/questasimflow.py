@@ -15,6 +15,12 @@ from simplhdl.flows.simulationflow import SimulationFlow
 
 logger = logging.getLogger(__name__)
 
+class Flag(list):
+
+    def add(self, item):
+        if item not in self:
+            self.append(item)
+
 
 @FlowFactory.register('questasim')
 class QuestaSimFlow(SimulationFlow):
@@ -156,7 +162,7 @@ class QuestaSimFlow(SimulationFlow):
         return f"-2008 -work {library.Name}"
 
     def vlog_args(self) -> str:
-        args = set()
+        args = Flag()
         if self.args.verbose == 0:
             args.add('-quiet')
         for name in self.get_libraries().keys():
@@ -166,17 +172,17 @@ class QuestaSimFlow(SimulationFlow):
         return ' '.join(list(args) + [self.args.vlog_args])
 
     def vcom_args(self) -> str:
-        args = set()
+        args = Flag()
         if self.args.verbose == 0:
             args.add('-quiet')
         return ' '.join(list(args) + [self.args.vcom_args])
 
     def vmap_args(self) -> str:
-        args = set()
+        args = Flag()
         return ' '.join(list(args) + [self.args.vmap_args])
 
     def vopt_args(self) -> str:
-        args = set()
+        args = Flag()
         if self.args.verbose == 0:
             args.add('-quiet')
         for name in self.get_libraries().keys():
@@ -196,7 +202,7 @@ class QuestaSimFlow(SimulationFlow):
         return ' '.join(list(args) + [self.args.vopt_args])
 
     def vsim_args(self) -> str:
-        args = set()
+        args = Flag()
         args.add(f"-sv_seed {self.args.seed}")
         timescale = self.timescale()
         if timescale:
