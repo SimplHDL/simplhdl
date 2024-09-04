@@ -5,10 +5,13 @@ from typing import Optional
 from pyTooling.MetaClasses import ExtendedType
 from .attributes import UsedIn
 
+SIMULATION = "simulation"
+IMPLEMENTATION = "implementation"
+
 
 class FileMixIn(metaclass=ExtendedType, mixin=True):
     def _registerAttributes(self):
-        self._attributes[UsedIn] = {'simulation', 'implementation'}
+        self._attributes[UsedIn] = {SIMULATION, IMPLEMENTATION}
 
 
 class File(pm.File, FileMixIn):
@@ -81,7 +84,7 @@ class CocotbPythonFile(PythonSourceFile, FileMixIn):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
-        self[UsedIn] = {'simulation'}
+        self[UsedIn] = {SIMULATION}
 
 
 class TCLSourceFile(pm.TCLSourceFile):
@@ -122,13 +125,13 @@ class ConstraintFile(pm.ConstraintFile, FileMixIn):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
-        self[UsedIn] = {'implementation'}
+        self[UsedIn] = {IMPLEMENTATION}
 
 
 class QuartusSignalTapFile(File):
     def _registerAttributes(self):
         super()._registerAttributes()
-        self[UsedIn] = {'implmentation'}
+        self[UsedIn] = {IMPLEMENTATION}
 
 
 class QuartusIPSpecificationFile(IPSpecificationFile):
@@ -151,7 +154,7 @@ class QuartusIniFile(File):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
-        self[UsedIn] = {'implementation'}
+        self[UsedIn] = {IMPLEMENTATION}
 
 
 class VivadoIPSpecificationFile(IPSpecificationFile):
