@@ -12,7 +12,7 @@ from ..pyedaa import (
     File, SystemVerilogSourceFile, VHDLSourceFile, VerilogSourceFile,
     QuartusIPSpecificationFile, HDLLibrary, ConstraintFile, HDLSourceFile,
     QuartusIPCompressedSpecificationFile, QuartusQSYSSpecificationFile,
-    MemoryInitFile
+    MemoryInitFile, QuartusQIPSpecificationFile
 )
 from ..pyedaa.fileset import FileSet
 from ..flow import FlowBase, FlowCategory, FlowTools
@@ -173,6 +173,8 @@ class QuartusIP(GeneratorBase):
     def run(self, flow: FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
         for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile):
+            if ipfile.FileType == QuartusQIPSpecificationFile:
+                return
             newipfile = self.unpack_ip(ipfile)
             if flow.category == FlowCategory.SIMULATION:
                 spd = Spd(newipfile.Path, flow)
