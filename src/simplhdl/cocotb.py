@@ -40,7 +40,7 @@ class Cocotb:
                 # TODO: What if more than one module match?
                 set_.add(module)
         if not set_:
-            return None
+            raise FlowError('CocoTB module not specified')
         elif len(set_) == 1:
             return next(iter(set_))
         else:
