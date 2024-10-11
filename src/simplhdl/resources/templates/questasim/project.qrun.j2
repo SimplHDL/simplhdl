@@ -1,0 +1,26 @@
+-vlog.options {{vlog_args}} -end
+-vcom.options {{vcom_args}} -end
+-vopt.options {{vopt_args}} -end
+-vsim.options {{vsim_args}} -end
+{% for arg in qrun_args %}
+{{arg}}
+{% endfor %}
+{% for incdir in incdirs %}
++incdir+{{incdir}}
+{% endfor %}
+{% for library in external_libraries %}
+-makelib {{library.Path}}:{{library.Name}} -endlib
+-reflib {{library.Name}}
+{% endfor %}
+{% for library in libraries %}
+-reflib {{library.Name}}
+{% endfor %}
+{% for fileset in filesets %}
+-makelib {{fileset.VHDLLibrary.Name}}:{{fileset.VHDLLibrary.Path}}
+{% for file in fileset.GetFiles() %}
+{% if file.FileType in [SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile] and 'simulation' in file[UsedIn] %}
+	{{file.Path}}
+{% endif %}
+{% endfor %}
+-endlib
+{% endfor %}

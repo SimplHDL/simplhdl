@@ -33,9 +33,13 @@ class FileSet(pm.FileSet):
     def VHDLLibrary(self, value: 'VHDLLibrary') -> None:
         self._vhdlLibrary = value
 
-    def GetFiles(self) -> Generator[File, None, None]:
+    def GetFiles(self, filetype=None) -> Generator[File, None, None]:
         for file in self._files:
-            yield file
+            if filetype:
+                if isinstance(file, filetype):
+                    yield file
+            else:
+                yield file
 
     @property
     def VHDLLibraries(self) -> Dict[str, 'VHDLLibrary']:

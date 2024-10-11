@@ -17,12 +17,12 @@ class CalledShError(Exception):
     pass
 
 
-def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False):
+def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False, env=None):
     if os.name == 'nt':
         shell = True
 
     logger.debug(' '.join(command))
-    with Popen(command, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell) as p:
+    with Popen(command, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell, env=env) as p:
         if output:
             stdout: str = ''
             for line in p.stdout:
