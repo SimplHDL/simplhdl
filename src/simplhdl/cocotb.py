@@ -1,8 +1,9 @@
 import logging
 import re
+import os
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 from .utils import sh
 from .pyedaa.project import Project
@@ -28,7 +29,16 @@ class Cocotb:
             raise FileNotFoundError(f"{path}: not found")
         return path
 
+    def libpython(self) -> str:
+        output = sh(['cocotb-config', '--libpython'])
+        path = Path(output)
+        if not path.exists():
+            raise FileNotFoundError(f"{path}: not found")
+        return path
+
     def module(self) -> Optional[str]:
+        if not self.enabled:
+            return None
         set_ = set()
         try:
             modules = self.project.DefaultDesign._topLevel.split()
@@ -115,3 +125,29 @@ class Cocotb:
     def pythonpath(self) -> str:
         directories = {str(f.Path.parent.absolute()) for f in self.files()}
         return ':'.join(directories)
+
+    def args(self) -> str:
+        if self.duttype == VHDLSourceFile:
+            lib_name_path = self.lib_name_path("questa", "fli")
+            return f'-foreign "cocotb_init {lib_name_path}"'
+        elif self.duttype == VerilogSourceFile:
+            lib_name_path = self.lib_name_path("questa", "vpi")
+            return f'-pli {lib_name_path}'
+
+    def env(self) -> Dict[str, str]:
+        e = os.environ.copy()
+        e['MODULE'] = self.top
+        e['TOPLEVEL'] = self.dut
+        e['PYTHONPYCACHEPREFIX'] = './pycache'
+        e['LIBPYTHON_LOC'] = self.libpython()
+        if self.duttype == VHDLSourceFile:
+            lib_name_path = self.lib_name_path("questa", "vpi")
+            e['GPI_EXTRA'] = f"{lib_name_path}:cocotbvpi_entry_point"
+        elif self.duttype == VerilogSourceFile:
+            lib_name_path = self.lib_name_path("questa", "fli")
+            e['GPI_EXTRA'] = f"{lib_name_path}:cocotbfli_entry_point"
+        if 'PYTHONPATH' in e:
+            e['PYTHONPATH'] = self.pythonpath + os.pathsep + e.get('PYTHONPATH')
+        else:
+            e['PYTHONPATH'] = self.pythonpath
+        return e

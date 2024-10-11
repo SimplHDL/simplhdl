@@ -65,8 +65,11 @@ class SimulationFlow(FlowBase):
         globals['cocotbtop'] = self.cocotb.top
         globals['cocotbhdltype'] = self.cocotb.duttype
         globals['cocotbdut'] = self.cocotb.dut
+        globals['incdirs'] = {f.Path.parent for f in self.project.DefaultDesign.DefaultFileSet.Files(VerilogIncludeFile)}  # noqa E501
         globals['VerilogSourceFile'] = VerilogSourceFile
+        globals['SystemVerilogSourceFile'] = SystemVerilogSourceFile
         globals['VHDLSourceFile'] = VHDLSourceFile
+        globals['UsedIn'] = UsedIn
         globals['uvm'] = self.is_uvm()
         return globals
 

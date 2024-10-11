@@ -1,0 +1,12 @@
+{% if wavedump == 'vcd' %}
+vcd file vsim.vcd
+vcd add -r /*
+{% elif wavedump == 'evcd' %}
+vcd file vsim.evcd
+vcd add -dumpports -r /*
+{% elif wavedump == 'wlf' %}
+log -r /*
+{% endif %}
+
+run -all
+quit

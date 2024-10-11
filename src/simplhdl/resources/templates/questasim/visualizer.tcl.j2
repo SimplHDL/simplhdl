@@ -1,0 +1,31 @@
+{% if cocotbtop %}
+proc restart {} {
+    reload
+}
+{% endif %}
+
+proc recompile {} {
+    exec qrun -f {{qrunfile}} -optimize
+{% if cocotbtop %}
+    restart
+{% else %}
+    restart -f
+{% endif %}
+}
+
+proc reload {} {
+    echo "Not implemented"
+}
+
+
+proc createMenus {} {
+
+    #              WinName      Menu                 MenuItem label         Command
+    #              ----------   ----                 --------------------   -------
+    add_menu       ""           SimplHDL
+    add_menuitem   ""           SimplHDL             "Compile"              recompile
+    add_menuitem   ""           SimplHDL             "Restart"              reload
+    add_menuitem   ""           SimplHDL             "Run All"              "run -all"
+}
+
+createMenus

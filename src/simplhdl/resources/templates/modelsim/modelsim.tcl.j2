@@ -1,0 +1,32 @@
+{% if cocotbtop %}
+proc restart {} {
+    reload
+}
+{% endif %}
+
+proc recompile {} {
+    exec make elaborate
+{% if cocotbtop %}
+    restart
+{% else %}
+    restart -f
+{% endif %}
+}
+
+proc reload {} {
+    set file restart.do
+    write format restart $file
+    do $file
+}
+
+proc createMenus {wname} {
+
+    #              WinName      Menu                 MenuItem label         Command
+    #              ----------   ----                 --------------------   -------
+    add_menu       $wname       SimplHDL
+    add_menuitem   $wname       SimplHDL             "Compile"              recompile
+    add_menuitem   $wname       SimplHDL             "Restart"              reload
+    add_menuitem   $wname       SimplHDL             "Run All"              "run -all"
+}
+
+lappend PrefMain(user_hook) createMenus

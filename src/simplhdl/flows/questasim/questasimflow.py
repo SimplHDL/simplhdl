@@ -1,19 +1,29 @@
+try:
+    from importlib.resources import files as resources_files
+except ImportError:
+    from importlib_resources import files as resources_files
+
 import os
+import re
 import logging
 import shutil
 
+from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from typing import Any, List, Dict, Optional
 from argparse import Namespace
 from jinja2 import Template
 from simplhdl.pyedaa.project import Project
-from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.utils import sh, escape
 from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.resources.templates import questasim as questasimtemplates
-from simplhdl.flows.simulationflow import SimulationFlow
+from simplhdl.flows.simulationflow import SimulationFlow, FileSetWalker
+from simplhdl.utils import generate_from_template
 
 logger = logging.getLogger(__name__)
+
+qrunfile = "project.qrun"
+
 
 class Flag(list):
 
@@ -32,21 +42,16 @@ class QuestaSimFlow(SimulationFlow):
             '--step',
             action='store',
             choices=['generate', 'compile', 'elaborate', 'simulate'],
-            default='simulate',
+            default='',
             help="flow step to run"
         )
         parser.add_argument(
             '-w',
             '--wavedump',
-            action='store_true',
-            help="Dump waveforms"
-        )
-        parser.add_argument(
-            '--waveformat',
-            action='store',
+            nargs='?',
+            const='wlf',
             choices=['wlf', 'vcd', 'evcd'],
-            default='wlf',
-            help="Wave file format"
+            help="Dump waveforms using wlf, vcd or evcd format"
         )
         parser.add_argument(
             '--debug',
@@ -54,9 +59,23 @@ class QuestaSimFlow(SimulationFlow):
             help="Enable full debug capabilities"
         )
         parser.add_argument(
-            '--gui',
+            '--clean',
             action='store_true',
-            help="Open project in QuestaSim GUI"
+            help="Clean project"
+        )
+        parser.add_argument(
+            '--gui',
+            nargs='?',
+            const=os.getenv('SIMPLHDL_QUESTASIM_GUI', 'vsim'),
+            choices=['vsim', 'visualizer'],
+            help="Open project in QuestaSim GUI using vsim or visualizer"
+        )
+        parser.add_argument(
+            '--qrun-args',
+            default='',
+            action='store',
+            metavar='ARGS',
+            help="Extra arguments for QuestaSim qrun command"
         )
         parser.add_argument(
             '--vsim-args',
@@ -71,13 +90,6 @@ class QuestaSimFlow(SimulationFlow):
             action='store',
             metavar='ARGS',
             help="Extra arguments for QuestaSim vopt command"
-        )
-        parser.add_argument(
-            '--vmap-args',
-            default='',
-            action='store',
-            metavar='ARGS',
-            help="Extra arguments for QuestaSim vmap command"
         )
         parser.add_argument(
             '--vcom-args',
@@ -125,68 +137,31 @@ class QuestaSimFlow(SimulationFlow):
 
     def get_globals(self) -> Dict[str, Any]:
         globals = super().get_globals()
+        globals['qrunfile'] = qrunfile
+        globals['wavedump'] = self.args.wavedump
+        globals['filesets'] = self.get_filesets()
         globals['vlog_args'] = self.vlog_args()
         globals['vcom_args'] = self.vcom_args()
         globals['vopt_args'] = self.vopt_args()
         globals['vsim_args'] = self.vsim_args()
-        globals['wavedump'] = self.args.wavedump
-        globals['waveformat'] = self.args.waveformat
+        globals['qrun_args'] = self.qrun_args()
         return globals
-
-    def get_project_templates(self, environment) -> List[Template]:
-        return [
-            environment.get_template('Makefile.j2'),
-            environment.get_template('project.mk.j2'),
-            environment.get_template('gui.do.j2'),
-            environment.get_template('run.do.j2')
-        ]
-
-    def get_cocotb_templates(self, environment):
-        if self.cocotb.enabled:
-            return [
-                environment.get_template('cocotb.mk.j2')
-            ]
-        else:
-            return list()
-
-    def fileset_verilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-work {library.Name}"
-
-    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-sv -work {library.Name}"
-
-    def fileset_vhdl_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-2008 -work {library.Name}"
 
     def vlog_args(self) -> str:
         args = Flag()
-        if self.args.verbose == 0:
-            args.add('-quiet')
-        for name in self.get_libraries().keys():
-            args.add(f"-L {name}")
+        args.add('-sv')
+        args.add('-suppress vlog-2720')
         for name, value in self.project.Defines.items():
             args.add(f"+define+{name}={escape(value)}")
         return ' '.join(list(args) + [self.args.vlog_args])
 
     def vcom_args(self) -> str:
         args = Flag()
-        if self.args.verbose == 0:
-            args.add('-quiet')
+        args.add('-2008')
         return ' '.join(list(args) + [self.args.vcom_args])
-
-    def vmap_args(self) -> str:
-        args = Flag()
-        return ' '.join(list(args) + [self.args.vmap_args])
 
     def vopt_args(self) -> str:
         args = Flag()
-        if self.args.verbose == 0:
-            args.add('-quiet')
-        for name in self.get_libraries().keys():
-            args.add(f"-L {name}")
         if self.args.timescale:
             args.add(f"-timescale {self.args.timescale}")
         for name, value in self.project.Generics.items():
@@ -211,48 +186,114 @@ class QuestaSimFlow(SimulationFlow):
             args.add('-quiet')
         for name, value in self.project.PlusArgs.items():
             args.add(f"+{name}={escape(value)}")
+        if self.cocotb.enabled:
+            args.add(self.cocotb.args())
         if self.args.gui:
             args.add('-onfinish final')
         else:
             args.add('-onfinish exit')
-        if self.args.debug:
-            args.add('-debugDB')
-
         return ' '.join(list(args) + [self.args.vsim_args])
 
-    def get_library(self, fileset: FileSet) -> str:
-        try:
-            library = fileset.VHDLLibrary.Name
-        except AttributeError:
-            # TODO: This is a workaround The default fileset is FileSet
-            #       which is bugged. Because it is empty we don't need it
-            #       anyway and can just ignore it.
-            library = ''
-        return library
+    def qrun_args(self) -> str:
+        args = Flag()
+        for top in self.cocotb.toplevels.split():
+            if self.args.verbose > 0:
+                args.add("-verbose")
+            if self.version > 2023.0:
+                args.add("-defaultHDLCompiler=vcom")
+                args.add("-noautoorder")
+            if self.is_uvm():
+                args.add("-uvm")
+            args.add(f"-top {top}")
+        return list(args) + [self.args.qrun_args]
 
     def execute(self, step: str) -> None:
+        """
+        Execute the QuestaSim simulation flow.
+
+        Parameters
+        ----------
+        step : str
+            The step to execute. If not provided, the flow will execute
+            the 'simulate' step.
+
+        Returns
+        -------
+        None
+        """
+        if self.args.clean:
+            sh(['qrun', '-clean'], cwd=self.builddir, output=True)
+            return
+
         self.run_hooks('pre')
 
         if step == 'generate':
             return
 
-        if step == 'compile':
-            sh(['make', 'compile'], cwd=self.builddir, output=True)
-            return
+        command = self.get_command(step)
+        env = self.get_environment(command)
+
+        sh(command, cwd=self.builddir, output=True, env=env)
+        if step in ['simulate', '']:
+            self.run_hooks('post')
+
+    def get_command(self, step: str) -> List[str]:
+
+        """
+        Construct the command list to run qrun based on the given step and any command line arguments.
+
+        Parameters
+        ----------
+        step : str
+            The step to run. If None or not given, the default step is used.
+
+        Returns
+        -------
+        command : List[str]
+            The command list to execute qrun with.
+        """
+        command = ['qrun', '-f', qrunfile]
+
+        if self.args.gui:
+            if self.use_visualizer():
+                command.append('-visualizer')
+            command.append('-gui')
+        elif self.args.step:
+            command.append(f'-{step}')
 
         if self.args.do:
             if Path(self.args.do).exists():
-                os.environ['DO_CMD'] = f"-do {Path(self.args.do).absolute()}"
+                command += ['-do', str(Path(self.args.do).absolute())]
             else:
-                os.environ['DO_CMD'] = f"-do '{self.args.do}'"
+                command += ['-do', self.args.do]
+        elif not self.use_visualizer() and not self.args.gui:
+            command += ['-do', 'vsim-run.do']
+        return command
 
-        if self.args.gui:
-            command = ['make', 'gui']
+    def get_environment(self, command: List[str]) -> Dict[str, str]:
+        """
+        Construct the environment for running qrun based on the given command and any
+        enabled cocotb features.
+
+        Parameters
+        ----------
+        command : List[str]
+            The command to run qrun with.
+
+        Returns
+        -------
+        env : Dict[str, str]
+            A dictionary of environment variables to run qrun with.
+        """
+        if self.cocotb.enabled:
+            env = self.cocotb.env()
         else:
-            command = ['make', step]
-        sh(command, cwd=self.builddir, output=True)
-        if step == 'simulate':
-            self.run_hooks('post')
+            env = os.environ.copy()
+
+        # Add the command  as environment variables for use in the
+        # QuestaSim GUI and Tcl scripts
+        env['SIMPLHDL_QUESTASIM_VSIM_COMMAND'] = ' '.join(command)
+        return env
 
     def run_hooks(self, name):
         try:
@@ -274,22 +315,46 @@ class QuestaSimFlow(SimulationFlow):
             return "-t fs"
 
     def is_tool_setup(self) -> None:
-        if (shutil.which('vlog') is None or
-                shutil.which('vsim') is None or
-                shutil.which('vcom') is None or
-                shutil.which('vlib') is None or
-                shutil.which('vmap') is None):
+        if (shutil.which('qrun') is None):
             raise Exception("QuestaSim is not setup correctly")
-        # NOTE: If questasim's bin directory is appended to the PATH variable,
-        #       the vdir command is found in /bin/vdir which is not the
-        #       QuestaSim vdir command
-        vdir = Path(shutil.which('vdir'))
-        vsim = Path(shutil.which('vsim'))
-        if vdir.parent != vsim.parent:
-            logger.warning(
-                "QuestaSim is not setup correctly. "
-                f"The 'vdir' command is pointing to {vdir}, which "
-                "is not part of the QuestaSim installation. Try to "
-                "prepend Questa to the PATH environment variable."
-            )
-            os.environ['PATH'] = f"{vsim.parent}:{os.environ['PATH']}"
+        self.version = self.get_qrun_version()
+
+    def has_visualizer(self) -> bool:
+        if (shutil.which('visualizer') is None):
+            return False
+        else:
+            return True
+
+    def use_visualizer(self) -> bool:
+        if self.args.gui == 'visualizer':
+            if self.has_visualizer():
+                return True
+            else:
+                logger.warning("Visualizer is not setup correctly")
+        return False
+
+    def generate(self):
+        templatedir = resources_files(self.templates)
+        env = Environment(
+            loader=FileSystemLoader(templatedir),
+            trim_blocks=True)
+        templates: List[Template] = [
+            env.get_template(f'{qrunfile}.j2'),
+            env.get_template('vsim-run.do.j2'),
+            env.get_template('modelsim.tcl.j2'),
+            env.get_template('visualizer.tcl.j2')
+        ]
+        for template in templates:
+            generate_from_template(template, self.builddir, self.get_globals())
+
+    def get_qrun_version(self) -> float:
+        output = sh(['qrun', '-version'], self.builddir)
+        m = re.search(r'qrun\s+([\d.]+)', output)
+        return float(m.group(1))
+
+    def get_filesets(self):
+        walker = FileSetWalker()
+        filesets = list()
+        for fileset in walker.walk(self.project.DefaultDesign.DefaultFileSet, reverse=True):
+            filesets.append(fileset)
+        return filesets
