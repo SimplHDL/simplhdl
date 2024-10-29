@@ -346,6 +346,7 @@ class QuestaSimFlow(SimulationFlow):
         ]
         for template in templates:
             generate_from_template(template, self.builddir, self.get_globals())
+        self.copy_memory_files()
 
     def get_qrun_version(self) -> float:
         output = sh(['qrun', '-version'], self.builddir)
