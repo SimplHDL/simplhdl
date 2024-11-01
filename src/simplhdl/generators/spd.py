@@ -174,7 +174,7 @@ class QuartusIP(GeneratorBase):
         os.makedirs(self.builddir, exist_ok=True)
         for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile):
             if ipfile.FileType == QuartusQIPSpecificationFile:
-                return
+                continue
             newipfile = self.unpack_ip(ipfile)
             if flow.category == FlowCategory.SIMULATION:
                 spd = Spd(newipfile.Path, flow)
