@@ -170,9 +170,11 @@ class QuartusIP(GeneratorBase):
 
         return filename
 
-    def run(self, flow: FlowBase):
+    def run(self, flow: FlowBase) -> None:
         os.makedirs(self.builddir, exist_ok=True)
-        for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile):
+        ipfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
+        ipfiles = filter_duplicated_files(ipfiles)
+        for ipfile in ipfiles:
             if ipfile.FileType == QuartusQIPSpecificationFile:
                 continue
             newipfile = self.unpack_ip(ipfile)
@@ -183,3 +185,27 @@ class QuartusIP(GeneratorBase):
                     # Add fileset to parent, then set parent to fileset to make a chain
                     parent._fileSets[fileset.Name] = fileset
                     parent = fileset
+
+
+def filter_duplicated_files(files: List[File]) -> List[File]:
+    """
+    Filter out duplicated files from a list of files. If a file appears more than once,
+    the last one will override the previous ones.
+
+    Args:
+        files (List[File]): The list of files to filter.
+
+    Returns:
+        List[File]: A list of unique files.
+
+    Example:
+        >>> filter_duplicated_files([File('/path1/file1'), File('/path2/file1'), File('/path/file2')]
+        [File('/other/path/to/file1'), File('/path/to/file2')]
+    """
+    unique_files = set(files)
+    filtered_files = dict()
+    for file in unique_files:
+        if file.Path.name in filtered_files:
+            logger.warning(f"Duplicate files - {file.Path} will override {filtered_files[file.Path.name].Path}")
+        filtered_files[file.Path.name] = file
+    return list(filtered_files.values())
