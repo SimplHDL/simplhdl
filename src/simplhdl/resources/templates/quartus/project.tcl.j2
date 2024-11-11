@@ -12,7 +12,9 @@ set_parameter -name {{generic}} {{value}}
 set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% endfor %}
 {% for file in project.DefaultDesign.Files() if 'implementation' in file[UsedIn] %}
-{% if file.FileType == VerilogIncludeFile %}
+{% if file.FileType == HDLSearchPath %}
+set_global_assignment -name SEARCH_PATH "{{file.Path}}"
+{% elif file.FileType == VerilogIncludeFile %}
 set_global_assignment -name VERILOG_INCLUDE_FILE "{{file.Path}}"
 set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
 {% elif file.FileType == SystemVerilogSourceFile %}

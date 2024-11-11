@@ -1,6 +1,6 @@
 import pyEDAA.ProjectModel as pm  # type: ignore
 from simplhdl.pyedaa.attributes import UsedIn
-from simplhdl.pyedaa import File
+from simplhdl.pyedaa import File, HDLSearchPath, VerilogIncludeSearchPath, VerilogIncludeFile
 
 from typing import Dict, Generator, List, Optional
 
@@ -73,3 +73,17 @@ class FileSet(pm.FileSet):
         for fileset in self.FileSets.values():
             dependencies += fileset.Dependencies(usedin=usedin, isrecursive=True)
         return dependencies
+
+    def IncludeDirs(self, usedin: Optional[str] = None, isrecursive: bool = False) -> List[HDLSearchPath]:
+        dirs = list()
+        if isrecursive:
+            for _, fileset in self.FileSets.items():
+                dirs += fileset.IncludeDirs(usedin=usedin, isrecursive=True)
+        if usedin:
+            items = [i for i in self._files if usedin in i[UsedIn]]
+        for item in items:
+            if isinstance(item, VerilogIncludeFile):
+                dirs.append(VerilogIncludeSearchPath(item.Path.parent.absolute()))
+            elif isinstance(item, HDLSearchPath):
+                dirs.append(HDLSearchPath(item.Path.parent.absolute()))
+        return dirs

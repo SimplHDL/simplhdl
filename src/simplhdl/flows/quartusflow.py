@@ -17,7 +17,8 @@ from ..utils import sh, generate_from_template
 from ..pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile, SettingFile, QuartusSignalTapFile,
-                      QuartusIniFile, QuartusQIPSpecificationFile, QuartusQSYSSpecificationFile)
+                      QuartusIniFile, QuartusQIPSpecificationFile, QuartusQSYSSpecificationFile,
+                      HDLSearchPath, VerilogIncludeSearchPath)
 from ..pyedaa.project import Project
 from ..pyedaa.attributes import UsedIn
 
@@ -97,6 +98,8 @@ class QuartusFlow(ImplementationFlow):
         template = environment.get_template('project.tcl.j2')
         project_updated = generate_from_template(
             template, self.builddir,
+            HDLSearchPath=HDLSearchPath,
+            VerilogIncludeSearchPath=VerilogIncludeSearchPath,
             VerilogIncludeFile=VerilogIncludeFile,
             VerilogSourceFile=VerilogSourceFile,
             SystemVerilogSourceFile=SystemVerilogSourceFile,

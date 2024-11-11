@@ -56,6 +56,8 @@ class SimulationFlow(FlowBase):
             os.environ['MODULE'] = self.cocotb.module()
 
     def get_globals(self) -> Dict[str, Any]:
+        incdirs = self.project.DefaultDesign.DefaultFileSet.IncludeDirs(usedin='simulation', isrecursive=True)
+        incdirpaths = {f.Path.absolute() for f in incdirs}
         globals = dict()
         globals['libraries'] = (list(self.project.DefaultDesign.VHDLLibraries.values()))
         globals['external_libraries'] = list(self.project.DefaultDesign.ExternalVHDLLibraries.values())
@@ -65,7 +67,7 @@ class SimulationFlow(FlowBase):
         globals['cocotbtop'] = self.cocotb.top
         globals['cocotbhdltype'] = self.cocotb.duttype
         globals['cocotbdut'] = self.cocotb.dut
-        globals['incdirs'] = {f.Path.parent for f in self.project.DefaultDesign.DefaultFileSet.Files(VerilogIncludeFile)}  # noqa E501
+        globals['incdirs'] = incdirpaths
         globals['VerilogSourceFile'] = VerilogSourceFile
         globals['SystemVerilogSourceFile'] = SystemVerilogSourceFile
         globals['VHDLSourceFile'] = VHDLSourceFile
@@ -139,7 +141,7 @@ class SimulationFlow(FlowBase):
                 hashfile=self.hashfile.name)
             template = environment.get_template('fileset.j2')
             output = base.with_suffix('.fileset')
-            includes = {f.Path.parent.absolute() for f in files if isinstance(f, VerilogIncludeFile)}
+            includes = self.get_globals()['incdirs']
             files = [f.Path.absolute() for f in files if not isinstance(f, VerilogIncludeFile)]
             generate_from_template(template, output, args=args, includes=includes, files=files)
             generated.append(output)

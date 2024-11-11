@@ -34,6 +34,10 @@ class HDLIncludeFile(SourceFile):
     pass
 
 
+class HDLSearchPath(HDLIncludeFile):
+    pass
+
+
 class HDLSourceFile(pm.HDLSourceFile, FileMixIn):
     _library: HDLLibrary
 
@@ -58,6 +62,10 @@ class HDLSourceFile(pm.HDLSourceFile, FileMixIn):
     @Library.setter
     def Library(self, value) -> None:
         self._library = value
+
+
+class VerilogIncludeSearchPath(HDLSearchPath):
+    pass
 
 
 class VerilogIncludeFile(HDLIncludeFile, pm.HumanReadableContent):
