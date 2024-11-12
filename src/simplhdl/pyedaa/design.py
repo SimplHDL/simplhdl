@@ -64,5 +64,6 @@ class Design(pm.Design):
     def VHDLLibraries(self) -> Dict[str, VHDLLibrary]:
         libraries = dict()
         libraries.update(self._vhdlLibraries)
-        libraries.update(self.DefaultFileSet.VHDLLibraries)
+        if self.DefaultFileSet:
+            libraries.update(self.DefaultFileSet.VHDLLibraries)
         return libraries
