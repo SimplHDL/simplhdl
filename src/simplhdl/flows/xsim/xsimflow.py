@@ -133,6 +133,8 @@ class XsimFlow(SimulationFlow):
         args.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
         for name, value in self.project.Defines.items():
             args.add(f"-d {name}={escape(value)}")
+        if self.is_uvm():
+            args.add('-L uvm')
         return ' '.join(list(args) + [self.args.xvlog_args]).strip()
 
     def xvhdl_args(self) -> str:
