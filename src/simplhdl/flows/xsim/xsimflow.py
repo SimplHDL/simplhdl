@@ -152,6 +152,8 @@ class XsimFlow(SimulationFlow):
             args.add(f"--generic_top {name}={escape(value)}")
         for name, value in self.project.Parameters.items():
             args.add(f"--generic_top {name}={escape(value)}")
+        if self.args.wave or self.args.gui:
+            args.add('-debug all')
         return ' '.join(list(args) + [self.args.xelab_args])
 
     def xsim_args(self) -> str:
