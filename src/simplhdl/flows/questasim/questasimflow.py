@@ -259,6 +259,9 @@ class QuestaSimFlow(SimulationFlow):
                 command.append('-visualizer')
             command.append('-gui')
         elif self.args.step:
+            if step == "elaborate":
+                command.append('-optimize')
+                return command
             command.append(f'-{step}')
 
         if self.args.do:
