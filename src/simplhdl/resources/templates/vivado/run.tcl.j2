@@ -35,8 +35,13 @@ switch $step {
 
 }
 
-set runs [list [current_run -synthesis] [current_run -implementation]]
-launch_runs [current_run] {*}[split $launch_args]
+if {$step == "synthesis"} {
+    set runs [list [current_run -synthesis]]
+    launch_runs [current_run -synthesis]
+} else {
+    set runs [list [current_run -synthesis] [current_run -implementation]]
+    launch_runs [current_run] {*}[split $launch_args]
+}
 
 # wait_on_run renamed to wait_on_runs from Vivado 2022.1
 if {[package vsatisfies 1.[version -s] 1.2022.1]} {
