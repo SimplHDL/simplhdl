@@ -168,11 +168,11 @@ class QuestaSimFlow(SimulationFlow):
             args.add(f"-g{name}={escape(value)}")
         for name, value in self.project.Parameters.items():
             args.add(f"-g{name}={escape(value)}")
-        if self.args.debug:
+        if self.args.gui or self.args.debug:
             args.add('+acc')
             args.add('-debugdb')
             args.add('-fsmdebug')
-        elif self.args.gui or self.args.do or self.args.wavedump or self.cocotb.enabled:
+        elif self.args.do or self.args.wavedump or self.cocotb.enabled:
             args.add('+acc=npr')
         return ' '.join(list(args) + [self.args.vopt_args])
 
