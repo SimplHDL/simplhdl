@@ -83,6 +83,15 @@ class VivadoFlow(FlowBase):
         sh(command, cwd=self.builddir, output=True)
         raise SystemExit
 
+    def get_files(self):
+        files = []
+        seen = []
+        for f in self.project.DefaultDesign.Files():
+            if 'implementation' in f[UsedIn] and f.Path not in seen:
+                seen.append(f.Path)
+                files.append(f)
+        return files
+
     def setup(self):
         self.is_tool_setup()
         os.makedirs(self.builddir, exist_ok=True)
@@ -94,6 +103,7 @@ class VivadoFlow(FlowBase):
             trim_blocks=True)
         template = environment.get_template('project.tcl.j2')
         generate_from_template(template, self.builddir,
+                               files=self.get_files(),
                                dict2str=dict2str,
                                VerilogIncludeFile=VerilogIncludeFile,
                                VerilogSourceFile=VerilogSourceFile,
@@ -119,12 +129,6 @@ class VivadoFlow(FlowBase):
         name = self.project.Name
         command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {step}".split()
         sh(command, cwd=self.builddir, output=True)
-        # jsonfile = self.builddir.joinpath('runs.json')
-        # with jsonfile.open() as f:
-        #     runs: Dict[str, List[str]] = json.load(f)
-        # for name, run in runs.items():
-        #     for script in run:
-        #         sh(['bash', 'launch_run.sh', script], output=True, cwd=self.builddir)
 
     def run(self) -> None:
         if self.args.archive:
