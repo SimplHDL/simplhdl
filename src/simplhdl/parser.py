@@ -62,8 +62,7 @@ class ParserFactory:
             if parser.is_valid_format(filename):
                 return parser
         if filename is None:
-            logger.info("No project specification found, continue with empty project")
-            return NoParser()
+            raise ParserError("Couldn't find any project specification in current directory")
         else:
             raise ParserError(f"Couldn't find Parser for parsing '{filename}'")
 
