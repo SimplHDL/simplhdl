@@ -85,5 +85,5 @@ class FileSet(pm.FileSet):
             if isinstance(item, VerilogIncludeFile):
                 dirs.append(VerilogIncludeSearchPath(item.Path.parent.absolute()))
             elif isinstance(item, HDLSearchPath):
-                dirs.append(HDLSearchPath(item.Path.parent.absolute()))
+                dirs.append(HDLSearchPath(item.Path.absolute()))
         return dirs
