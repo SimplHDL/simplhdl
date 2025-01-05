@@ -8,3 +8,7 @@ dependencies:
 
 files:
   - testbench.sv
+
+targets:
+    questasim: questasim --vopt-args "-suppress vopt-2685"
+    vcs: vcs --vcs-args +warn=noTFIPC

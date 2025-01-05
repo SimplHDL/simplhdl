@@ -4,6 +4,8 @@ import argcomplete
 import logging
 import traceback
 
+from typing import Sequence
+
 from pathlib import Path
 from . import __version__
 from .simplhdl import Simplhdl
@@ -16,7 +18,7 @@ from .utils import CalledShError
 logger = logging.getLogger(__name__)
 
 
-def parse_arguments():
+def parse_arguments(args: Sequence[str] = None, namespace: None = None) -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         prog="simpl",
@@ -56,7 +58,7 @@ def parse_arguments():
         flow_class.parse_args(subparsers)
 
     argcomplete.autocomplete(parser)
-    return parser.parse_args()
+    return parser.parse_args(args=args, namespace=namespace)
 
 
 def main():

@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 from pathlib import Path
 from ..repo import Repo
 from .design import Design
+from .target import Target
 from . import (
     IPSpecificationFile, TCLSourceFile, CocotbPythonFile, SettingFile, HDLIncludeFile,
     ConstraintFile, VHDLSourceFile, VerilogSourceFile, SystemVerilogSourceFile)
@@ -22,6 +23,7 @@ class Project(pm.Project):
     _hooks: Dict[str, List[str]]
     _repos: Dict[str, Repo]
     _reposdir: Optional[Path]
+    _targets: Dict[str, Target]
 
     def __init__(
         self,
@@ -40,6 +42,28 @@ class Project(pm.Project):
         self._repos = dict()
         self._reposdir = None
         self._part = None
+        self._targets = dict()
+
+    def GetTarget(self, name: str) -> Target:
+        try:
+            target = self._targets[name]
+        except KeyError:
+            raise FileNotFoundError(f"Target with name '{name}' doesn't exists")
+        return target
+
+    def AddTarget(self, target: Target) -> None:
+        if target.name in self._targets:
+            logger.warning(f"Ignore '{target.name}', target already exists")
+        else:
+            self._targets[target.name] = target
+
+    @property
+    def DefaultTarget(self) -> Target:
+        try:
+            target = next(iter(self._targets.values()))
+        except StopIteration:
+            raise FileNotFoundError("No targets defined")
+        return target
 
     @property
     def ReposDir(self) -> Optional[Path]:

@@ -1,9 +1,12 @@
 import yaml
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from pathlib import Path
 from argparse import Namespace
+from shlex import split
+from simplhdl.__main__ import parse_arguments
 from simplhdl.pyedaa.project import Project
+from simplhdl.pyedaa.target import Target
 from simplhdl.pyedaa.fileset import FileSet  # type: ignore
 from simplhdl.pyedaa.vhdllibrary import VHDLLibrary
 from simplhdl.pyedaa import (
@@ -18,11 +21,11 @@ from ..parser import ParserFactory, ParserBase
 class SimplHdlParser(ParserBase):
 
     _format_id: str = "#%SimplAPI=1.0"
-    _core_stack: List[Path] = list()
-    _core_visited: List[Path] = list()
 
     def __init__(self):
         super().__init__()
+        self._core_stack = list()
+        self._core_visited = list()
 
     def is_valid_format(self, filename: Optional[Path]) -> bool:
         if filename is None:
@@ -62,6 +65,9 @@ class SimplHdlParser(ParserBase):
         if 'top' in spec:
             fileset.TopLevel = spec.get('top')
 
+        for name, value in spec.get('targets', dict()).items():
+            target = Target(name=name, args=parse_arguments(split(value)), cwd=self._core_stack[-1].parent)
+            project.AddTarget(target)
         for name, value in spec.get('defines', dict()).items():
             project.AddDefine(name, value)
         for name, value in spec.get('parameters', dict()).items():

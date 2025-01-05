@@ -140,3 +140,13 @@ def lock(directory: Path) -> Generator[Path, None, None]:
         yield directory
     finally:
         directory.rmdir()
+
+
+@contextmanager
+def chdir(directory: Path) -> Generator[Path, None, None]:
+    old = Path.cwd()
+    os.chdir(directory)
+    try:
+        yield directory
+    finally:
+        os.chdir(old)

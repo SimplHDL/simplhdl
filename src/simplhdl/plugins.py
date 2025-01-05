@@ -23,6 +23,7 @@ def load_builtin_plugins() -> None:
     Loads builtin plugins.
     """
     import_module('simplhdl.info')
+    import_module('simplhdl.run')
     import_module('simplhdl.flows.vcs.vcsflow')
     import_module('simplhdl.flows.questasim.questasimflow')
     import_module('simplhdl.flows.modelsim.modelsimflow')
