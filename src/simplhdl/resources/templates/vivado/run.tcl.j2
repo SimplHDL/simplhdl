@@ -35,7 +35,15 @@ switch $step {
 
 }
 
-if {$step == "synthesis"} {
+if {$step == "lint"} {
+    set runs [list [current_run -synthesis]]
+    synth_design -top [get_property TOP [current_fileset]] -part [get_property PART [current_project]] -lint
+    exit
+} elseif {$step == "elaborate"} {
+    set runs [list [current_run -synthesis]]
+    synth_design -rtl -rtl_skip_mlo
+    exit
+} elseif {$step == "synthesis"} {
     set runs [list [current_run -synthesis]]
     launch_runs [current_run -synthesis]
 } else {

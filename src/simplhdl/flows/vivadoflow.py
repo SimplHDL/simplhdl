@@ -31,6 +31,8 @@ class VivadoFlow(FlowBase):
             '--step',
             action='store',
             choices=[
+                'lint',
+                'elaborate',
                 'synthesis',
                 'opt',
                 'power_opt',
