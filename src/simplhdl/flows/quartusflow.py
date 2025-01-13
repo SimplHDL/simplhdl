@@ -35,7 +35,7 @@ class QuartusFlow(ImplementationFlow):
             '-s',
             '--step',
             action='store',
-            choices=['project', 'synthesis', 'implement', 'finalize', 'compile'],
+            choices=['project', 'elaborate', 'implement', 'finalize', 'compile'],
             default='compile',
             help="flow step to run"
         )

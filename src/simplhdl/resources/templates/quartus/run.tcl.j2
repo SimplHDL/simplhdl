@@ -18,7 +18,7 @@ switch $step {
       	puts "\nINFO: Compilation was successful.\n"
       }
    }
-   synthesis {
+   elaborate {
       if {[catch {execute_flow -analysis_and_elaboration} result]} {
       	puts "\nResult: $result\n"
       	puts "ERROR: Analysis and Elaboraion failed. See report files.\n"
