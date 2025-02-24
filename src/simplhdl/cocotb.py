@@ -64,9 +64,12 @@ class Cocotb:
         return ' '.join(tops)
 
     def get_dut(self) -> str:
-        for top in self.project.DefaultDesign._topLevel.split():
-            if top != self.top:
-                return top
+        try:
+            for top in self.project.DefaultDesign._topLevel.split():
+                if top != self.top:
+                    return top
+        except AttributeError:
+            raise FlowError("No top levels found")
 
     def hdltype(self):  # noqa: C901
         logger.debug(f"Cocotb hdl dut '{self.dut}'")
