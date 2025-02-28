@@ -2,7 +2,7 @@ import os
 import re
 import logging
 
-from typing import List, Generator
+from typing import List, Generator, Optional
 from pathlib import Path
 from xml.etree.ElementTree import Element, parse
 from zipfile import ZipFile
@@ -45,7 +45,7 @@ TOOL_MAP = {
 
 class Spd:
 
-    def __init__(self, filename: Path, flow: FlowBase) -> None:
+    def __init__(self, filename: Path, flow: FlowBase, ip_path: Optional[Path] = None) -> None:
         self._files = list()
         self._filename = filename.absolute()
         self.flow = flow
@@ -53,7 +53,10 @@ class Spd:
         self.simulators = set()
         spdfile = filename.parent.joinpath(filename.stem, filename.name).with_suffix('.spd')
         if not spdfile.exists():
-            command = f"qsys-generate --simulation=VERILOG {filename.absolute()}".split()
+            if ip_path:
+                command = f"qsys-generate --simulation=VERILOG --search-path={ip_path},$ {filename.absolute()}".split()
+            else:
+                command = f"qsys-generate --simulation=VERILOG {filename.absolute()}".split()
             sh(command, cwd=filename.parent)
             if not spdfile.exists():
                 raise FileNotFoundError(f"{spdfile}: doesn't exits")
@@ -123,20 +126,20 @@ class QuartusIP(GeneratorBase):
         md5file = dest.with_suffix('.md5')
         ipdir.mkdir(exist_ok=True)
         if filename.FileType == QuartusQSYSSpecificationFile:
-            update = True
-            dir = filename.Path.with_suffix('')
-            if dir.exists():
-                if md5file.exists():
-                    update = not md5check(filename.Path, dir, filename=md5file)
-            if update:
-                copy(str(filename.Path), str(dest.with_suffix('.qsys')))
-                md5write(filename.Path, filename=md5file)
-                if dir.exists():
-                    copytree(str(dir), str(dest.with_suffix('')), dirs_exist_ok=True)
-                    md5write(filename.Path, dir, filename=md5file)
-                    logger.debug(f"Copy {filename.Path} to {dest}")
-            filename._path = dest.with_suffix('.qsys').absolute()
-
+            filename = self.copy_qsys(filename, dest, md5file)
+            ipfiles = self.parse_qsys(filename)
+            if self.flow.category == FlowCategory.SIMULATION:
+                for ipfile in ipfiles:
+                    spd = Spd(ipfile.Path, self.flow, dest.absolute())
+                    parent = filename.FileSet
+                    for fileset in reversed(spd.filesets):
+                        # Add fileset to parent, then set parent to fileset to make a chain
+                        parent._fileSets[fileset.Name] = fileset
+                        parent = fileset
+            else:
+                fileset = FileSet(filename.Path.name, vhdlLibrary=self.project.DefaultDesign.DefaultFileSet.VHDLLibrary)
+                fileset.AddFiles(ipfiles)
+                filename.FileSet.AddFileSet(fileset)
         elif filename.FileType == QuartusIPCompressedSpecificationFile:
             update = True
             if md5file.exists():
@@ -167,10 +170,45 @@ class QuartusIP(GeneratorBase):
                     md5write(filename.Path, dir, filename=md5file)
                     logger.debug(f"Copy {filename.Path} to {dest}")
             filename._path = dest.with_suffix('.ip').absolute()
-
         return filename
 
+    def copy_qsys(self, filename: QuartusQSYSSpecificationFile, dest: Path, md5file: Path) -> QuartusQSYSSpecificationFile:
+        """
+        Copy QSYS file parent directory to a directory and return a new QuartusQSYSSpecificationFile object with the new path.
+        """
+        update = True
+        dir = filename.Path.parent
+        if dir.exists():
+            if md5file.exists():
+                update = not md5check(dir, filename=md5file)
+        if update:
+            md5write(dir, filename=md5file)
+            if dir.exists():
+                copytree(str(dir), str(dest), dirs_exist_ok=True)
+                md5write(dir, filename=md5file)
+                logger.debug(f"Copy {dir} to {dest}")
+        filename._path = dest.joinpath(filename.Path.name).resolve()
+        return filename
+
+    def parse_qsys(self, filename: QuartusQSYSSpecificationFile) -> List[File]:
+        """
+        Search for IP files in a QSYS file and return a list of QuartusIPSpecificationFile objects.
+        """
+        files = list()
+        with filename.Path.open() as file:
+            lines = file.readlines()
+            for line in lines:
+                m = re.search(r'<ipxact:value>(.*\.ip)</ipxact:value>', line)
+                if m:
+                    ipfile = filename.Path.parent.joinpath(m.group(1))
+                    if ipfile.exists():
+                        files.append(QuartusIPSpecificationFile(ipfile))
+                    else:
+                        logger.warning(f"File {ipfile} not found")
+        return files
+
     def run(self, flow: FlowBase) -> None:
+        self.flow = flow
         os.makedirs(self.builddir, exist_ok=True)
         ipfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
         ipfiles = filter_duplicated_files(ipfiles)
@@ -178,7 +216,7 @@ class QuartusIP(GeneratorBase):
             if ipfile.FileType == QuartusQIPSpecificationFile:
                 continue
             newipfile = self.unpack_ip(ipfile)
-            if flow.category == FlowCategory.SIMULATION:
+            if self.flow.category == FlowCategory.SIMULATION:
                 spd = Spd(newipfile.Path, flow)
                 parent = newipfile.FileSet
                 for fileset in reversed(spd.filesets):
