@@ -1,4 +1,3 @@
-import os
 import re
 import logging
 
@@ -6,18 +5,29 @@ from typing import List, Generator, Optional
 from pathlib import Path
 from xml.etree.ElementTree import Element, parse
 from zipfile import ZipFile
-from shutil import copy, copytree
+from shutil import copy, copytree, rmtree
 
-from ..pyedaa import (
-    File, SystemVerilogSourceFile, VHDLSourceFile, VerilogSourceFile,
-    QuartusIPSpecificationFile, HDLLibrary, ConstraintFile, HDLSourceFile,
-    QuartusIPCompressedSpecificationFile, QuartusQSYSSpecificationFile,
-    MemoryInitFile, QuartusQIPSpecificationFile
+from simplhdl.pyedaa import (
+    File,
+    HDLSourceFile,
+    HDLSearchPath,
+    VerilogSourceFile,
+    SystemVerilogSourceFile,
+    VHDLSourceFile,
+    ConstraintFile,
+    HDLLibrary,
+    MemoryInitFile,
+    QuartusIPSpecificationFile,
+    QuartusIPCompressedSpecificationFile,
+    QuartusQSYSSpecificationFile,
+    QuartusQSYSCompressedSpecificationFile,
+    QuartusQIPSpecificationFile
 )
-from ..pyedaa.fileset import FileSet
-from ..flow import FlowBase, FlowCategory, FlowTools
-from ..generator import GeneratorFactory, GeneratorBase, GeneratorError
-from ..utils import md5write, md5check, sh
+from simplhdl.pyedaa.fileset import FileSet
+from simplhdl.pyedaa.attributes import UsedIn
+from simplhdl.flow import FlowBase, FlowCategory, FlowTools
+from simplhdl.generator import GeneratorFactory, GeneratorBase, GeneratorError
+from simplhdl.utils import md5write, md5check, sh
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +67,7 @@ class Spd:
                 command = f"qsys-generate --simulation=VERILOG --search-path={ip_path},$ {filename.absolute()}".split()
             else:
                 command = f"qsys-generate --simulation=VERILOG {filename.absolute()}".split()
+            logger.info(f'Generate simulation files for {filename}')
             sh(command, cwd=filename.parent)
             if not spdfile.exists():
                 raise FileNotFoundError(f"{spdfile}: doesn't exits")
@@ -172,78 +183,172 @@ class QuartusIP(GeneratorBase):
             filename._path = dest.with_suffix('.ip').absolute()
         return filename
 
-    def copy_qsys(self, filename: QuartusQSYSSpecificationFile, dest: Path, md5file: Path) -> QuartusQSYSSpecificationFile:
-        """
-        Copy QSYS file parent directory to a directory and return a new QuartusQSYSSpecificationFile object with the new path.
-        """
-        update = True
-        dir = filename.Path.parent
-        if dir.exists():
-            if md5file.exists():
-                update = not md5check(dir, filename=md5file)
-        if update:
-            md5write(dir, filename=md5file)
-            if dir.exists():
-                copytree(str(dir), str(dest), dirs_exist_ok=True)
-                md5write(dir, filename=md5file)
-                logger.debug(f"Copy {dir} to {dest}")
-        filename._path = dest.joinpath(filename.Path.name).resolve()
-        return filename
-
-    def parse_qsys(self, filename: QuartusQSYSSpecificationFile) -> List[File]:
-        """
-        Search for IP files in a QSYS file and return a list of QuartusIPSpecificationFile objects.
-        """
-        files = list()
-        with filename.Path.open() as file:
-            lines = file.readlines()
-            for line in lines:
-                m = re.search(r'<ipxact:value>(.*\.ip)</ipxact:value>', line)
-                if m:
-                    ipfile = filename.Path.parent.joinpath(m.group(1))
-                    if ipfile.exists():
-                        files.append(QuartusIPSpecificationFile(ipfile))
-                    else:
-                        logger.warning(f"File {ipfile} not found")
-        return files
 
     def run(self, flow: FlowBase) -> None:
         self.flow = flow
-        os.makedirs(self.builddir, exist_ok=True)
-        ipfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
-        ipfiles = filter_duplicated_files(ipfiles)
-        for ipfile in ipfiles:
-            if ipfile.FileType == QuartusQIPSpecificationFile:
-                continue
-            newipfile = self.unpack_ip(ipfile)
-            if self.flow.category == FlowCategory.SIMULATION:
-                spd = Spd(newipfile.Path, flow)
-                parent = newipfile.FileSet
-                for fileset in reversed(spd.filesets):
-                    # Add fileset to parent, then set parent to fileset to make a chain
-                    parent._fileSets[fileset.Name] = fileset
-                    parent = fileset
+        ip_dir = self.builddir.joinpath('ips')
+        qsys_dir = self.builddir.joinpath('qsys')
+        files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
+        files = filter_duplicated_files(files)
+        if not flow.category == FlowCategory.DEFAULT:
+            for file in files:
+                if file.FileType == QuartusQIPSpecificationFile:
+                    continue
+                elif file.FileType == QuartusIPCompressedSpecificationFile:
+                    file = unpack_ipfile(file, ip_dir)
+                elif file.FileType == QuartusIPSpecificationFile:
+                    file = copy_ipfile(file, ip_dir)
+                elif file.FileType == QuartusQSYSCompressedSpecificationFile:
+                    file = unpack_qsysfile(file, qsys_dir)
+                elif file.FileType == QuartusQSYSSpecificationFile:
+                    file = copy_qsysfile(file, qsys_dir)
+                parse_file(file, flow, self.project.DefaultDesign.DefaultFileSet.VHDLLibrary)
+
+
+def parse_qsys(filename: QuartusQSYSSpecificationFile) -> List[File]:
+    """
+    Search for IP files in a QSYS file and return a list of QuartusIPSpecificationFile objects.
+    """
+    files = list()
+    with filename.Path.open() as file:
+        lines = file.readlines()
+        for line in lines:
+            m = re.search(r'<ipxact:value>(.*\.ip)</ipxact:value>', line)
+            if m:
+                ipfile = filename.Path.parent.joinpath(m.group(1))
+                if ipfile.exists():
+                    files.append(QuartusIPSpecificationFile(ipfile))
+                else:
+                    logger.warning(f"File {ipfile} not found")
+    return files
+
+
+def qsys_to_fileset(file: QuartusQSYSSpecificationFile, flow: FlowBase, library) -> FileSet:
+    """
+    Parse a QSYS file and return a FileSet object.
+    """
+    ipfiles = parse_qsys(file)
+    if flow.category == FlowCategory.SIMULATION:
+        parent = file.FileSet
+        for ipfile in ipfiles + [file]:
+            spd = Spd(ipfile.Path, flow, file.Path.parent.absolute())
+            for fileset in reversed(spd.filesets):
+                # Add fileset to parent, then set parent to fileset to make a chain
+                parent._fileSets[fileset.Name] = fileset
+                parent = fileset
+    elif flow.category == FlowCategory.IMPLEMENTATION:
+        # NOTE: Some qsys require a search path to find the HEX files
+        searchpath = HDLSearchPath(file.Path.parent)
+        searchpath[UsedIn] = {'implementation'}
+        fileset = FileSet(file.Path.name, vhdlLibrary=library)
+        fileset.AddFiles(ipfiles + [searchpath])
+        file.FileSet.AddFileSet(fileset)
+
+
+def parse_file(file: File, flow: FlowBase, library) -> FileSet:
+    if file.FileType == QuartusQSYSSpecificationFile:
+        return qsys_to_fileset(file, flow, library)
+    elif file.FileType == QuartusIPSpecificationFile:
+        if flow.category == FlowCategory.SIMULATION:
+            return Spd(file.Path, flow)
+        else:
+            return file
+    else:
+        raise GeneratorError(f"Unsupported file type: {file.FileType}")
+
+
+def copy_ipfile(file: QuartusIPSpecificationFile, dest: Path) -> QuartusIPSpecificationFile:
+    """
+    Copy IP files to a directory and return a new QuartusIPSpecificationFile object with the new path.
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    md5file = dest.joinpath(file.Path.name).with_suffix('.md5')
+    srcdir = file.Path.with_suffix('')
+    destdir = dest.joinpath(file.Path.name).with_suffix('')
+    destfile = dest.joinpath(file.Path.name)
+    if srcdir.exists():
+        if not md5file.exists() or not md5check(file.Path, srcdir, filename=md5file):
+            logger.info(f"Copy {file.Path} to {destfile}")
+            logger.info(f"Copy {srcdir} to {destdir}")
+            copy(str(file.Path), str(destfile))
+            copytree(str(srcdir), str(destdir), dirs_exist_ok=True)
+            md5write(file.Path, srcdir, filename=md5file)
+    else:
+        if not md5file.exists() or not md5check(file.Path, filename=md5file):
+            logger.info(f"Copy {file.Path} to {destfile}")
+            rmtree(destdir, ignore_errors=True)
+            copy(str(file.Path), str(destfile))
+            md5write(file.Path, filename=md5file)
+    file._fileType = QuartusIPSpecificationFile
+    file._path = destfile.resolve()
+    return file
+
+
+def copy_qsysfile(file: QuartusQSYSSpecificationFile, dest: Path) -> QuartusQSYSSpecificationFile:
+    """
+    Copy QSYS files to a directory and return a new QuartusQSYSSpecificationFile object with the new path.
+    """
+    md5file = dest.joinpath(file.Path.name).with_suffix('.md5')
+    qsysdir = dest.joinpath(file.Path.name)
+    src = file.Path.parent
+    if not md5file.exists() or not md5check(src, filename=md5file):
+        copytree(str(src), str(qsysdir), dirs_exist_ok=True)
+        md5write(src, filename=md5file)
+    file._fileType = QuartusQSYSSpecificationFile
+    file._path = qsysdir.joinpath(file.Path.name).with_suffix('.qsys').resolve()
+    if file.Path.exists():
+        return file
+    else:
+        raise FileNotFoundError(f"{file.Path}: doesn't exits")
+
+
+def unpack_ipfile(file: QuartusIPCompressedSpecificationFile, dest: Path) -> QuartusIPSpecificationFile:
+    """
+    Unpack IP files to a directory and return a new QuartusIPSpecificationFile object with the new path.
+    """
+    unpack(file.Path, dest)
+    file._fileType = QuartusIPSpecificationFile
+    file._path = dest.joinpath(file.Path.name).with_suffix('').resolve()
+    if file.Path.exists():
+        return file
+    else:
+        raise FileNotFoundError(f"{file.Path.resolve()}: doesn't exits")
+
+
+def unpack_qsysfile(file: QuartusQSYSCompressedSpecificationFile, dest: Path) -> QuartusQSYSSpecificationFile:
+    """
+    Unpack QSYS files to a directory and return a new QuartusQSYSSpecificationFile object with the new path.
+    """
+    dest = dest.joinpath(file.Path.name).with_suffix('').with_suffix('')
+    unpack(file.Path, dest)
+    file._fileType = QuartusQSYSSpecificationFile
+    file._path = dest.joinpath(file.Path.name).with_suffix('').resolve()
+    if file.Path.exists():
+        return file
+    else:
+        raise FileNotFoundError(f"{file.Path}: doesn't exits")
+
+
+def unpack(file: Path, dest: Path) -> None:
+    """
+    Unpack a file to a directory and return the new path.
+    """
+    md5file = dest.joinpath(file.name).with_suffix('.md5')
+    if not md5file.exists() or not md5check(file, filename=md5file):
+        logger.info(f"Unpack {file} to {dest}")
+        with ZipFile(file, 'r') as zip:
+            zip.extractall(dest)
+        md5write(file, filename=md5file)
 
 
 def filter_duplicated_files(files: List[File]) -> List[File]:
     """
-    Filter out duplicated files from a list of files. If a file appears more than once,
-    the last one will override the previous ones.
-
-    Args:
-        files (List[File]): The list of files to filter.
-
-    Returns:
-        List[File]: A list of unique files.
-
-    Example:
-        >>> filter_duplicated_files([File('/path1/file1'), File('/path2/file1'), File('/path/file2')]
-        [File('/other/path/to/file1'), File('/path/to/file2')]
+    Filter duplicated files in a list of files.
     """
     unique_files = set(files)
     filtered_files = dict()
     for file in unique_files:
-        if file.Path.name in filtered_files:
-            logger.warning(f"Duplicate files - {file.Path} will override {filtered_files[file.Path.name].Path}")
+        # if file.Path.name in filtered_files:
+        #     logger.warning(f"Duplicate files - {file.Path} will override {filtered_files[file.Path.name].Path}")
         filtered_files[file.Path.name] = file
     return list(filtered_files.values())

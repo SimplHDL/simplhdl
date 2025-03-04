@@ -154,6 +154,10 @@ class QuartusQSYSSpecificationFile(QuartusIPSpecificationFile):
     pass
 
 
+class QuartusQSYSCompressedSpecificationFile(QuartusQSYSSpecificationFile):
+    pass
+
+
 class QuartusQIPSpecificationFile(QuartusIPSpecificationFile):
     pass
 
