@@ -168,6 +168,11 @@ class QuartusIniFile(File):
         FileMixIn._registerAttributes(self)
         self[UsedIn] = {IMPLEMENTATION}
 
+class QuartusSourceTCLFile(TCLSourceFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
+        self[UsedIn] = {IMPLEMENTATION}
 
 class VivadoIPSpecificationFile(IPSpecificationFile):
     pass

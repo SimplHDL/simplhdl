@@ -26,7 +26,9 @@ set_global_assignment -library {{file.Library}} -name VHDL_FILE "{{file.Path}}"
 {% elif file.FileType == ConstraintFile %}
 set_global_assignment -name SDC_FILE "{{file.Path}}"
 {% elif file.FileType == TCLSourceFile %}
-set_global_assignment -name TCL_FILE "{{file.Path}}"
+set_global_assignment -name TCL_SCRIPT_FILE "{{file.Path}}"
+{% elif file.FileType == QuartusSourceTCLFile %}
+set_global_assignment -name SOURCE_TCL_SCRIPT_FILE "{{file.Path}}"
 {% elif file.FileType == QuartusIPSpecificationFile %}
 set_global_assignment -name IP_FILE "{{file.Path}}"
 {% elif file.FileType == QuartusQIPSpecificationFile %}
@@ -37,6 +39,8 @@ set_global_assignment -name QSYS_FILE "{{file.Path}}"
 source "{{file.Path}}"
 {% elif file.FileType == QuartusIniFile %}
 file copy -force "{{file.Path}}" "quartus.ini"
+{% else %}
+set_global_assignment -name SOURCE_FILE "{{file.Path}}"
 {% endif %}
 {% endfor %}
 
