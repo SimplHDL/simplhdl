@@ -1,7 +1,7 @@
 import pyEDAA.ProjectModel as pm
 
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union, Generator
 
 from .vhdllibrary import VHDLLibrary
 
@@ -67,3 +67,17 @@ class Design(pm.Design):
         if self.DefaultFileSet:
             libraries.update(self.DefaultFileSet.VHDLLibraries)
         return libraries
+
+    def Files(self,
+              fileType: pm.FileType = pm.FileTypes.Any,
+              fileSet: Union[str, pm.FileSet] = None,
+              unique: bool = False) -> Generator[pm.File, None, None]:
+
+        seen = list()
+        for file in super().Files(fileType=fileType, fileSet=fileSet):
+            if unique:
+                fileid = str(file.Path.resolve())
+                if fileid in seen:
+                    continue
+                seen.append(fileid)
+            yield file

@@ -185,13 +185,20 @@ class QuartusIP(GeneratorBase):
 
 
     def run(self, flow: FlowBase) -> None:
+        seen = dict()
         self.flow = flow
         ip_dir = self.builddir.joinpath('ips')
         qsys_dir = self.builddir.joinpath('qsys')
         files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
-        files = filter_duplicated_files(files)
+        # files = filter_duplicated_files(files)
         if not flow.category == FlowCategory.DEFAULT:
             for file in files:
+                # The second time we see a file it is already proccessed and we just
+                # Update the file path
+                fileid = str(file.Path.resolve())
+                if fileid in seen:
+                    file._path = seen.get(fileid)._path
+                    continue
                 if file.FileType == QuartusQIPSpecificationFile:
                     continue
                 elif file.FileType == QuartusIPCompressedSpecificationFile:
@@ -203,6 +210,8 @@ class QuartusIP(GeneratorBase):
                 elif file.FileType == QuartusQSYSSpecificationFile:
                     file = copy_qsysfile(file, qsys_dir)
                 parse_file(file, flow, self.project.DefaultDesign.DefaultFileSet.VHDLLibrary)
+                # register the file as seen
+                seen[fileid] = file
 
 
 def parse_qsys(filename: QuartusQSYSSpecificationFile) -> List[File]:

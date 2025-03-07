@@ -18,7 +18,7 @@ from ..pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSou
                       SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
                       EDIFNetlistFile, NetlistFile, SettingFile, QuartusSignalTapFile,
                       QuartusIniFile, QuartusQIPSpecificationFile, QuartusQSYSSpecificationFile,
-                      HDLSearchPath, VerilogIncludeSearchPath)
+                      HDLSearchPath, VerilogIncludeSearchPath, MemoryInitFile)
 from ..pyedaa.project import Project
 from ..pyedaa.attributes import UsedIn
 
@@ -62,10 +62,11 @@ class QuartusFlow(ImplementationFlow):
     def run(self) -> None:
         if self.args.archive:
             self.archive()
-        self.validate()
-        self.configure()
-        self.generate()
-        self.execute(self.args.step)
+        else:
+            self.validate()
+            self.configure()
+            self.generate()
+            self.execute(self.args.step)
 
     def archive(self) -> None:
         name = self.project.Name
@@ -79,7 +80,6 @@ class QuartusFlow(ImplementationFlow):
             raise Exception("Unknown value for argument --archive: {self.args.archive}")
         command = f"quartus_sh --archive -use_file_set {fileset} -revision {name} -no_discover -output {name}.qar {name}"  # noqa
         sh(command.split(), output=True, cwd=self.builddir)
-        raise SystemExit
 
     def validate(self):
         if self.project.DefaultDesign.DefaultFileSet.TopLevel is None:
@@ -113,6 +113,7 @@ class QuartusFlow(ImplementationFlow):
             QuartusQIPSpecificationFile=QuartusQIPSpecificationFile,
             QuartusQSYSSpecificationFile=QuartusQSYSSpecificationFile,
             QuartusIniFile=QuartusIniFile,
+            MemoryInitFile=MemoryInitFile,
             project=self.project,
             UsedIn=UsedIn)
         template = environment.get_template('run.tcl.j2')

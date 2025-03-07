@@ -2,6 +2,7 @@ project_new -overwrite -part "{{project.Part}}" "{{project.Name}}"
 set_global_assignment -name TOP_LEVEL_ENTITY "{{project.DefaultDesign.DefaultFileSet.TopLevel}}"
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2012
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name IP_SEARCH_PATHS "qsys/**/*"
 {% for parameter, value in project.Parameters.items() %}
 set_parameter -name {{parameter}} {{value}}
 {% endfor %}
@@ -11,7 +12,7 @@ set_parameter -name {{generic}} {{value}}
 {% for define, value in project.Defines.items() %}
 set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% endfor %}
-{% for file in project.DefaultDesign.Files() if 'implementation' in file[UsedIn] %}
+{% for file in project.DefaultDesign.Files(unique=True) if 'implementation' in file[UsedIn] %}
 {% if file.FileType == HDLSearchPath %}
 set_global_assignment -name SEARCH_PATH "{{file.Path}}"
 {% elif file.FileType == VerilogIncludeFile %}
@@ -35,12 +36,21 @@ set_global_assignment -name IP_FILE "{{file.Path}}"
 set_global_assignment -name QIP_FILE "{{file.Path}}"
 {% elif file.FileType == QuartusQSYSSpecificationFile %}
 set_global_assignment -name QSYS_FILE "{{file.Path}}"
+set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
+{% elif file.FileType == MemoryInitFile %}
+{% if file.Path.suffix == '.mif' %}
+set_global_assignment -name MIF_FILE "{{file.Path}}"
+{% else %}
+set_global_assignment -name HEX_FILE "{{file.Path}}"
+{% endif %}
+set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
 {% elif file.FileType == SettingFile and file.Path.suffix == '.qsf' %}
 source "{{file.Path}}"
 {% elif file.FileType == QuartusIniFile %}
 file copy -force "{{file.Path}}" "quartus.ini"
 {% else %}
 set_global_assignment -name SOURCE_FILE "{{file.Path}}"
+set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
 {% endif %}
 {% endfor %}
 
