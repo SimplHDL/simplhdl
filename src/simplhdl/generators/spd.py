@@ -183,7 +183,6 @@ class QuartusIP(GeneratorBase):
             filename._path = dest.with_suffix('.ip').absolute()
         return filename
 
-
     def run(self, flow: FlowBase) -> None:
         seen = dict()
         self.flow = flow
