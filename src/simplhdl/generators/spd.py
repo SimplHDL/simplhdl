@@ -258,7 +258,12 @@ def parse_file(file: File, flow: FlowBase, library) -> FileSet:
         return qsys_to_fileset(file, flow, library)
     elif file.FileType == QuartusIPSpecificationFile:
         if flow.category == FlowCategory.SIMULATION:
-            return Spd(file.Path, flow)
+            spd = Spd(file.Path, flow)
+            parent = file.FileSet
+            for fileset in reversed(spd.filesets):
+                # Add fileset to parent, then set parent to fileset to make a chain
+                parent._fileSets[fileset.Name] = fileset
+                parent = fileset
         else:
             return file
     else:
