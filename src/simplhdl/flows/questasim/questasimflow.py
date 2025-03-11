@@ -16,6 +16,7 @@ from jinja2 import Template
 from simplhdl.pyedaa.project import Project
 from simplhdl.utils import sh, escape
 from simplhdl.flow import FlowFactory, FlowTools
+from simplhdl.info import Info
 from simplhdl.resources.templates import questasim as questasimtemplates
 from simplhdl.flows.simulationflow import SimulationFlow, FileSetWalker
 from simplhdl.utils import generate_from_template
@@ -44,6 +45,11 @@ class QuestaSimFlow(SimulationFlow):
             choices=['generate', 'compile', 'elaborate', 'simulate'],
             default='',
             help="flow step to run"
+        )
+        parser.add_argument(
+            '--info',
+            action='store_true',
+            help="Print project"
         )
         parser.add_argument(
             '-w',
@@ -223,6 +229,12 @@ class QuestaSimFlow(SimulationFlow):
         """
         if self.args.clean:
             sh(['qrun', '-clean'], cwd=self.builddir, output=True)
+            return
+
+        if self.args.info:
+            args = Namespace(files=False, filesets=False, libraries=False, hooks=False)
+            info = Info(self.name, args, self.project, self.builddir)
+            info.run()
             return
 
         self.run_hooks('pre')
