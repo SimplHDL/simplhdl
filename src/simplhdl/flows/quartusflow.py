@@ -14,11 +14,25 @@ from ..flow import FlowFactory, FlowTools
 from .implementationflow import ImplementationFlow
 from ..resources.templates import quartus as templates
 from ..utils import sh, generate_from_template
-from ..pyedaa import (QuartusIPSpecificationFile, VerilogIncludeFile, VerilogSourceFile,
-                      SystemVerilogSourceFile, VHDLSourceFile, ConstraintFile,
-                      EDIFNetlistFile, NetlistFile, SettingFile, QuartusSignalTapFile,
-                      QuartusIniFile, QuartusQIPSpecificationFile, QuartusQSYSSpecificationFile,
-                      HDLSearchPath, VerilogIncludeSearchPath, MemoryInitFile)
+from ..pyedaa import (
+    VerilogIncludeFile,
+    VerilogSourceFile,
+    SystemVerilogSourceFile,
+    VHDLSourceFile,
+    ConstraintFile,
+    EDIFNetlistFile,
+    NetlistFile,
+    SettingFile,
+    HDLSearchPath,
+    VerilogIncludeSearchPath,
+    MemoryInitFile,
+    QuartusSignalTapFile,
+    QuartusIniFile,
+    QuartusQIPSpecificationFile,
+    QuartusQSYSSpecificationFile,
+    QuartusIPSpecificationFile,
+    QuartusSourceTCLFile
+)
 from ..pyedaa.project import Project
 from ..pyedaa.attributes import UsedIn
 
@@ -112,6 +126,7 @@ class QuartusFlow(ImplementationFlow):
             QuartusSignalTapFile=QuartusSignalTapFile,
             QuartusQIPSpecificationFile=QuartusQIPSpecificationFile,
             QuartusQSYSSpecificationFile=QuartusQSYSSpecificationFile,
+            QuartusSourceTCLFile=QuartusSourceTCLFile,
             QuartusIniFile=QuartusIniFile,
             MemoryInitFile=MemoryInitFile,
             project=self.project,
