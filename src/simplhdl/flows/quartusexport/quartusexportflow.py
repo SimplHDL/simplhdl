@@ -101,7 +101,7 @@ class QuartusExportFlow(ImplementationFlow):
         if self.args.archivefile:
             archive(self.builddir, self.args.archivefile)
         else:
-            output = self.builddir.parrent.joinpath(self.project.Name).with_suffix('.zip')
+            output = self.builddir.parent.joinpath(self.project.Name).with_suffix('.zip')
             archive(self.builddir, output)
             shutil.move(output, self.builddir)
 
