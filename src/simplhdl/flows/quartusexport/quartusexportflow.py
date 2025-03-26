@@ -1,6 +1,7 @@
 import shutil
 import logging
 import zipfile
+import os
 
 from argparse import Namespace
 from pathlib import Path
@@ -56,38 +57,45 @@ class QuartusExportFlow(ImplementationFlow):
         self.vendors = ['mentor', 'synopsys']
         self.templates = templates
         self.tools.add(FlowTools.QUARTUS)
+        self.rootdir = self.directory_root()
+
+    def directory_root(self):
+        files = list()
+        for file in [f for f in self.project.DefaultDesign.Files() if 'implementation' in f[UsedIn]]:
+            if isinstance(file, SettingFile):
+                continue
+            elif isinstance(file, (ConstraintFile, QuartusQIPSpecificationFile)):
+                pass
+            elif isinstance(file, (HDLSearchPath, QuartusIPSpecificationFile)):
+                continue
+            files.append(file.Path.absolute())
+        return Path(os.path.commonpath(files))
 
     def copy_files(self):
         seen = dict()
         files = [f for f in self.project.DefaultDesign.Files() if 'implementation' in f[UsedIn]]
         for file in files:
             fileid = str(file.Path.resolve())
+            dest = self.builddir.joinpath('src', file.Path.relative_to(self.rootdir))
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
             elif isinstance(file, SettingFile):
                 continue
             elif isinstance(file, (ConstraintFile, QuartusQIPSpecificationFile)):
-                dest = self.builddir.joinpath('constraints', file.Path.name)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(file.Path, dest)
             elif isinstance(file, (HDLSearchPath, QuartusIPSpecificationFile)):
                 dest = file.Path
             elif isinstance(file, (HDLSourceFile, HDLIncludeFile)):
-                if isinstance(file, HDLSourceFile):
-                    dest = self.builddir.joinpath('rtl', file.Path.name)
-                else:
-                    dest = self.builddir.joinpath('rtl', 'include', file.Path.name)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 if self.args.encrypt:
                     encrypt(file.Path, dest, language=get_language(file), vendors=self.vendors)
                 else:
                     shutil.copyfile(file.Path, dest)
             else:
-                dest = self.builddir.joinpath('misc', file.Path.name)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(file.Path, dest)
-                file._path = dest.absolute().relative_to(self.builddir.absolute())
             # Convert to relative path
             file._path = dest.absolute().relative_to(self.builddir.absolute())
             seen[fileid] = file
@@ -96,14 +104,25 @@ class QuartusExportFlow(ImplementationFlow):
         args = Namespace(step='project', archive=False, gui=False)
         quartus = QuartusFlow('quartus', args, self.project, self.builddir)
         quartus.run()
+        try:
+            shutil.rmtree(self.builddir.joinpath('dni'))
+            shutil.rmtree(self.builddir.joinpath('qdb'))
+            os.remove(self.builddir.joinpath('project.tcl'))
+        except FileNotFoundError as e:
+            pass
 
     def archive_project(self) -> None:
+        tmp = output = self.builddir.parent.joinpath(self.project.Name).with_suffix('.zip')
         if self.args.archivefile:
-            archive(self.builddir, self.args.archivefile)
+            tmp = output = self.builddir.parent.joinpath(self.args.archivefile.stem).with_suffix('.zip')
+            output = self.args.archivefile
         else:
-            output = self.builddir.parent.joinpath(self.project.Name).with_suffix('.zip')
-            archive(self.builddir, output)
-            shutil.move(output, self.builddir)
+            tmp = output = self.builddir.parent.joinpath(self.project.Name).with_suffix('.zip')
+            output = self.builddir.joinpath(tmp.name)
+        archive(self.builddir, tmp)
+        if output.exists():
+            os.remove(output)
+        shutil.move(tmp, output)
 
     def run(self) -> None:
         self.copy_files()
