@@ -65,7 +65,7 @@ def main():
     try:
         load_plugins()
         args = parse_arguments()
-        levels = [logging.WARNING, logging.INFO, logging.DEBUG, logging.NOTSET]
+        levels = [logging.INFO, logging.DEBUG, logging.NOTSET]
         level = levels[min(args.verbose, len(levels)-1)]
         logging.basicConfig(level=level)
         simpl = Simplhdl(args)
