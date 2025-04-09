@@ -112,15 +112,18 @@ class QuartusExportFlow(ImplementationFlow):
             pass
 
     def archive_project(self) -> None:
-        tmp = output = self.builddir.parent.joinpath(self.project.Name).with_suffix('.zip')
         if self.args.archivefile:
-            tmp = output = self.builddir.parent.joinpath(self.args.archivefile.stem).with_suffix('.zip')
+            tmp = self.builddir.parent.joinpath(self.args.archivefile.name)
             output = self.args.archivefile
         else:
-            tmp = output = self.builddir.parent.joinpath(self.project.Name).with_suffix('.zip')
+            tmp = self.builddir.parent.joinpath(f'{self.project.Name}.zip')
             output = self.builddir.joinpath(tmp.name)
         archive(self.builddir, tmp)
-        if output.exists():
+        if tmp == output:
+            return
+        elif not output.parent.exists():
+            raise FileNotFoundError(f'Output directory {output.parent.resolve()} does not exist')
+        elif output.exists():
             os.remove(output)
         shutil.move(tmp, output)
 
