@@ -23,6 +23,7 @@ from simplhdl.pyedaa import (
     QuartusQSYSCompressedSpecificationFile,
     QuartusQIPSpecificationFile
 )
+from simplhdl.pyedaa import SIMULATION, IMPLEMENTATION
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.pyedaa.attributes import UsedIn
 from simplhdl.flow import FlowBase, FlowCategory, FlowTools
@@ -188,29 +189,37 @@ class QuartusIP(GeneratorBase):
         self.flow = flow
         ip_dir = self.builddir.joinpath('ips')
         qsys_dir = self.builddir.joinpath('qsys')
-        files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
-        # files = filter_duplicated_files(files)
-        if not flow.category == FlowCategory.DEFAULT:
-            for file in files:
-                # The second time we see a file it is already proccessed and we just
-                # Update the file path
-                fileid = str(file.Path.resolve())
-                if fileid in seen:
-                    file._path = seen.get(fileid)._path
-                    continue
-                if file.FileType == QuartusQIPSpecificationFile:
-                    continue
-                elif file.FileType == QuartusIPCompressedSpecificationFile:
-                    file = unpack_ipfile(file, ip_dir)
-                elif file.FileType == QuartusIPSpecificationFile:
-                    file = copy_ipfile(file, ip_dir)
-                elif file.FileType == QuartusQSYSCompressedSpecificationFile:
-                    file = unpack_qsysfile(file, qsys_dir)
-                elif file.FileType == QuartusQSYSSpecificationFile:
-                    file = copy_qsysfile(file, qsys_dir)
-                parse_file(file, flow, self.project.DefaultDesign.DefaultFileSet.VHDLLibrary)
-                # register the file as seen
-                seen[fileid] = file
+        all_files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
+
+        if flow.category == FlowCategory.SIMULATION:
+            files = [f for f in all_files if SIMULATION in f[UsedIn]]
+        elif flow.category == FlowCategory.IMPLEMENTATION:
+            files = [f for f in all_files if IMPLEMENTATION in f[UsedIn]]
+        elif flow.category == FlowCategory.DEFAULT:
+            return
+        else:
+            files = all_files
+
+        for file in files:
+            # The second time we see a file it is already proccessed and we just
+            # Update the file path
+            fileid = str(file.Path.resolve())
+            if fileid in seen:
+                file._path = seen.get(fileid)._path
+                continue
+            if file.FileType == QuartusQIPSpecificationFile:
+                continue
+            elif file.FileType == QuartusIPCompressedSpecificationFile:
+                file = unpack_ipfile(file, ip_dir)
+            elif file.FileType == QuartusIPSpecificationFile:
+                file = copy_ipfile(file, ip_dir)
+            elif file.FileType == QuartusQSYSCompressedSpecificationFile:
+                file = unpack_qsysfile(file, qsys_dir)
+            elif file.FileType == QuartusQSYSSpecificationFile:
+                file = copy_qsysfile(file, qsys_dir)
+            parse_file(file, flow, self.project.DefaultDesign.DefaultFileSet.VHDLLibrary)
+            # register the file as seen
+            seen[fileid] = file
 
 
 def parse_qsys(filename: QuartusQSYSSpecificationFile) -> List[File]:

@@ -10,7 +10,9 @@ from zipfile import ZipFile
 from ..generator import GeneratorFactory, GeneratorBase
 from ..utils import md5write, md5check
 from ..flow import FlowBase, FlowCategory
+from ..pyedaa import SIMULATION
 from ..pyedaa.fileset import FileSet
+from ..pyedaa.attributes import UsedIn
 from ..pyedaa.vhdllibrary import VHDLLibrary
 from ..pyedaa import (
     File, SystemVerilogSourceFile, TCLSourceFile, ConstraintFile, HDLSourceFile,
@@ -198,7 +200,10 @@ class VivadoIP(GeneratorBase):
     def run(self, flow: FlowBase):
         if flow.category == FlowCategory.SIMULATION:
             os.makedirs(self.builddir, exist_ok=True)
-            for ipfile in self.project.DefaultDesign.DefaultFileSet.Files(fileType=VivadoIPSpecificationFile):
+            ipfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=VivadoIPSpecificationFile))
+            ipfiles = [f for f in ipfiles if SIMULATION in f[UsedIn]]
+
+            for ipfile in ipfiles:
                 newipfile = self.unpack_ip(ipfile)
                 files = self.get_files(newipfile.Path)
                 last_lib = ''

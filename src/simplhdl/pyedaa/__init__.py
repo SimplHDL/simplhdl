@@ -102,7 +102,9 @@ class TCLSourceFile(pm.TCLSourceFile):
 
 
 class IPSpecificationFile(File, pm.XMLContent):
-    pass
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
 
 
 class NetlistFile(pm.NetlistFile, FileMixIn):
