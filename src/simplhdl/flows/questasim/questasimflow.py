@@ -14,6 +14,7 @@ from typing import Any, List, Dict, Optional
 from argparse import Namespace
 from jinja2 import Template
 from simplhdl.pyedaa.project import Project
+from simplhdl.pyedaa import ModelsimIniFile
 from simplhdl.utils import sh, escape
 from simplhdl.flow import FlowFactory, FlowTools
 from simplhdl.info import Info
@@ -347,6 +348,11 @@ class QuestaSimFlow(SimulationFlow):
             else:
                 logger.warning("Visualizer is not setup correctly")
         return False
+
+    def copy_modelsim_ini(self):
+        for file in self.project.DefaultDesign.Files(ModelsimIniFile):
+            shutil.copy(file.Path.absolute(), self.builddir.absolute())
+
 
     def generate(self):
         templatedir = resources_files(self.templates)

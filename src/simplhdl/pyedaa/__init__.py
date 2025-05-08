@@ -206,3 +206,10 @@ class MemoryInitFile(File):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
+
+
+class ModelsimIniFile(File):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        FileMixIn._registerAttributes(self)
+        self[UsedIn] = {SIMULATION}
