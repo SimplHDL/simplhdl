@@ -184,7 +184,7 @@ class QuartusIP(GeneratorBase):
             filename._path = dest.with_suffix('.ip').absolute()
         return filename
 
-    def run(self, flow: FlowBase) -> None:
+    def run(self, flow: FlowBase) -> None:  # noqa: C901
         seen = dict()
         self.flow = flow
         ip_dir = self.builddir.joinpath('ips')

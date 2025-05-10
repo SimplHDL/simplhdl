@@ -108,7 +108,7 @@ class QuartusExportFlow(ImplementationFlow):
             shutil.rmtree(self.builddir.joinpath('dni'))
             shutil.rmtree(self.builddir.joinpath('qdb'))
             os.remove(self.builddir.joinpath('project.tcl'))
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             pass
 
     def archive_project(self) -> None:
