@@ -350,9 +350,16 @@ class QuestaSimFlow(SimulationFlow):
         return False
 
     def copy_modelsim_ini(self):
-        for file in self.project.DefaultDesign.Files(ModelsimIniFile):
-            shutil.copy(file.Path.absolute(), self.builddir.absolute())
-
+        files = list(self.project.DefaultDesign.Files(ModelsimIniFile))
+        if len(files) > 1:
+            logger.warning("Multiple modelsim.ini files found in project. Only the first file will be used.")
+        for i, file in enumerate(reversed(files)):
+            if i > 0:
+                logger.warning(f"ignore {file.Path}")
+            else:
+                logger.debug(f"Copy {file.Path} to {self.builddir}")
+                logger.info(f"Use {file.Path}")
+                shutil.copy(file.Path.absolute(), self.builddir.absolute())
 
     def generate(self):
         templatedir = resources_files(self.templates)
@@ -368,6 +375,7 @@ class QuestaSimFlow(SimulationFlow):
         for template in templates:
             generate_from_template(template, self.builddir, self.get_globals())
         self.copy_memory_files()
+        self.copy_modelsim_ini()
 
     def get_qrun_version(self) -> float:
         output = sh(['qrun', '-version'], self.builddir)

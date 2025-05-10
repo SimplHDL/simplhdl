@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, List, Dict, Optional
 from argparse import Namespace
 from jinja2 import Template
+from simplhdl.pyedaa import ModelsimIniFile
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.utils import sh, escape
@@ -224,6 +225,22 @@ class ModelSimFlow(SimulationFlow):
             #       anyway and can just ignore it.
             library = ''
         return library
+
+    def generate(self):
+        super().generate()
+        self.copy_modelsim_ini()
+
+    def copy_modelsim_ini(self):
+        files = list(self.project.DefaultDesign.Files(ModelsimIniFile))
+        if len(files) > 1:
+            logger.warning("Multiple modelsim.ini files found in project. Only the first file will be used.")
+        for i, file in enumerate(reversed(files)):
+            if i > 0:
+                logger.warning(f"ignore {file.Path}")
+            else:
+                logger.debug(f"Copy {file.Path} to {self.builddir}")
+                logger.info(f"Use {file.Path}")
+                shutil.copy(file.Path.absolute(), self.builddir.absolute())
 
     def execute(self, step: str) -> None:
         self.run_hooks('pre')
