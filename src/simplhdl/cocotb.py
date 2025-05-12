@@ -41,7 +41,8 @@ class Cocotb:
             return None
         set_ = set()
         try:
-            modules = self.project.DefaultDesign._topLevel.split()
+            modules = self.project.DefaultDesign.TopLevel.split()
+            print(modules)
         except AttributeError:
             raise FlowError("No top levels found")
 
@@ -58,14 +59,14 @@ class Cocotb:
 
     def hdltoplevels(self) -> str:
         tops = []
-        for t in self.project.DefaultDesign._topLevel.split():
+        for t in self.project.DefaultDesign.TopLevel.split():
             if t != self.top:
                 tops.append(t)
         return ' '.join(tops)
 
     def get_dut(self) -> str:
         try:
-            for top in self.project.DefaultDesign._topLevel.split():
+            for top in self.project.DefaultDesign.TopLevel.split():
                 if top != self.top:
                     return top
         except AttributeError:
