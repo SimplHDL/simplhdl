@@ -74,8 +74,11 @@ class VsgFlow(FlowBase):
                                UsedIn=UsedIn)
         if self.args.rules:
             self.rules = self.args.rules
-        elif os.getenv('SIMPLHDL_VSG_RULES'):
-            self.rules = self.args.rules
+        elif os.getenv('SIMPLHDL_VSG_CONFIG'):
+            rules = os.getenv('SIMPLHDL_VSG_CONFIG')
+            if not Path(rules).exists():
+                raise FlowError(f"Rules file {rules} does not exist")
+            self.rules = rules
         else:
             template = environment.get_template('rules.yml.j2')
             generate_from_template(template, self.builddir)
