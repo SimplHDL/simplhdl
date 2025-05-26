@@ -8,7 +8,7 @@ from argparse import Namespace
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-from simplhdl.flow import FlowFactory, FlowBase
+from simplhdl.flow import FlowFactory, FlowBase, FlowError
 from simplhdl.resources.templates import verible as templates
 from simplhdl.utils import sh, CalledShError, generate_from_template
 from simplhdl.pyedaa import VerilogIncludeFile, VerilogSourceFile, SystemVerilogSourceFile
@@ -51,8 +51,11 @@ class VeribleFlow(FlowBase):
     def generate(self):
         if self.args.rules:
             self.rules = self.args.rules
-        elif os.getenv('SIMPLHDL_VERIBLE_RULES'):
-            self.rules = self.args.rules
+        elif os.getenv('SIMPLHDL_VERIBLE_CONFIG'):
+            rules = os.getenv('SIMPLHDL_VERIBLE_CONFIG')
+            if not Path(rules).exists():
+                raise FlowError(f"Rules file {rules} does not exist")
+            self.rules = rules
         else:
             templatedir = resources_files(self.templates)
             environment = Environment(
@@ -67,7 +70,7 @@ class VeribleFlow(FlowBase):
         command = [
             "verible-verilog-lint",
             "--check_syntax=false",
-            "--ruleset=all",
+            "--ruleset=none",
             "--rules_config", self.rules
         ]
 
