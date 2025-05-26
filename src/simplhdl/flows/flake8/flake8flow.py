@@ -49,7 +49,7 @@ class Flake8Flow(FlowBase):
             self.files = [f.Path for f in self.project.DefaultDesign.DefaultFileSet.Files(PythonSourceFile)]
 
     def generate(self):
-        config = os.getenv('SIMPLHDL_FLAKE8_RULES')
+        config = os.getenv('SIMPLHDL_FLAKE8_CONFIG')
         if config:
             shutil.copy(config, self.builddir.joinpath('setup.cfg'))
         else:
