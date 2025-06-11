@@ -39,15 +39,16 @@ class Design(pm.Design):
     @property
     def TopLevel(self) -> str:
         """Property setting or returning the fileset's toplevel."""
-        top = set()
+        top = list()
         if self._topLevel is not None:
             for t in self._topLevel.split():
-                top.add(t)
+                top.append(t)
         for fileset in self._fileSets.values():
             if fileset.TopLevel is not None:
                 for t in fileset.TopLevel.split():
-                    top.add(t)
-        return ' '.join(top)
+                    top.append(t)
+        # remove duplicates without changing the order
+        return ' '.join(list(dict.fromkeys(top)))
 
     @TopLevel.setter
     def TopLevel(self, value: str) -> None:
