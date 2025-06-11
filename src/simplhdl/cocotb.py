@@ -42,7 +42,6 @@ class Cocotb:
         set_ = set()
         try:
             modules = self.project.DefaultDesign.TopLevel.split()
-            print(modules)
         except AttributeError:
             raise FlowError("No top levels found")
 

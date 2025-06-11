@@ -5,8 +5,9 @@ import logging
 import traceback
 
 from typing import Sequence
-
 from pathlib import Path
+from rich.logging import RichHandler
+
 from . import __version__
 from .simplhdl import Simplhdl
 from .plugins import load_plugins
@@ -67,7 +68,18 @@ def main():
         args = parse_arguments()
         levels = [logging.INFO, logging.DEBUG, logging.NOTSET]
         level = levels[min(args.verbose, len(levels)-1)]
-        logging.basicConfig(level=level)
+        if level < logging.INFO:
+            show_path = True
+        else:
+            show_path = False
+
+        FORMAT = "[simplhdl.%(module)s] - %(message)s"
+        console = RichHandler(level=level, show_time=False, rich_tracebacks=True, show_path=show_path)
+        logging.basicConfig(
+            level=5,
+            format=FORMAT,
+            handlers=[console]
+        )
         simpl = Simplhdl(args)
         simpl.run()
     except (NotImplementedError, FileNotFoundError, CalledShError,

@@ -1,3 +1,5 @@
+import logging
+
 from argparse import Namespace
 from pathlib import Path
 from typing import Callable, Dict, Set
@@ -16,6 +18,11 @@ class FlowBase(metaclass=ABCMeta):
         self.builddir: Path = builddir
         self.category: FlowCategory = FlowCategory.DEFAULT
         self.tools: Set = set()
+        self.builddir.mkdir(parents=True, exist_ok=True)
+        file = logging.FileHandler(self.builddir.joinpath('simplhdl.log'), mode='w')
+        file.setLevel(logging.NOTSET)
+        file.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s:%(filename)s:%(lineno)d - %(message)s'))
+        logging.getLogger().addHandler(file)
 
     @classmethod
     @abstractmethod

@@ -17,7 +17,7 @@ class CalledShError(Exception):
     pass
 
 
-def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False, env=None):
+def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False, env=None, indent=2):
     if os.name == 'nt':
         shell = True
 
@@ -26,7 +26,7 @@ def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False
         if output:
             stdout: str = ''
             for line in p.stdout:
-                sys.stdout.buffer.write(line)
+                sys.stdout.buffer.write(b' '*indent + line)
                 sys.stdout.buffer.flush()
                 stdout += line.decode()
             _, stderr = p.communicate()

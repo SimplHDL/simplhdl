@@ -290,14 +290,14 @@ def copy_ipfile(file: QuartusIPSpecificationFile, dest: Path) -> QuartusIPSpecif
     destfile = dest.joinpath(file.Path.name)
     if srcdir.exists():
         if not md5file.exists() or not md5check(file.Path, srcdir, filename=md5file):
-            logger.info(f"Copy {file.Path} to {destfile}")
-            logger.info(f"Copy {srcdir} to {destdir}")
+            logger.debug(f"Copy {file.Path} to {destfile}")
+            logger.debug(f"Copy {srcdir} to {destdir}")
             copy(str(file.Path), str(destfile))
             copytree(str(srcdir), str(destdir), dirs_exist_ok=True)
             md5write(file.Path, srcdir, filename=md5file)
     else:
         if not md5file.exists() or not md5check(file.Path, filename=md5file):
-            logger.info(f"Copy {file.Path} to {destfile}")
+            logger.debug(f"Copy {file.Path} to {destfile}")
             rmtree(destdir, ignore_errors=True)
             copy(str(file.Path), str(destfile))
             md5write(file.Path, filename=md5file)
