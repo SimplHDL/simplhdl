@@ -72,6 +72,7 @@ class Spd:
             sh(command, cwd=filename.parent)
             if not spdfile.exists():
                 raise FileNotFoundError(f"{spdfile}: doesn't exits")
+        logger.debug(f"Parse {spdfile}")
         self.tree = parse(spdfile)
         self.root = self.tree.getroot()
         self.location = spdfile.parent.absolute()
@@ -222,7 +223,7 @@ class QuartusIP(GeneratorBase):
             seen[fileid] = file
 
 
-def parse_qsys(filename: QuartusQSYSSpecificationFile) -> List[File]:
+def get_list_of_ipfiles(filename: QuartusQSYSSpecificationFile) -> List[File]:
     """
     Search for IP files in a QSYS file and return a list of QuartusIPSpecificationFile objects.
     """
@@ -244,10 +245,10 @@ def qsys_to_fileset(file: QuartusQSYSSpecificationFile, flow: FlowBase, library)
     """
     Parse a QSYS file and return a FileSet object.
     """
-    ipfiles = parse_qsys(file)
+    ipfiles = get_list_of_ipfiles(file)
     if flow.category == FlowCategory.SIMULATION:
         parent = file.FileSet
-        for ipfile in ipfiles + [file]:
+        for ipfile in [file] + ipfiles:
             spd = Spd(ipfile.Path, flow, file.Path.parent.absolute())
             for fileset in reversed(spd.filesets):
                 # Add fileset to parent, then set parent to fileset to make a chain
