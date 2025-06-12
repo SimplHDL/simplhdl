@@ -102,8 +102,10 @@ class Cocotb:
                                     logger.info(f"Cocotb dut '{self.dut}' is Verilog")
                                     return VerilogSourceFile
                                 else:
-                                    logger.warning(f"Found HDL module {name} in ",
-                                                   f"library '{file.Library.Name}' expected '{lib}'")
+                                    logger.warning(
+                                        f"Found HDL module {name} in "
+                                        f"library '{file.Library.Name}' expected '{lib}'"
+                                    )
                 else:
                     continue
         except UnicodeDecodeError:
