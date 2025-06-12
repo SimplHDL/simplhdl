@@ -5,7 +5,7 @@ from typing import List, Generator, Optional
 from pathlib import Path
 from xml.etree.ElementTree import Element, parse
 from zipfile import ZipFile
-from shutil import copy, copytree, rmtree
+from shutil import copy, copytree, rmtree, ignore_patterns
 
 from simplhdl.pyedaa import (
     File,
@@ -312,10 +312,17 @@ def copy_qsysfile(file: QuartusQSYSSpecificationFile, dest: Path) -> QuartusQSYS
     Copy QSYS files to a directory and return a new QuartusQSYSSpecificationFile object with the new path.
     """
     md5file = dest.joinpath(file.Path.name).with_suffix('.md5')
-    qsysdir = dest.joinpath(file.Path.name)
+    qsysdir = dest.joinpath(file.Path.name).with_suffix('')
+
     src = file.Path.parent
     if not md5file.exists() or not md5check(src, filename=md5file):
-        copytree(str(src), str(qsysdir), dirs_exist_ok=True)
+        # If destination is a subdirectory of source the copytree will have
+        # to ignore this subdirectory
+        if qsysdir.absolute().is_relative_to(src.absolute()):
+            ignoredir = qsysdir.absolute().relative_to(src.absolute()).parents[-2]
+            copytree(str(src), str(qsysdir), dirs_exist_ok=True, ignore=ignore_patterns(ignoredir))
+        else:
+            copytree(str(src), str(qsysdir), dirs_exist_ok=True)
         md5write(src, filename=md5file)
     file._fileType = QuartusQSYSSpecificationFile
     file._path = qsysdir.joinpath(file.Path.name).with_suffix('.qsys').resolve()
