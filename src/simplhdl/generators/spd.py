@@ -235,6 +235,15 @@ def get_list_of_ipfiles(filename: QuartusQSYSSpecificationFile) -> List[File]:
             if m:
                 ipfile = filename.Path.parent.joinpath(m.group(1))
                 if ipfile.exists():
+                    logger.debug(f"Found {ipfile} in {filename.Path}")
+                    files.append(QuartusIPSpecificationFile(ipfile))
+                else:
+                    logger.warning(f"File {ipfile} not found")
+            m = re.search(r'<parameter name="logicalView">(.*\.ip)</parameter>', line)
+            if m:
+                ipfile = filename.Path.parent.joinpath(m.group(1))
+                if ipfile.exists():
+                    logger.debug(f"Found {ipfile} in {filename.Path}")
                     files.append(QuartusIPSpecificationFile(ipfile))
                 else:
                     logger.warning(f"File {ipfile} not found")
@@ -316,6 +325,7 @@ def copy_qsysfile(file: QuartusQSYSSpecificationFile, dest: Path) -> QuartusQSYS
 
     src = file.Path.parent
     if not md5file.exists() or not md5check(src, filename=md5file):
+        logger.debug(f"Copy {file.Path} to {qsysdir}")
         # If destination is a subdirectory of source the copytree will have
         # to ignore this subdirectory
         if qsysdir.absolute().is_relative_to(src.absolute()):
