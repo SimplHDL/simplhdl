@@ -373,7 +373,7 @@ def unpack(file: Path, dest: Path) -> None:
     """
     Unpack a file to a directory and return the new path.
     """
-    md5file = dest.joinpath(file.name).with_suffix('.md5')
+    md5file = dest.parent.joinpath(file.name).with_suffix('.md5')
     if not md5file.exists() or not md5check(file, filename=md5file):
         logger.info(f"Unpack {file} to {dest}")
         with ZipFile(file, 'r') as zip:
