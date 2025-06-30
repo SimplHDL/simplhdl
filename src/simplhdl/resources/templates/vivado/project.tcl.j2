@@ -89,7 +89,7 @@ read_vhdl -vhdl2008 -library {{file.Library}} "{{file.Path|replace('\\', '/')}}"
 read_xdc "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VivadoIPSpecificationFile %}
 {% if file.Path.suffix == '.xcix' %}
-read_ip "{{file.Path|replace('\\', '/')}}"
+add_files -norecurse "{{file.Path|replace('\\', '/')}}"
 {% else %}
 import_ip "{{file.Path|replace('\\', '/')}}"
 {% endif %}
