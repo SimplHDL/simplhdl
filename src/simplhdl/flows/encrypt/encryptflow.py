@@ -5,11 +5,13 @@ from typing import List
 from argparse import Namespace
 from pathlib import Path
 
+from simplhdl.info import Info
 from simplhdl.flow import FlowFactory, FlowTools, FlowError
 from simplhdl.flows.implementationflow import ImplementationFlow
 from simplhdl.utils import sh
 from simplhdl.pyedaa.project import Project
 from simplhdl.pyedaa import SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile, VerilogIncludeFile
+from simplhdl.pyedaa.attributes import Encrypt
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,11 @@ class EncryptFlow(ImplementationFlow):
             action='store',
             help='Output directory'
         )
+        parser.add_argument(
+            '--info',
+            action='store_true',
+            help="Print project"
+        )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
@@ -62,6 +69,12 @@ class EncryptFlow(ImplementationFlow):
         self.is_tool_setup()
 
     def execute(self):
+        if self.args.info:
+            args = Namespace(files=False, filesets=False, libraries=False, hooks=False)
+            info = Info(self.name, args, self.project, self.builddir)
+            info.run()
+            return
+
         outputdir = self.args.outdir or self.builddir
         outputdir.mkdir(parents=True, exist_ok=True)
 
@@ -87,7 +100,7 @@ class EncryptFlow(ImplementationFlow):
             else:
                 vendors = VENDORS
 
-            if self.args.no_encrypt:
+            if self.args.no_encrypt or not file[Encrypt]:
                 shutil.copyfile(file.Path.absolute(), destFile.absolute())
             else:
                 encrypt(file.Path, destFile, language, vendors)
