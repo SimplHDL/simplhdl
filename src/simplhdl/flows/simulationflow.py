@@ -18,7 +18,8 @@ from simplhdl.cocotb import Cocotb
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.pyedaa import (
     File, VerilogSourceFile, VerilogIncludeFile, SystemVerilogSourceFile, VHDLSourceFile,
-    MemoryInitFile
+    MemoryInitFile, SystemVerilogEncryptedSourceFile, VerilogEncryptedSourceFile,
+    VHDLEncryptedSourceFile
 )
 from simplhdl.utils import generate_from_template, md5sum, md5check, md5write, append_suffix
 
@@ -73,6 +74,7 @@ class SimulationFlow(FlowBase):
         globals['VHDLSourceFile'] = VHDLSourceFile
         globals['UsedIn'] = UsedIn
         globals['uvm'] = self.is_uvm()
+        globals['isinstance'] = isinstance
         return globals
 
     def generate(self):

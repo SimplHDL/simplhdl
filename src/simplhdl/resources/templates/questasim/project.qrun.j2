@@ -20,7 +20,8 @@
 {% for fileset in filesets %}
 -makelib {{fileset.VHDLLibrary.Name}}:{{fileset.VHDLLibrary.Path}}
 {% for file in fileset.GetFiles() %}
-{% if file.FileType in [SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile] and 'simulation' in file[UsedIn] %}
+
+{% if isinstance(file, (SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile)) and 'simulation' in file[UsedIn] %}
 	{{file.Path}}
 {% endif %}
 {% endfor %}
