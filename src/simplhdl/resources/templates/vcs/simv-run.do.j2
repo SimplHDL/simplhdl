@@ -1,0 +1,6 @@
+{% if wavedump is not none %}
+set fid [dump -file waves.{{wavedump}} -type {{wavedump.upper()}}]
+dump -add . -aggregates -fid $fid
+{% endif %}
+run
+quit

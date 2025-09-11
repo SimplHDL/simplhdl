@@ -34,9 +34,11 @@ class VcsFlow(SimulationFlow):
         )
         parser.add_argument(
             '-w',
-            '--wave',
-            action='store_true',
-            help="Dump waveforms"
+            '--wavedump',
+            nargs='?',
+            const='vpd',
+            choices=['vpd', 'evcd', 'fsdb'],
+            help="Dump waveforms using vpd, evcd or fsdb format"
         )
         parser.add_argument(
             '--gui',
@@ -92,6 +94,7 @@ class VcsFlow(SimulationFlow):
 
     def get_globals(self) -> Dict[str, Any]:
         globals = super().get_globals()
+        globals['wavedump'] = self.args.wavedump
         globals['vlogan_args'] = self.vlogan_args()
         globals['vhdlan_args'] = self.vhdlan_args()
         globals['vcs_args'] = self.vcs_args()
@@ -124,6 +127,8 @@ class VcsFlow(SimulationFlow):
             environment.get_template('synopsys_sim.setup.j2'),
             environment.get_template('project.mk.j2'),
             environment.get_template('vcs.parameters.j2'),
+            environment.get_template('simv-run.do.j2'),
+
         ]
 
     def get_cocotb_templates(self, environment):
@@ -179,7 +184,7 @@ class VcsFlow(SimulationFlow):
             args.add(f"-timescale={self.args.timescale}")
         if self.is_uvm():
             args.add('-ntb_opts uvm')
-        if self.args.gui:
+        if self.args.gui or self.args.wavedump:
             args.add('-debug_access+all')
             if self.is_verdi():
                 args.add('-kdb')
@@ -195,6 +200,10 @@ class VcsFlow(SimulationFlow):
             args.add(f"+ntb_random_seed={self.args.seed}")
         for name, value in self.project.PlusArgs.items():
             args.add(f"+{name}={escape(value)}")
+        if self.args.wavedump == 'vpd':
+            args.add('-ucli -do simv-run.do')
+        if self.args.wavedump == 'evcd' or self.args.wavedump == 'fsdb':
+            raise NotImplementedError(f"Wavedump for {self.args.wavedump} format is not yet implemented")
         return ' '.join(list(args) + [self.args.simv_args])
 
     def get_library(self, fileset: FileSet) -> str:
