@@ -6,6 +6,17 @@ proc source_script {filename} {
     }
 }
 
+
+proc source_bd_script {filename} {
+    # Fail if bd script return an error code or a non zero value
+    if {[catch {source -notrace $filename} err]} {
+        return -code 1
+    } elseif {$err != 0} {
+        return -code 1
+    }
+}
+
+
 proc source_step_script {filename} {
     # NOTE: make get_files fail if not files are found
     set_msg_config -id {Vivado 12-818} -new_severity {ERROR}
@@ -101,7 +112,7 @@ read_edif "{{file.Path|replace('\\', '/')}}"
 read_bd "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VivadoBDTclFile %}
 send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path|replace('\\', '/')}}: this might take some time."
-source_script "{{file.Path|replace('\\', '/')}}"
+source_bd_script "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VivadoProjectStepFile %}
 add_files -fileset utils_1 "{{file.Path|replace('\\', '/')}}"
 global step
