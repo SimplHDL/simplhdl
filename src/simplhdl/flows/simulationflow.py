@@ -18,8 +18,7 @@ from simplhdl.cocotb import Cocotb
 from simplhdl.pyedaa.fileset import FileSet
 from simplhdl.pyedaa import (
     File, VerilogSourceFile, VerilogIncludeFile, SystemVerilogSourceFile, VHDLSourceFile,
-    MemoryInitFile, SystemVerilogEncryptedSourceFile, VerilogEncryptedSourceFile,
-    VHDLEncryptedSourceFile
+    MemoryInitFile
 )
 from simplhdl.utils import generate_from_template, md5sum, md5check, md5write, append_suffix
 
