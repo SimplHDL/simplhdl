@@ -144,10 +144,25 @@ class EDIFNetlistFile(pm.EDIFNetlistFile, FileMixIn):
         FileMixIn._registerAttributes(self)
 
 
+class CHeaderFile(SourceFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[UsedIn] = {SIMULATION}
+
+
 class CSourceFile(pm.CSourceFile, FileMixIn):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
+        self[UsedIn] = {SIMULATION}
+
+
+class SystemCSourceFile(CSourceFile):
+    pass
+
+
+class SystemCHeaderFile(CHeaderFile):
+    pass
 
 
 class SettingFile(pm.SettingFile, FileMixIn):

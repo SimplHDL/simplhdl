@@ -17,7 +17,7 @@ from ..pyedaa.vhdllibrary import VHDLLibrary
 from ..pyedaa import (
     File, SystemVerilogSourceFile, TCLSourceFile, ConstraintFile, HDLSourceFile,
     VHDLSourceFile, VerilogSourceFile, VivadoIPSpecificationFile,
-    VerilogIncludeFile
+    VerilogIncludeFile, SystemCSourceFile, SystemCHeaderFile
 )
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,8 @@ FILETYPE_2014_MAP = {
     '.tcl': TCLSourceFile,
     'SDC': ConstraintFile,
     '.sdc': ConstraintFile,
+    'systemCSource': SystemCSourceFile,
+    'systemCSourceInclude': SystemCHeaderFile,
     'unknown': File,
 }
 
@@ -191,7 +193,7 @@ class VivadoIP(GeneratorBase):
                 file = component.filepath(file_element).with_suffix('.xml')
                 if file.exists():
                     files += self.get_files(file)
-        for view in component.views('.*simulation.*'):
+        for view in component.views('.*(verilog|vhdl)simulation.*'):
             filesets = component.filesets(view)
             for fileset in filesets:
                 files += component.pyedaa_files(fileset)
@@ -217,6 +219,9 @@ class VivadoIP(GeneratorBase):
                             i += 1
                             filesets.append(fileset)
                         last_lib = file.Library.Name
-                    fileset.AddFile(file)
+                    try:
+                        fileset.AddFile(file)
+                    except Exception:
+                        logger.warning(f"Failed to add {file.Path}")
                 for fileset in filesets:
                     newipfile.FileSet._fileSets[fileset.Name] = fileset
