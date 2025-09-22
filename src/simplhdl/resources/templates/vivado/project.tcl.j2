@@ -11,7 +11,7 @@ proc source_bd_script {filename} {
     # Fail if bd script return an error code or a non zero value
     if {[catch {source -notrace $filename} err]} {
         return -code 1
-    } elseif {$err != 0} {
+    } elseif {$err != ""} {
         return -code 1
     }
 }
