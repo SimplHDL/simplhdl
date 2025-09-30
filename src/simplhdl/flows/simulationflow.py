@@ -76,7 +76,14 @@ class SimulationFlow(FlowBase):
         globals['isinstance'] = isinstance
         return globals
 
+    def check_external_libraries(self):
+        for library in self.project.DefaultDesign.ExternalVHDLLibraries.values():
+            print(f"{library.Name}: {library.Path}")
+            if not library.Path.exists():
+                raise FlowError(f"External library {library.Name} doesn't exist at {library.Path.absolute()}")
+
     def generate(self):
+        self.check_external_libraries()
         templatedir = resources_files(self.templates)
         env = Environment(
             loader=FileSystemLoader(templatedir),
