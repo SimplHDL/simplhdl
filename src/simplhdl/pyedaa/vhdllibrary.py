@@ -1,8 +1,12 @@
+import logging
 import pyEDAA.ProjectModel as pm
 
 from typing import Optional
 from pathlib import Path
 from pyVHDLModel import VHDLVersion  # type: ignore
+
+
+logger = logging.getLogger(__name__)
 
 
 class VHDLLibrary(pm.VHDLLibrary):
@@ -18,9 +22,9 @@ class VHDLLibrary(pm.VHDLLibrary):
     ):
         super().__init__(name, project, design, vhdlVersion)
         if path is None:
-            self._path = name
+            self.Path = Path(name)
         else:
-            self._path = path
+            self.Path = path
 
     @property
     def Path(self) -> Optional[Path]:
@@ -28,4 +32,9 @@ class VHDLLibrary(pm.VHDLLibrary):
 
     @Path.setter
     def Path(self, path: Path) -> None:
-        self._path = path
+        if isinstance(path, str):
+            filename, lineno, funcname, info = logger.findCaller(stacklevel=3)
+            logger.debug(f"The VHDL library path is a string in {filename}:{lineno}")
+            self._path = Path(path)
+        else:
+            self._path = path

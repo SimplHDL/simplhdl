@@ -362,6 +362,7 @@ class QuestaSimFlow(SimulationFlow):
                 shutil.copy(file.Path.absolute(), self.builddir.absolute())
 
     def generate(self):
+        self.check_external_libraries()
         templatedir = resources_files(self.templates)
         env = Environment(
             loader=FileSystemLoader(templatedir),
