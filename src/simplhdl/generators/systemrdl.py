@@ -8,6 +8,9 @@ from systemrdl import RDLCompiler, RDLCompileError, RDLListener, RDLWalker
 from systemrdl.node import AddrmapNode
 from systemrdl.rdltypes import AccessType, OnReadType, OnWriteType
 from peakrdl_html import HTMLExporter
+from peakrdl_regblock.exporter import RegblockExporter
+from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif_flattened
+from peakrdl_regblock.udps import ALL_UDPS
 
 from ..generator import GeneratorFactory, GeneratorBase
 from ..pyedaa import SystemRDLSourceFile, SystemVerilogSourceFile, VerilogSourceFile
@@ -16,9 +19,12 @@ from ..flow import FlowBase
 
 logger = logging.getLogger(__name__)
 
-seennodes: List[AddrmapNode] = []
-addrmapnodes: List[AddrmapNode] = []
-hierachymapnodes: List[AddrmapNode] = []
+seennodetypes: List[AddrmapNode] = []
+leafnodetypes: List[AddrmapNode] = []
+hierachynodetypes: List[AddrmapNode] = []
+leafnodes: List[AddrmapNode] = []
+hierachynodes: List[AddrmapNode] = []
+nodes: List[AddrmapNode] = []
 
 
 class Environment(jinja2.Environment):
@@ -33,13 +39,18 @@ class Environment(jinja2.Environment):
 
 class Listener(RDLListener):
     def exit_Addrmap(self, node: AddrmapNode):
-        seen = [n for n in seennodes if n.type_name == node.type_name]
+        nodes.append(node)
+        if is_leaf(node):
+            leafnodes.append(node)
+        else:
+            hierachynodes.append(node)
+        seen = [n for n in seennodetypes if n.type_name == node.type_name]
         if not seen:
-            seennodes.append(node)
-            if AddrmapNode not in [type(c) for c in node.children()]:
-                addrmapnodes.append(node)
+            seennodetypes.append(node)
+            if is_leaf(node):
+                leafnodetypes.append(node)
             else:
-                hierachymapnodes.append(node)
+                hierachynodetypes.append(node)
 
 
 def get_template_dirs() -> List[Path]:
@@ -143,10 +154,26 @@ def get_field_access(field) -> str:  # noqa: C901
         return "NOACCESS"
 
 
+def is_leaf(node):
+    """
+    Check if node is leaf, meaning it has no children address maps
+    """
+    if AddrmapNode not in [type(c) for c in node.children()]:
+        return True
+    else:
+        return False
+
+def mask(node):
+    m = ~(node.size - 1) & 0xFFFFFFFF
+    return m
+
+
 @GeneratorFactory.register('SystemRDL')
 class SystemRDL(GeneratorBase):
 
-    def render_template(self, template, node, outputdir) -> Path:
+    def render_template(self, template: jinja2.Template, node, outputdir) -> Path:
+        if not template.filename.endswith('.j2'):
+            return
         context = template.render(node=node)
         outputdir.mkdir(parents=True, exist_ok=True)
         outputfile: Path = outputdir.joinpath(f'{node.type_name}__{Path(template.filename).name[:-3]}').absolute()
@@ -159,6 +186,24 @@ class SystemRDL(GeneratorBase):
         if outputfile.suffix == '.v':
             fileset.InsertFileAfter(rdlfile, VerilogSourceFile(outputfile))
 
+    def peakrdl_template(self, node, outputdir) -> None:
+        RegblockExporter().export(
+            node=node,
+            output_dir=str(outputdir.absolute()),
+            cpuif_cls=AXI4Lite_Cpuif_flattened,
+            module_name=f'{node.type_name}_addrmap',
+            package_name=f'{node.type_name}_pkg',
+            address_width=32,
+            default_reset_activelow=True
+
+        )
+        modulefile: Path = outputdir.joinpath(f'{node.type_name}_pkg.sv').absolute()
+        packetfile: Path = outputdir.joinpath(f'{node.type_name}_addrmap.sv').absolute()
+        rdlfile = self.project.DefaultDesign.GetFile(node.inst.def_src_ref.path)
+        fileset = rdlfile.FileSet
+        fileset.InsertFileAfter(rdlfile, SystemVerilogSourceFile(modulefile))
+        fileset.InsertFileAfter(rdlfile, SystemVerilogSourceFile(packetfile))
+
     def run(self, flow: FlowBase):
         rdlfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=SystemRDLSourceFile))
         output_dir = self.builddir.joinpath('systemrdl')
@@ -167,6 +212,10 @@ class SystemRDL(GeneratorBase):
             return
 
         rdlc = RDLCompiler()
+
+        for udp in ALL_UDPS:
+            rdlc.register_udp(udp)
+
         try:
             for rdlfile in rdlfiles:
                 rdlc.compile_file(rdlfile.Path, defines=self.project.Defines)
@@ -188,14 +237,21 @@ class SystemRDL(GeneratorBase):
                 loader=jinja2.FileSystemLoader(templatedir),
                 trim_blocks=True)
             env.globals['hex'] = hex
+            env.globals['len'] = len
             env.globals['get_field_access'] = get_field_access
             env.globals['get_reg_access'] = get_reg_access
+            env.globals['nodes'] = nodes
+            env.globals['leafnodes'] = leafnodes
+            env.globals['hierachynodes'] = hierachynodes
+            env.globals['is_leaf'] = is_leaf
+            env.globals['mask'] = mask
             template = env.find_template('registermap')
-            for node in addrmapnodes:
+            for node in leafnodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
+                self.peakrdl_template(node=node, outputdir=output_dir.joinpath('peakrdl'))
 
             template = env.find_template('hierachymap')
-            for node in hierachymapnodes:
+            for node in hierachynodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
 
         logger.info("Generate HTML Documentation")
