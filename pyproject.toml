@@ -26,6 +26,8 @@ dependencies = [
     "black",
     "systemrdl-compiler",
     "peakrdl-html",
+    "peakrdl-regblock",
+    "peakrdl-pyuvm",
 ]
 requires-python = ">=3.8"
 authors = [
