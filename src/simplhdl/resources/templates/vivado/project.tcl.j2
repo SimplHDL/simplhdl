@@ -109,7 +109,11 @@ read_verilog "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VHDLSourceFile %}
 read_vhdl -vhdl2008 -library {{file.Library}} "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == ConstraintFile %}
+{% if file[Scope] is not none %}
+read_xdc "{{file.Path|replace('\\', '/')}}" -ref "{{file[Scope]}}"
+{% else %}
 read_xdc "{{file.Path|replace('\\', '/')}}"
+{% endif %}
 {% elif file.FileType == VivadoIPSpecificationFile %}
 {% if file.Path.suffix == '.bd' %}
 import_bd_file "{{file.Path|replace('\\', '/')}}"

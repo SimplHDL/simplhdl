@@ -14,3 +14,8 @@ class UsedIn(pm.Attribute):
 class Encrypt(pm.Attribute):
     NAME: 'Encrypt'
     VALUE_TYPE: bool
+
+
+class Scope(pm.Attribute):
+    NAME: 'Scope'
+    VALUE_TYPE: str

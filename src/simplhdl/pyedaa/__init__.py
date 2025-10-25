@@ -3,7 +3,7 @@ import pyEDAA.ProjectModel as pm
 from pathlib import Path
 from typing import Optional
 from pyTooling.MetaClasses import ExtendedType
-from .attributes import Encrypt, UsedIn, SIMULATION, IMPLEMENTATION
+from .attributes import Encrypt, UsedIn, SIMULATION, IMPLEMENTATION, Scope
 
 
 class FileMixIn(metaclass=ExtendedType, mixin=True):
@@ -176,6 +176,7 @@ class ConstraintFile(pm.ConstraintFile, FileMixIn):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
         self[UsedIn] = {IMPLEMENTATION}
+        self[Scope] = None
 
 
 class QuartusSignalTapFile(File):
