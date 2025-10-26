@@ -11,10 +11,11 @@ from peakrdl_html import HTMLExporter
 from peakrdl_regblock.exporter import RegblockExporter
 from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif_flattened
 from peakrdl_regblock.udps import ALL_UDPS
+from peakrdl_pyuvm import PyUVMExporter
 
 from ..generator import GeneratorFactory, GeneratorBase
 from ..pyedaa import SystemRDLSourceFile, SystemVerilogSourceFile, VerilogSourceFile
-from ..flow import FlowBase
+from ..flow import FlowBase, FlowCategory
 
 
 logger = logging.getLogger(__name__)
@@ -163,6 +164,7 @@ def is_leaf(node):
     else:
         return False
 
+
 def mask(node):
     m = ~(node.size - 1) & 0xFFFFFFFF
     return m
@@ -254,5 +256,9 @@ class SystemRDL(GeneratorBase):
             for node in hierachynodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
 
+        if self.flow.category == FlowCategory.SIMULATION:
+            logger.info("Generate PyUVM Register Model")
+            PyUVMExporter().export(root, output_dir.joinpath('pyuvm'))
+
         logger.info("Generate HTML Documentation")
-        _ = HTMLExporter().export(root, output_dir.joinpath('docs'))
+        HTMLExporter().export(root, output_dir.joinpath('docs'))
