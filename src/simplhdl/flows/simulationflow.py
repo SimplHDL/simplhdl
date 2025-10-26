@@ -35,7 +35,7 @@ class SimulationFlow(FlowBase):
         self.hashfile = self.builddir.joinpath('filesets.hash')
 
     def run(self) -> None:
-        self.cocotb = Cocotb(self.project)
+        self.cocotb = Cocotb(self.project, self.args.seed)
         self.validate()
         self.configure()
         self.generate()
@@ -52,8 +52,6 @@ class SimulationFlow(FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
         self.is_tool_setup()
         os.environ['RANDOM_SEED'] = str(self.args.seed)
-        if self.cocotb.enabled:
-            os.environ['MODULE'] = self.cocotb.module()
 
     def get_globals(self) -> Dict[str, Any]:
         incdirs = self.project.DefaultDesign.DefaultFileSet.IncludeDirs(usedin='simulation', isrecursive=True)

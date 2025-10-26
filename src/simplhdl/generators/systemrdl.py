@@ -11,7 +11,7 @@ from peakrdl_html import HTMLExporter
 from peakrdl_regblock.exporter import RegblockExporter
 from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif_flattened
 from peakrdl_regblock.udps import ALL_UDPS
-from peakrdl_pyuvm import PyUVMExporter
+from peakrdl_pyuvm.exporter import PyUVMExporter
 
 from ..generator import GeneratorFactory, GeneratorBase
 from ..pyedaa import SystemRDLSourceFile, SystemVerilogSourceFile, VerilogSourceFile
