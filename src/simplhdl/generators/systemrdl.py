@@ -13,8 +13,9 @@ from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif_flattened
 from peakrdl_regblock.udps import ALL_UDPS
 from peakrdl_pyuvm.exporter import PyUVMExporter
 
+from ..pyedaa.fileset import FileSet
 from ..generator import GeneratorFactory, GeneratorBase
-from ..pyedaa import SystemRDLSourceFile, SystemVerilogSourceFile, VerilogSourceFile
+from ..pyedaa import SystemRDLSourceFile, SystemVerilogSourceFile, VerilogSourceFile, CocotbPythonFile
 from ..flow import FlowBase, FlowCategory
 
 
@@ -202,9 +203,11 @@ class SystemRDL(GeneratorBase):
         modulefile: Path = outputdir.joinpath(f'{node.type_name}_pkg.sv').absolute()
         packetfile: Path = outputdir.joinpath(f'{node.type_name}_addrmap.sv').absolute()
         rdlfile = self.project.DefaultDesign.GetFile(node.inst.def_src_ref.path)
-        fileset = rdlfile.FileSet
-        fileset.InsertFileAfter(rdlfile, SystemVerilogSourceFile(modulefile))
-        fileset.InsertFileAfter(rdlfile, SystemVerilogSourceFile(packetfile))
+        parent_fileset = rdlfile.FileSet
+        fileset = FileSet(name=rdlfile.Path, vhdlLibrary=parent_fileset.VHDLLibrary)
+        fileset.AddFile(SystemVerilogSourceFile(modulefile))
+        fileset.AddFile(SystemVerilogSourceFile(packetfile))
+        parent_fileset.AddFileSet(fileset)
 
     def run(self, flow: FlowBase):
         rdlfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=SystemRDLSourceFile))
@@ -250,15 +253,19 @@ class SystemRDL(GeneratorBase):
             template = env.find_template('registermap')
             for node in leafnodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
-                self.peakrdl_template(node=node, outputdir=output_dir.joinpath('peakrdl'))
+                self.peakrdl_template(node=node, outputdir=output_dir.joinpath('hdl'))
 
             template = env.find_template('hierachymap')
             for node in hierachynodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
 
-        if self.flow.category == FlowCategory.SIMULATION:
+        if flow.category == FlowCategory.SIMULATION:
             logger.info("Generate PyUVM Register Model")
-            PyUVMExporter().export(root, output_dir.joinpath('pyuvm'))
+            output = output_dir.joinpath('pyuvm', 'ralmodel.py')
+            output.parent.mkdir(parents=True, exist_ok=True)
+            PyUVMExporter().export(root, str(output))
+            fileset = rdlfiles[-1].FileSet
+            fileset.InsertFileAfter(rdlfile, CocotbPythonFile(output))
 
         logger.info("Generate HTML Documentation")
         HTMLExporter().export(root, output_dir.joinpath('docs'))
