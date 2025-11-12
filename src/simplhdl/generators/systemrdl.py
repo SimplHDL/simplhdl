@@ -1,6 +1,7 @@
 import os
 import logging
 import jinja2
+import tomllib
 
 from typing import List
 from pathlib import Path
@@ -189,16 +190,17 @@ class SystemRDL(GeneratorBase):
         if outputfile.suffix == '.v':
             fileset.InsertFileAfter(rdlfile, VerilogSourceFile(outputfile))
 
-    def peakrdl_template(self, node, outputdir) -> None:
+    def peakrdl_regmodel(self, node, outputdir, config) -> None:
         RegblockExporter().export(
             node=node,
             output_dir=str(outputdir.absolute()),
             cpuif_cls=AXI4Lite_Cpuif_flattened,
-            module_name=f'{node.type_name}_addrmap',
-            package_name=f'{node.type_name}_pkg',
-            address_width=32,
-            default_reset_activelow=True
-
+            module_name=config.get('module_name', f'{node.type_name}_addrmap'),
+            package_name=config.get('package_name', f'{node.type_name}_pkg'),
+            address_width=config.get('address_width', 32),
+            default_reset_activelow=config.get('default_reset_activelow', True),
+            err_if_bad_addr=config.get('err_if_bad_addr', False),
+            err_if_bad_rw=config.get('err_if_bad_rw', False)
         )
         modulefile: Path = outputdir.joinpath(f'{node.type_name}_pkg.sv').absolute()
         packetfile: Path = outputdir.joinpath(f'{node.type_name}_addrmap.sv').absolute()
@@ -212,6 +214,18 @@ class SystemRDL(GeneratorBase):
     def run(self, flow: FlowBase):
         rdlfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=SystemRDLSourceFile))
         output_dir = self.builddir.joinpath('systemrdl')
+        config = dict()
+        if os.getenv('SIMPLHDL_CONFIG'):
+            tomlfile = Path(os.getenv('SIMPLHDL_CONFIG'))
+            try:
+                with tomlfile.open('rb') as f:
+                    config = tomllib.load(f)
+            except FileNotFoundError:
+                raise FileNotFoundError(f"SimplHDL config file set by environment 'SIMPLHDL_CONFIG={tomlfile}' does not exist")
+
+        pearkdl_config = config.get('peakrdl', {})
+        html_config = pearkdl_config.get('html', {})
+        regblock_config = pearkdl_config.get('regblock', {})
 
         if not rdlfiles:
             return
@@ -253,7 +267,7 @@ class SystemRDL(GeneratorBase):
             template = env.find_template('registermap')
             for node in leafnodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
-                self.peakrdl_template(node=node, outputdir=output_dir.joinpath('hdl'))
+                self.peakrdl_regmodel(node=node, outputdir=output_dir.joinpath('hdl'), config=regblock_config)
 
             template = env.find_template('hierachymap')
             for node in hierachynodetypes:
@@ -268,4 +282,8 @@ class SystemRDL(GeneratorBase):
             fileset.InsertFileAfter(rdlfile, CocotbPythonFile(output))
 
         logger.info("Generate HTML Documentation")
-        HTMLExporter().export(root, output_dir.joinpath('docs'))
+        HTMLExporter().export(
+            root,
+            output_dir.joinpath('docs'),
+            skip_not_present=html_config.get('skip_not_present', False),
+        )
