@@ -26,7 +26,7 @@ dependencies = [
     "black",
     "systemrdl-compiler",
     "peakrdl-html",
-    "peakrdl-regblock",
+    "peakrdl-regblock>=1.2.0",
     "peakrdl-pyuvm",
 ]
 requires-python = ">=3.8"
@@ -48,6 +48,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
