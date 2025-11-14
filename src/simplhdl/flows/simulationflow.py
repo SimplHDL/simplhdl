@@ -147,7 +147,10 @@ class SimulationFlow(FlowBase):
                 hashfile=self.hashfile.name)
             template = environment.get_template('fileset.j2')
             output = base.with_suffix('.fileset')
-            includes = self.get_globals()['incdirs']
+            if language == 'vhdl':
+                includes = []
+            else:
+                includes = self.get_globals()['incdirs']
             files = [f.Path.absolute() for f in files if not isinstance(f, VerilogIncludeFile)]
             generate_from_template(template, output, args=args, includes=includes, files=files)
             generated.append(output)
