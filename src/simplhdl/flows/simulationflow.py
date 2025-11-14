@@ -52,6 +52,7 @@ class SimulationFlow(FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
         self.is_tool_setup()
         os.environ['RANDOM_SEED'] = str(self.args.seed)
+        os.environ['COCOTB_RANDOM_SEED'] = str(self.args.seed)
 
     def get_globals(self) -> Dict[str, Any]:
         incdirs = self.project.DefaultDesign.DefaultFileSet.IncludeDirs(usedin='simulation', isrecursive=True)
