@@ -3,7 +3,7 @@ import re
 import os
 
 from packaging.version import Version
-from pkg_resources import get_distribution
+from importlib.metadata import version
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -150,7 +150,7 @@ class Cocotb:
             return f'-pli {lib_name_path}'
 
     def env(self) -> Dict[str, str]:
-        cocotb_version = Version(get_distribution('cocotb').version)
+        cocotb_version = Version(version('cocotb'))
         e = os.environ.copy()
         if cocotb_version >= Version('2.0.0'):
             e['COCOTB_TEST_MODULES'] = self.top
