@@ -211,7 +211,7 @@ class SystemRDL(GeneratorBase):
         fileset.AddFile(SystemVerilogSourceFile(packetfile))
         parent_fileset.AddFileSet(fileset)
 
-    def run(self, flow: FlowBase):
+    def run(self, flow: FlowBase):  # noqa: C901
         rdlfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=SystemRDLSourceFile))
         output_dir = self.builddir.joinpath('systemrdl')
         config = dict()
@@ -221,7 +221,9 @@ class SystemRDL(GeneratorBase):
                 with tomlfile.open('rb') as f:
                     config = tomllib.load(f)
             except FileNotFoundError:
-                raise FileNotFoundError(f"SimplHDL config file set by environment 'SIMPLHDL_CONFIG={tomlfile}' does not exist")
+                raise FileNotFoundError(
+                    f"SimplHDL config file set by environment 'SIMPLHDL_CONFIG={tomlfile}' does not exist"
+                )
 
         pearkdl_config = config.get('peakrdl', {})
         html_config = pearkdl_config.get('html', {})
