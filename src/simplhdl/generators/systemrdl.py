@@ -275,7 +275,8 @@ class SystemRDL(GeneratorBase):
             for node in hierachynodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
 
-        if flow.category == FlowCategory.SIMULATION:
+        # NOTE: generate PyUVM Register Model if simulation and Cocotb is present, i.e. has cocotb files
+        if flow.category == FlowCategory.SIMULATION and list(self.project.DefaultDesign.Files(CocotbPythonFile)):
             logger.info("Generate PyUVM Register Model")
             output = output_dir.joinpath('pyuvm', 'ralmodel.py')
             output.parent.mkdir(parents=True, exist_ok=True)
