@@ -16,7 +16,13 @@ from peakrdl_pyuvm.exporter import PyUVMExporter
 
 from ..pyedaa.fileset import FileSet
 from ..generator import GeneratorFactory, GeneratorBase
-from ..pyedaa import SystemRDLSourceFile, SystemVerilogSourceFile, VerilogSourceFile, CocotbPythonFile
+from ..pyedaa import (
+    SystemRDLSourceFile,
+    SystemVerilogSourceFile,
+    VerilogSourceFile,
+    CocotbPythonFile,
+    VHDLSourceFile,
+)
 from ..flow import FlowBase, FlowCategory
 
 
@@ -184,11 +190,15 @@ class SystemRDL(GeneratorBase):
         with outputfile.open('w') as f:
             f.write(context)
         rdlfile = self.project.DefaultDesign.GetFile(node.inst.def_src_ref.path)
-        fileset = rdlfile.FileSet
+        parent_fileset = rdlfile.FileSet
+        fileset = FileSet(name=rdlfile.Path, vhdlLibrary=parent_fileset.VHDLLibrary)
         if outputfile.suffix == '.sv':
-            fileset.InsertFileAfter(rdlfile, SystemVerilogSourceFile(outputfile))
+            fileset.AddFile(SystemVerilogSourceFile(outputfile))
         if outputfile.suffix == '.v':
-            fileset.InsertFileAfter(rdlfile, VerilogSourceFile(outputfile))
+            fileset.AddFile(VerilogSourceFile(outputfile))
+        if outputfile.suffix == '.vhd':
+            fileset.AddFile(VHDLSourceFile(outputfile))
+        parent_fileset.AddFileSet(fileset)
 
     def peakrdl_regmodel(self, node, outputdir, config) -> None:
         RegblockExporter().export(
