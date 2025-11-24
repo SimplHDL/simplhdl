@@ -35,7 +35,7 @@ class SimulationFlow(FlowBase):
         self.hashfile = self.builddir.joinpath('filesets.hash')
 
     def run(self) -> None:
-        self.cocotb = Cocotb(self.project)
+        self.cocotb = Cocotb(self.project, self.args.seed)
         self.validate()
         self.configure()
         self.generate()
@@ -52,8 +52,7 @@ class SimulationFlow(FlowBase):
         os.makedirs(self.builddir, exist_ok=True)
         self.is_tool_setup()
         os.environ['RANDOM_SEED'] = str(self.args.seed)
-        if self.cocotb.enabled:
-            os.environ['MODULE'] = self.cocotb.module()
+        os.environ['COCOTB_RANDOM_SEED'] = str(self.args.seed)
 
     def get_globals(self) -> Dict[str, Any]:
         incdirs = self.project.DefaultDesign.DefaultFileSet.IncludeDirs(usedin='simulation', isrecursive=True)
@@ -73,9 +72,17 @@ class SimulationFlow(FlowBase):
         globals['VHDLSourceFile'] = VHDLSourceFile
         globals['UsedIn'] = UsedIn
         globals['uvm'] = self.is_uvm()
+        globals['isinstance'] = isinstance
         return globals
 
+    def check_external_libraries(self):
+        for library in self.project.DefaultDesign.ExternalVHDLLibraries.values():
+            print(f"{library.Name}: {library.Path}")
+            if not library.Path.exists():
+                raise FlowError(f"External library {library.Name} doesn't exist at {library.Path.absolute()}")
+
     def generate(self):
+        self.check_external_libraries()
         templatedir = resources_files(self.templates)
         env = Environment(
             loader=FileSystemLoader(templatedir),
@@ -141,7 +148,10 @@ class SimulationFlow(FlowBase):
                 hashfile=self.hashfile.name)
             template = environment.get_template('fileset.j2')
             output = base.with_suffix('.fileset')
-            includes = self.get_globals()['incdirs']
+            if language == 'vhdl':
+                includes = []
+            else:
+                includes = self.get_globals()['incdirs']
             files = [f.Path.absolute() for f in files if not isinstance(f, VerilogIncludeFile)]
             generate_from_template(template, output, args=args, includes=includes, files=files)
             generated.append(output)

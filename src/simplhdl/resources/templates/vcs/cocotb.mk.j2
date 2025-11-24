@@ -9,6 +9,8 @@ export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
 VCS_FLAGS += +warn=noVPI-CT-NS +vpi -P pli.tab -load $(shell cocotb-config --lib-name-path vpi vcs)
 VCS_FLAGS += -debug_access+r+w+nomemcbk -debug_region+cell+encrypt -debug_acc+pp+f+dmptf
 
+export PYGPI_PYTHON_BIN := $(shell cocotb-config --python-bin)
+export COCOTB_TEST_MODULES := {{cocotbtop}}
+export COCOTB_TOPLEVEL := {{cocotbdut}}
 export MODULE := {{cocotbtop}}
 export TOPLEVEL := {{cocotbdut}}
-

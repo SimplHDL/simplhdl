@@ -3,6 +3,7 @@ import pyEDAA.ProjectModel as pm
 from pathlib import Path
 from typing import Dict, Union, Generator
 
+from . import File
 from .vhdllibrary import VHDLLibrary
 
 
@@ -82,3 +83,8 @@ class Design(pm.Design):
                     continue
                 seen.append(fileid)
             yield file
+
+    def GetFile(self, path: Path) -> File:
+        for file in self.Files():
+            if file.Path.absolute() == path.absolute():
+                return file

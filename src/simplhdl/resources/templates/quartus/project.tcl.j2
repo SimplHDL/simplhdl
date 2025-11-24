@@ -25,7 +25,11 @@ set_global_assignment -library {{file.Library}} -name VERILOG_FILE "{{file.Path}
 {% elif file.FileType == VHDLSourceFile %}
 set_global_assignment -library {{file.Library}} -name VHDL_FILE "{{file.Path}}"
 {% elif file.FileType == ConstraintFile %}
+{% if file[Scope] is not none %}
+set_global_assignment -name SDC_ENTITY_FILE "{{file.Path}}" -entity "{{file[Scope]}}"
+{% else %}
 set_global_assignment -name SDC_FILE "{{file.Path}}"
+{% endif %}
 {% elif file.FileType == TCLSourceFile %}
 set_global_assignment -name TCL_SCRIPT_FILE "{{file.Path}}"
 {% elif file.FileType == QuartusSourceTCLFile %}

@@ -3,10 +3,7 @@ import pyEDAA.ProjectModel as pm
 from pathlib import Path
 from typing import Optional
 from pyTooling.MetaClasses import ExtendedType
-from .attributes import UsedIn
-
-SIMULATION = "simulation"
-IMPLEMENTATION = "implementation"
+from .attributes import Encrypt, UsedIn, SIMULATION, IMPLEMENTATION, Scope
 
 
 class FileMixIn(metaclass=ExtendedType, mixin=True):
@@ -31,7 +28,9 @@ class HDLLibrary(pm.VHDLLibrary):
 
 
 class HDLIncludeFile(SourceFile):
-    pass
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[UsedIn] = {SIMULATION, IMPLEMENTATION}
 
 
 class HDLSearchPath(HDLIncludeFile):
@@ -51,6 +50,8 @@ class HDLSourceFile(pm.HDLSourceFile, FileMixIn):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
+        self[UsedIn] = {SIMULATION, IMPLEMENTATION}
+        self[Encrypt] = True
 
     @property
     def Library(self) -> HDLLibrary:
@@ -82,6 +83,30 @@ class SystemVerilogSourceFile(HDLSourceFile, pm.HumanReadableContent):
 
 class VHDLSourceFile(HDLSourceFile, pm.HumanReadableContent):
     pass
+
+
+class VerilogIncludeEncryptedFile(VerilogIncludeFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[Encrypt] = False
+
+
+class VerilogEncryptedSourceFile(VerilogSourceFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[Encrypt] = False
+
+
+class SystemVerilogEncryptedSourceFile(SystemVerilogSourceFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[Encrypt] = False
+
+
+class VHDLEncryptedSourceFile(VHDLSourceFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[Encrypt] = False
 
 
 class PythonSourceFile(pm.PythonSourceFile):
@@ -119,10 +144,25 @@ class EDIFNetlistFile(pm.EDIFNetlistFile, FileMixIn):
         FileMixIn._registerAttributes(self)
 
 
+class CHeaderFile(SourceFile):
+    def _registerAttributes(self):
+        super()._registerAttributes()
+        self[UsedIn] = {SIMULATION}
+
+
 class CSourceFile(pm.CSourceFile, FileMixIn):
     def _registerAttributes(self):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
+        self[UsedIn] = {SIMULATION}
+
+
+class SystemCSourceFile(CSourceFile):
+    pass
+
+
+class SystemCHeaderFile(CHeaderFile):
+    pass
 
 
 class SettingFile(pm.SettingFile, FileMixIn):
@@ -136,6 +176,7 @@ class ConstraintFile(pm.ConstraintFile, FileMixIn):
         super()._registerAttributes()
         FileMixIn._registerAttributes(self)
         self[UsedIn] = {IMPLEMENTATION}
+        self[Scope] = None
 
 
 class QuartusSignalTapFile(File):

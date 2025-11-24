@@ -2,6 +2,8 @@ import logging
 import re
 import os
 
+from packaging.version import Version
+from importlib.metadata import version
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -15,8 +17,9 @@ logger = logging.getLogger(__name__)
 
 class Cocotb:
 
-    def __init__(self, project: Project) -> None:
+    def __init__(self, project: Project, seed: int) -> None:
         self.project = project
+        self.seed = seed
         self.top = self.module()
         self.dut = self.get_dut()
         self.toplevels = self.hdltoplevels()
@@ -31,6 +34,13 @@ class Cocotb:
 
     def libpython(self) -> str:
         output = sh(['cocotb-config', '--libpython'])
+        path = Path(output)
+        if not path.exists():
+            raise FileNotFoundError(f"{path}: not found")
+        return path
+
+    def pythonbin(self) -> str:
+        output = sh(['cocotb-config', '--python-bin'])
         path = Path(output)
         if not path.exists():
             raise FileNotFoundError(f"{path}: not found")
@@ -140,9 +150,16 @@ class Cocotb:
             return f'-pli {lib_name_path}'
 
     def env(self) -> Dict[str, str]:
+        cocotb_version = Version(version('cocotb'))
         e = os.environ.copy()
-        e['MODULE'] = self.top
-        e['TOPLEVEL'] = self.dut
+        if cocotb_version >= Version('2.0.0'):
+            e['COCOTB_TEST_MODULES'] = self.top
+            e['COCOTB_TOPLEVEL'] = self.dut
+            e['PYGPI_PYTHON_BIN'] = self.pythonbin()
+            e['COCOTB_RANDOM_SEED'] = str(self.seed)
+        else:
+            e['MODULE'] = self.top
+            e['TOPLEVEL'] = self.dut
         e['PYTHONPYCACHEPREFIX'] = './pycache'
         e['LIBPYTHON_LOC'] = self.libpython()
         if self.duttype == VHDLSourceFile:

@@ -12,7 +12,7 @@ from simplhdl.flows.quartusflow import QuartusFlow
 from simplhdl.resources.templates import quartus as templates
 from simplhdl.flows.encrypt.encryptflow import encrypt
 from simplhdl.pyedaa.project import Project
-from simplhdl.pyedaa.attributes import UsedIn
+from simplhdl.pyedaa.attributes import UsedIn, Encrypt
 from simplhdl.pyedaa import (
     File,
     HDLSearchPath,
@@ -51,6 +51,14 @@ class QuartusExportFlow(ImplementationFlow):
             type=Path,
             help="Output zip file"
         )
+        parser.add_argument(
+            '-s',
+            '--structure',
+            action='store',
+            choices=['flat', 'hierarchy'],
+            default='hierarchy',
+            help="Output zip file"
+        )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
@@ -77,6 +85,9 @@ class QuartusExportFlow(ImplementationFlow):
         for file in files:
             fileid = str(file.Path.resolve())
             dest = self.builddir.joinpath('src', file.Path.relative_to(self.rootdir))
+            if self.args.structure == 'flat':
+                dest = self.builddir.joinpath('src', file.Path.name)
+            print(f'{dest=}')
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
@@ -89,7 +100,7 @@ class QuartusExportFlow(ImplementationFlow):
                 dest = file.Path
             elif isinstance(file, (HDLSourceFile, HDLIncludeFile)):
                 dest.parent.mkdir(parents=True, exist_ok=True)
-                if self.args.encrypt:
+                if self.args.encrypt and file[Encrypt]:
                     encrypt(file.Path, dest, language=get_language(file), vendors=self.vendors)
                 else:
                     shutil.copyfile(file.Path, dest)

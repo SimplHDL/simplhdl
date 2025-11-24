@@ -6,6 +6,28 @@ proc source_script {filename} {
     }
 }
 
+
+proc source_bd_script {filename} {
+    # Fail if bd script return an error code or a non zero value
+    if {[catch {source -notrace $filename} err]} {
+        return -code 1
+    } elseif {$err != ""} {
+        return -code 1
+    }
+}
+
+
+proc import_bd_file {filename} {
+    set_msg_config -suppress -id {BD 41-2576}
+    set_msg_config -suppress -id {BD 41-1663}
+    set bd [import_files $filename]
+    # generate_target all $bd
+    # export_ip_user_files -of_objects $bd -no_script -sync -force -quiet
+    # reset_msg_config -suppress -id {BD 41-2576}
+    reset_msg_config -suppress -id {BD 41-1663}
+}
+
+
 proc source_step_script {filename} {
     # NOTE: make get_files fail if not files are found
     set_msg_config -id {Vivado 12-818} -new_severity {ERROR}
@@ -65,6 +87,7 @@ proc add_filesets {} {
 
 
 create_project -force -part {{project.Part}} {{project.Name}} [pwd]
+set_msg_config -suppress -id {Board 49-26}
 add_filesets
 {% if project.Parameters or project.Generics %}
 foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
@@ -86,9 +109,15 @@ read_verilog "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VHDLSourceFile %}
 read_vhdl -vhdl2008 -library {{file.Library}} "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == ConstraintFile %}
+{% if file[Scope] is not none %}
+read_xdc "{{file.Path|replace('\\', '/')}}" -ref "{{file[Scope]}}"
+{% else %}
 read_xdc "{{file.Path|replace('\\', '/')}}"
+{% endif %}
 {% elif file.FileType == VivadoIPSpecificationFile %}
-{% if file.Path.suffix == '.xcix' %}
+{% if file.Path.suffix == '.bd' %}
+import_bd_file "{{file.Path|replace('\\', '/')}}"
+{% elif file.Path.suffix == '.xcix' %}
 add_files -norecurse "{{file.Path|replace('\\', '/')}}"
 {% else %}
 import_ip "{{file.Path|replace('\\', '/')}}"
@@ -97,11 +126,9 @@ import_ip "{{file.Path|replace('\\', '/')}}"
 add_files "{{file.Path|replace('\\', '/')}}"
 {% elif file.Path.suffix in ['.edif', '.ngc'] %}
 read_edif "{{file.Path|replace('\\', '/')}}"
-{% elif file.Path.suffix == '.bd' %}
-read_bd "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VivadoBDTclFile %}
 send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path|replace('\\', '/')}}: this might take some time."
-source_script "{{file.Path|replace('\\', '/')}}"
+source_bd_script "{{file.Path|replace('\\', '/')}}"
 {% elif file.FileType == VivadoProjectStepFile %}
 add_files -fileset utils_1 "{{file.Path|replace('\\', '/')}}"
 global step
