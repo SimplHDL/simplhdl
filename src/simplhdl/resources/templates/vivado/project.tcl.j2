@@ -118,7 +118,7 @@ read_xdc "{{file.Path|replace('\\', '/')}}"
 {% if file.Path.suffix == '.bd' %}
 import_bd_file "{{file.Path|replace('\\', '/')}}"
 {% elif file.Path.suffix == '.xcix' %}
-read_ip "{{file.Path|replace('\\', '/')}}"
+add_files -norecurse "{{file.Path|replace('\\', '/')}}"
 {% else %}
 import_ip "{{file.Path|replace('\\', '/')}}"
 {% endif %}
