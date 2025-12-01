@@ -28,6 +28,7 @@ dependencies = [
     "peakrdl-html",
     "peakrdl-regblock>=1.2.0",
     "peakrdl-pyuvm",
+    "networkx",
 ]
 requires-python = ">=3.8"
 authors = [

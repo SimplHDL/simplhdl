@@ -5,15 +5,17 @@ from uuid import uuid4
 
 import networkx as nx
 
+from .attributes import Library
 from .files import File
 
 
 class Fileset:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, **attributes) -> None:
         self.id: str = str(uuid4())
         self._name = name
         self._files = dict[Path, File]
         self._graph = None
+        self._library = attributes.get('library', None)
 
     @property
     def name(self) -> str:
@@ -35,6 +37,10 @@ class Fileset:
     def descendants(self) -> list[Fileset]:
         return nx.descendants(self._graph, self)
 
+    @property
+    def library(self) -> Library:
+        return self._library
+
     def add_fileset(self, fileset: Fileset) -> None:
         fileset._graph = self._graph
         self._graph.add_node(fileset)
@@ -51,4 +57,4 @@ class Fileset:
         return self._name
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(name={self._name})'
+        return f'{self.__class__.__name__}(name={self._name}, library={self._library})'

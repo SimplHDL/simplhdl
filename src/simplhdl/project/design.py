@@ -9,18 +9,26 @@ if TYPE_CHECKING:
 
 
 class Design:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, **attributes) -> None:
         self._name = name
         self._filesets = nx.DiGraph()
         self._files = nx.DiGraph()
+        self.toplevels: list[str] = []
 
     @property
     def name(self) -> str:
         return self._name
 
+    @property
+    def toplevels(self) -> list[str]:
+        return self._toplevels
+
     def add_fileset(self, fileset: Fileset) -> None:
         fileset._graph = self._filesets
         self._filesets.add_node(fileset)
+
+    def add_toplevel(self, name: str, type: str = '') -> None:
+        self._toplevels.append(name)
 
     def validate(self) -> None:
         is_dag_fileset = nx.is_directed_acyclic_graph(self._filesets)

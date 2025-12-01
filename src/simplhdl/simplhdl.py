@@ -1,43 +1,35 @@
 import logging
-
-from pathlib import Path
 from argparse import Namespace
+from pathlib import Path
 
-from .pyedaa.project import Project
-from .pyedaa.design import Design
-from .pyedaa.vhdllibrary import VHDLLibrary
-from .parser import ParserFactory
 from .flow import FlowFactory
 from .generator import GeneratorFactory
+from .parser import ParserFactory
+from .project.attributes import Library
+from .project.design import Design
+from .project.project import Project
 
 logger = logging.getLogger(__name__)
 
 
 class Simplhdl:
 
-    def __init__(self, args: Namespace):
+    def __init__(self, args: Namespace) -> None:
         self.args = args
         self.builddir: Path = args.outputdir
 
     def create_project(self) -> Project:
         filename = self.args.projectspec
-        default_library = VHDLLibrary("work")
+        design = Design("default")
+        design.defaultLibrary = Library("work")
         project = Project("default")
-        project.ReposDir = self.builddir.joinpath('repos')
-        # TODO: This is a workaround to fix the AddVHDLLibary function in
-        #       the Design class
-        project.DefaultDesign = Design("default")
-        project.DefaultDesign.AddVHDLLibrary(default_library)
+        project.add_design(design)
         parser = ParserFactory().get_parser(filename)
         fileset = parser.parse(filename, project, self.args)
-        project.DefaultDesign.AddFileSet(fileset)
-        project.DefaultDesign.DefaultFileSet = fileset.Name
-
-        # TODO: Need some more understading of the project and design classes
-        # project.DefaultDesign.TopLevel = fileset.TopLevel
+        project.defaultDesign.add_fileset(fileset)
         return project
 
-    def run(self):
+    def run(self) -> None:
         project = self.create_project()
         builddir = self.builddir.joinpath(self.args.flow)
         flow = FlowFactory.get_flow(self.args.flow, self.args, project, builddir)

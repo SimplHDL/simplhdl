@@ -1,20 +1,27 @@
+from __future__ import annotations
+
+
 import yaml
 
-from typing import Dict, Optional
+from typing import TYPE_CHECKING
 from pathlib import Path
 from argparse import Namespace
 from shlex import split
 from simplhdl.__main__ import parse_arguments
-from simplhdl.pyedaa.project import Project
-from simplhdl.pyedaa.target import Target
-from simplhdl.pyedaa.fileset import FileSet  # type: ignore
-from simplhdl.pyedaa.vhdllibrary import VHDLLibrary
+from simplhdl.project import Project
+from simplhdl.project.target import Target
+from simplhdl.project.fileset import Fileset
+from simplhdl.project.attributes import Library
 from simplhdl.pyedaa import (
     IPSpecificationFile, TCLSourceFile, CocotbPythonFile, SettingFile, File,
     ConstraintFile, VHDLSourceFile, VerilogIncludeFile, SystemVerilogSourceFile,
     EDIFNetlistFile, NetlistFile, CSourceFile, SourceFile, ChiselBuildFile)
 
 from ..parser import ParserFactory, ParserBase
+
+if TYPE_CHECKING:
+    from simplhdl.project import Project
+
 
 
 @ParserFactory.register()
@@ -27,7 +34,7 @@ class SimplHdlParser(ParserBase):
         self._core_stack = list()
         self._core_visited = list()
 
-    def is_valid_format(self, filename: Optional[Path]) -> bool:
+    def is_valid_format(self, filename: Path | None) -> bool:
         if filename is None:
             filenames = Path('.').glob('*.yml')
         else:
@@ -40,7 +47,7 @@ class SimplHdlParser(ParserBase):
                         return True
         return False
 
-    def parse(self, filename: Optional[Path], project: Project, args: Namespace) -> FileSet:
+    def parse(self, filename: Path | None, project: Project, args: Namespace) -> Fileset:
         if filename is None:
             files = Path('.').glob('*.yml')
         else:
@@ -50,35 +57,35 @@ class SimplHdlParser(ParserBase):
             if self.is_valid_format(file):
                 return self.parse_core(file, project)
 
-    def parse_core(self, filename: Path, project: Project) -> FileSet:  # noqa C901
+    def parse_core(self, filename: Path, project: Project) -> Fileset:  # noqa C901
         self._core_stack.append(filename)
         spec = self.read_spec(filename)
         # TODO: The library should be handled differently
-        fileset = FileSet(str(filename), vhdlLibrary=VHDLLibrary(spec.get('library', 'work')))
+        fileset = Fileset(str(filename), library=Library(spec.get('library', 'work')))
         for corefile in spec.get('dependencies', list()):
             corefile = self.path(corefile)
             if corefile.absolute() in self._core_visited:
                 continue
             subfileset = self.parse_core(corefile, project)
-            fileset.AddFileSet(subfileset)
+            fileset.add_fileset(subfileset)
 
         if 'top' in spec:
-            fileset.TopLevel = spec.get('top')
+            project.design.add_toplevel(spec.get('top'))
 
         for name, value in spec.get('targets', dict()).items():
             target = Target(name=name, args=parse_arguments(split(value)), cwd=self._core_stack[-1].parent)
-            project.AddTarget(target)
+            project.add_target(target)
         for name, value in spec.get('defines', dict()).items():
-            project.AddDefine(name, value)
+            project.add_define(name, value)
         for name, value in spec.get('parameters', dict()).items():
-            project.AddParameter(name, value)
+            project.add_parameter(name, value)
         for name, value in spec.get('plusargs', dict()).items():
-            project.AddPlusArg(name, value)
+            project.add_plusarg(name, value)
         for name, value in spec.get('generics', dict()).items():
-            project.AddGeneric(name, value)
+            project.add_generic(name, value)
         for filepath in spec.get('files', list()):
             file = self.file(filepath)
-            fileset.AddFile(file)
+            fileset.add_file(file)
         # Top level spec
         if len(self._core_stack) == 1:
             if 'project' in spec:
@@ -86,12 +93,12 @@ class SimplHdlParser(ParserBase):
             if 'part' in spec:
                 project.Part = spec.get('part')
             if 'top' in spec:
-                project.DefaultDesign.TopLevel = spec.get('top')
+                project.defaultDesign.add_toplevel(spec.get('top'))
 
         self._core_stack.pop()
         return fileset
 
-    def read_spec(self, filename: Path) -> Dict:
+    def read_spec(self, filename: Path) -> dict:
         self._core_visited.append(filename.absolute())
         with filename.open() as fp:
             try:
