@@ -16,11 +16,11 @@ class Project:
         self._name = name
         self._designs: list[Design] = []
         self._part: str|None = None
-        self._generics: dict[str, str]
-        self._parameters: dict[str, str]
-        self._defines: dict[str, str]
-        self._plusargs: dict[str, str]
-        self._hooks: dict[str, dict[str]]
+        self._generics: dict[str, str] = {}
+        self._parameters: dict[str, str] = {}
+        self._defines: dict[str, str] = {}
+        self._plusargs: dict[str, str] = {}
+        self._hooks: dict[str, dict[str]] = {}
         self._targets: dict[str, Target] = {}
         # _repos: dict[str, Repo]
         # _reposdir: Path|None = None
@@ -48,7 +48,32 @@ class Project:
     def part(self, part: str) -> None:
         self._part = part
 
+    @property
+    def generics(self) -> dict[str, str]:
+        return self._generics
+
+    @property
+    def parameters(self) -> dict[str, str]:
+        return self._parameters
+
+    @property
+    def defines(self) -> dict[str, str]:
+        return self._defines
+
+    @property
+    def plusargs(self) -> dict[str, str]:
+        return self._plusargs
+
+    @property
+    def hooks(self) -> dict[str, dict[str]]:
+        return self._hooks
+
+    @property
+    def targets(self) -> dict[str, Target]:
+        return self._targets
+
     def add_design(self, design: Design) -> None:
+        design._project = self
         self._designs.append(design)
 
     def add_define(self, name: str, value: str) -> None:

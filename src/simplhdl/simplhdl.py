@@ -33,7 +33,7 @@ class Simplhdl:
         project = self.create_project()
         builddir = self.builddir.joinpath(self.args.flow)
         flow = FlowFactory.get_flow(self.args.flow, self.args, project, builddir)
-        generators = GeneratorFactory.get_generators(self.args, project, builddir)
-        for generator in generators:
-            generator.run(flow)
+        # generators = GeneratorFactory.get_generators(self.args, project, builddir)
+        # for generator in generators:
+        #     generator.run(flow)
         flow.run()

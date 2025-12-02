@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generator
 
 import networkx as nx
 
 if TYPE_CHECKING:
+    from .files import File
     from .fileset import Fileset
+    from .project import Project
 
 
 class Design:
     def __init__(self, name: str, **attributes) -> None:
         self._name = name
+        self._project: Project|None = None
         self._filesets = nx.DiGraph()
         self._files = nx.DiGraph()
-        self.toplevels: list[str] = []
+        self._toplevels: list[str] = []
 
     @property
     def name(self) -> str:
@@ -23,8 +26,16 @@ class Design:
     def toplevels(self) -> list[str]:
         return self._toplevels
 
+    @property
+    def files(self) -> Generator[File, None, None]:
+        return nx.topological_sort(self._files)
+
+    @property
+    def filesets(self) -> Generator[File, None, None]:
+        return nx.topological_sort(self._filesets)
+
     def add_fileset(self, fileset: Fileset) -> None:
-        fileset._graph = self._filesets
+        fileset._project = self._project
         self._filesets.add_node(fileset)
 
     def add_toplevel(self, name: str, type: str = '') -> None:

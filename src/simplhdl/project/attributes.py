@@ -5,7 +5,9 @@ from pathlib import Path
 
 
 class Library:
-    def __init__(self, path: Path, name: str|None = None) -> None:
+    def __init__(self, path: Path|str, name: str|None = None) -> None:
+        if isinstance(path, str):
+            path = Path(path)
         self._path = path.absolute().resolve()
         if name is None:
             self._name = path.name
@@ -20,6 +22,8 @@ class Library:
     def name(self) -> str:
         return self._name
 
+    def __str__(self) -> str:
+        return self._name
 
 class Target:
     def __init__(self, name: str, args: Namespace|None = None, cwd: Path|None = None) -> None:

@@ -48,21 +48,25 @@ class SimplHdlParser(ParserBase):
             files = [filename]
 
         for file in files:
+            fileset = Fileset(str(file))
+            project.defaultDesign.add_fileset(fileset)
             if self.is_valid_format(file):
-                return self.parse_core(file, project)
+                return self.parse_core(file, fileset)
 
-    def parse_core(self, filename: Path, project: Project) -> Fileset:  # noqa C901
+    def parse_core(self, filename: Path, fileset: Fileset) -> None:
         self._core_stack.append(filename)
         spec = self.read_spec(filename)
         # TODO: The library should be handled differently
-        fileset = Fileset(str(filename), library=Library(spec.get('library', 'work')))
+        fileset.library = Library(spec.get('library', 'work'))
         for corefile in spec.get('dependencies', list()):
             corefile = self.path(corefile)
             if corefile.absolute() in self._core_visited:
                 continue
-            subfileset = self.parse_core(corefile, project)
+            subfileset = Fileset(str(corefile))
             fileset.add_fileset(subfileset)
+            self.parse_core(corefile, subfileset)
 
+        project = fileset.project
         if 'top' in spec:
             project.design.add_toplevel(spec.get('top'))
 
