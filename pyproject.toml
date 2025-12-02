@@ -12,23 +12,24 @@ name = "SimplHDL"
 description = "A framework for simulating and implementing HDL designs"
 dynamic = ["version"]
 dependencies = [
-    "importlib-resources;python_version<'3.9'",
-    "pySVModel==0.3.5",
-    "pyEDAA.ProjectModel==0.4.3",
-    "pyyaml",
-    "types-PyYAML",
     "argcomplete",
-    "jinja2",
-    "GitPython",
-    "rich",
-    "vsg",
-    "flake8",
     "black",
-    "systemrdl-compiler",
-    "peakrdl-html",
-    "peakrdl-regblock>=1.2.0",
-    "peakrdl-pyuvm",
+    "flake8",
+    "GitPython",
+    "importlib-resources;python_version<'3.9'",
+    "jinja2",
     "networkx",
+    "peakrdl-html",
+    "peakrdl-pyuvm",
+    "peakrdl-regblock>=1.2.0",
+    "pyEDAA.ProjectModel==0.4.3",
+    "pySVModel==0.3.5",
+    "pyyaml",
+    "rich",
+    "systemrdl-compiler",
+    "tomli;python_version<'3.11'",
+    "types-PyYAML",
+    "vsg",
 ]
 requires-python = ">=3.8"
 authors = [

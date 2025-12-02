@@ -1,27 +1,21 @@
 from __future__ import annotations
 
+from argparse import Namespace
+from pathlib import Path
+from shlex import split
+from typing import TYPE_CHECKING
 
 import yaml
 
-from typing import TYPE_CHECKING
-from pathlib import Path
-from argparse import Namespace
-from shlex import split
 from simplhdl.__main__ import parse_arguments
-from simplhdl.project import Project
-from simplhdl.project.target import Target
+from simplhdl.parser import ParserBase, ParserFactory
+from simplhdl.project.attributes import Library, Target
+from simplhdl.project.files import FileFactory
 from simplhdl.project.fileset import Fileset
-from simplhdl.project.attributes import Library
-from simplhdl.pyedaa import (
-    IPSpecificationFile, TCLSourceFile, CocotbPythonFile, SettingFile, File,
-    ConstraintFile, VHDLSourceFile, VerilogIncludeFile, SystemVerilogSourceFile,
-    EDIFNetlistFile, NetlistFile, CSourceFile, SourceFile, ChiselBuildFile)
-
-from ..parser import ParserFactory, ParserBase
+from simplhdl.project.project import Project
 
 if TYPE_CHECKING:
     from simplhdl.project import Project
-
 
 
 @ParserFactory.register()
@@ -84,14 +78,14 @@ class SimplHdlParser(ParserBase):
         for name, value in spec.get('generics', dict()).items():
             project.add_generic(name, value)
         for filepath in spec.get('files', list()):
-            file = self.file(filepath)
+            file = FileFactory.create(Path(filepath))
             fileset.add_file(file)
         # Top level spec
         if len(self._core_stack) == 1:
             if 'project' in spec:
-                project.Name = spec.get('project')
+                project.name = spec.get('project')
             if 'part' in spec:
-                project.Part = spec.get('part')
+                project.part = spec.get('part')
             if 'top' in spec:
                 project.defaultDesign.add_toplevel(spec.get('top'))
 
@@ -114,37 +108,3 @@ class SimplHdlParser(ParserBase):
         if not path.exists():
             raise FileNotFoundError(f"No such file: {str(path)}")
         return path
-
-    def file(self, filename: str) -> File:
-        """
-        Return a file type class object based on the file extension.
-        """
-        fileClasses = {
-            '.sv': SystemVerilogSourceFile,
-            '.svh': VerilogIncludeFile,
-            '.v': SystemVerilogSourceFile,
-            '.vh': VerilogIncludeFile,
-            '.vhd': VHDLSourceFile,
-            '.vhdl': VHDLSourceFile,
-            '.xdc': ConstraintFile,
-            '.sdc': ConstraintFile,
-            '.xci': IPSpecificationFile,
-            '.xcix': IPSpecificationFile,
-            '.ip': IPSpecificationFile,
-            '.ipx': IPSpecificationFile,
-            '.qip': IPSpecificationFile,
-            '.qsys': IPSpecificationFile,
-            '.edif': EDIFNetlistFile,
-            '.edn': EDIFNetlistFile,
-            '.dcp': NetlistFile,
-            '.tcl': TCLSourceFile,
-            '.c': CSourceFile,
-            '.h': CSourceFile,
-            '.S': CSourceFile,
-            '.py': CocotbPythonFile,
-            '.qsf': SettingFile,
-            '.sbt': ChiselBuildFile,
-        }
-        path = self.path(filename)
-        fileClass = fileClasses.get(path.suffix, SourceFile)
-        return fileClass(path)

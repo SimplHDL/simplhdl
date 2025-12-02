@@ -1,24 +1,34 @@
-import os
 import logging
-import jinja2
-import tomllib
+import os
 
-from typing import List
+import jinja2
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
 from pathlib import Path
-from systemrdl import RDLCompiler, RDLCompileError, RDLListener, RDLWalker
+from typing import List
+
+from peakrdl_html import HTMLExporter
+from peakrdl_pyuvm.exporter import PyUVMExporter
+from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif_flattened
+from peakrdl_regblock.exporter import RegblockExporter
+from peakrdl_regblock.udps import ALL_UDPS
+from systemrdl import RDLCompileError, RDLCompiler, RDLListener, RDLWalker
 from systemrdl.node import AddrmapNode
 from systemrdl.rdltypes import AccessType, OnReadType, OnWriteType
-from peakrdl_html import HTMLExporter
-from peakrdl_regblock.exporter import RegblockExporter
-from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif_flattened
-from peakrdl_regblock.udps import ALL_UDPS
-from peakrdl_pyuvm.exporter import PyUVMExporter
 
-from ..pyedaa.fileset import FileSet
-from ..generator import GeneratorFactory, GeneratorBase
-from ..pyedaa import SystemRDLSourceFile, SystemVerilogSourceFile, VerilogSourceFile, CocotbPythonFile
 from ..flow import FlowBase, FlowCategory
-
+from ..generator import GeneratorBase, GeneratorFactory
+from ..pyedaa import (
+    CocotbPythonFile,
+    SystemRDLSourceFile,
+    SystemVerilogSourceFile,
+    VerilogSourceFile,
+)
+from ..pyedaa.fileset import FileSet
 
 logger = logging.getLogger(__name__)
 
