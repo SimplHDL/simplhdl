@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from argparse import Namespace
 from pathlib import Path
-from typing import Callable, Dict, Generator
+from typing import Dict, Generator
 from abc import ABCMeta, abstractmethod
 
-from .pyedaa.project import Project
+from .project.project import Project
 from .flow import FlowCategory
 
 
@@ -38,15 +40,11 @@ class GeneratorFactory:
     registry: Dict[str, GeneratorBase] = dict()
 
     @classmethod
-    def register(cls, name: str) -> Callable:
-
-        def inner_wrapper(wrapped_class: GeneratorBase) -> 'GeneratorBase':
-            if name in cls.registry:
-                raise Exception(f"Generator {name} already exists.")
-            cls.registry[name] = wrapped_class
-            return wrapped_class
-
-        return inner_wrapper
+    def register(cls, name: str, plugin_class: GeneratorBase) -> None:
+        if name in cls.registry:
+            raise Exception(f"Generator {name} already exists.")
+        cls.registry[name] = plugin_class
+        return plugin_class
 
     @classmethod
     def get_generator(

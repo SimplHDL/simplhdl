@@ -66,12 +66,12 @@ class Info(FlowBase):
 
     def print_files(self) -> None:
         for file in self.project.defaultDesign.files():
-            self.console.print(f"{file.Path}")
+            self.console.print(f"{file.path}")
 
     def print_fileset(self, fileset: Fileset, level: Tree) -> None:
         # indent = ' '*level
         tree = level.add(f"[bold]{fileset.name}[/bold] ({fileset.library})", style=self.style['fileset'])
-        for file in fileset.files:
+        for file in fileset.files():
             if implementation in file.usedin and simulation not in file.usedin:
                 style = self.style['ifile']
             elif simulation in file.usedin and implementation not in file.usedin:

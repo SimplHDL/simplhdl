@@ -68,7 +68,8 @@ class SimplHdlParser(ParserBase):
 
         project = fileset.project
         if 'top' in spec:
-            project.design.add_toplevel(spec.get('top'))
+            for top in spec.get('top').split():
+                project.defaultDesign.add_toplevel(top)
 
         for name, value in spec.get('targets', dict()).items():
             target = Target(name=name, args=parse_arguments(split(value)), cwd=self._core_stack[-1].parent)
@@ -91,7 +92,9 @@ class SimplHdlParser(ParserBase):
             if 'part' in spec:
                 project.part = spec.get('part')
             if 'top' in spec:
-                project.defaultDesign.add_toplevel(spec.get('top'))
+                project.defaultDesign.toplevels.clear()
+                for top in spec.get('top').split():
+                    project.defaultDesign.add_toplevel(top)
 
         self._core_stack.pop()
         return fileset

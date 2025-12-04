@@ -1,47 +1,49 @@
-import re
-import logging
+from __future__ import annotations
 
-from typing import List, Generator, Optional
+import logging
+import re
 from pathlib import Path
+from shutil import copy, copytree, ignore_patterns, rmtree
+from typing import Generator, List, Optional
 from xml.etree.ElementTree import Element, parse
 from zipfile import ZipFile
-from shutil import copy, copytree, rmtree, ignore_patterns
 
-from simplhdl.pyedaa import (
-    File,
-    HDLSourceFile,
-    HDLSearchPath,
-    VerilogSourceFile,
-    SystemVerilogSourceFile,
-    VHDLSourceFile,
-    ConstraintFile,
-    HDLLibrary,
-    MemoryInitFile,
-    QuartusIPSpecificationFile,
-    QuartusIPCompressedSpecificationFile,
-    QuartusQSYSSpecificationFile,
-    QuartusQSYSCompressedSpecificationFile,
-    QuartusQIPSpecificationFile
-)
-from simplhdl.pyedaa import SIMULATION, IMPLEMENTATION
-from simplhdl.pyedaa.fileset import FileSet
-from simplhdl.pyedaa.attributes import UsedIn
 from simplhdl.flow import FlowBase, FlowCategory, FlowTools
-from simplhdl.generator import GeneratorFactory, GeneratorBase, GeneratorError
-from simplhdl.utils import md5write, md5check, sh
+from simplhdl.generator import GeneratorBase, GeneratorError, GeneratorFactory
+from simplhdl.project.files import (
+    File,
+    HdlFile,
+    HdlSearchPath,
+    MemoryHexFile,
+    QuartusIpFile,
+    QuartusIpZipFile,
+    QuartusQipFile,
+    QuartusQsysFile,
+    QuartusQsysZipFile,
+    SdcFile,
+    SystemVerilogFile,
+    VerilogFile,
+    VhdlFile,
+    implementation,
+    simulation,
+)
+
+from simplhdl.project.attributes import Library
+from simplhdl.project.fileset import Fileset
+from simplhdl.utils import md5check, md5write, sh
 
 logger = logging.getLogger(__name__)
 
 
 FILETYPE_MAP = {
-    'SYSTEM_VERILOG': SystemVerilogSourceFile,
-    'SYSTEM_VERILOG_ENCRYPT': SystemVerilogSourceFile,
-    'VERILOG': VerilogSourceFile,
-    'VERILOG_ENCRYPT': VerilogSourceFile,
-    'VHDL': VHDLSourceFile,
-    'VHDL_ENCRYPT': VHDLSourceFile,
-    'SDC_ENTITY': ConstraintFile,
-    'HEX': MemoryInitFile
+    'SYSTEM_VERILOG': SystemVerilogFile,
+    'SYSTEM_VERILOG_ENCRYPT': SystemVerilogFile,
+    'VERILOG': VerilogFile,
+    'VERILOG_ENCRYPT': VerilogFile,
+    'VHDL': VhdlFile,
+    'VHDL_ENCRYPT': VhdlFile,
+    'SDC_ENTITY': SdcFile,
+    'HEX': MemoryHexFile
 }
 
 TOOL_MAP = {
@@ -100,9 +102,9 @@ class Spd:
             path = Path(self.location, properties['path'])
         libraryname = properties['library']
         if libraryname not in self.libraries:
-            self.libraries[libraryname] = HDLLibrary(libraryname)
+            self.libraries[libraryname] = Library(libraryname)
         fileclass = FILETYPE_MAP.get(properties['type'], File)
-        if issubclass(fileclass, HDLSourceFile):
+        if issubclass(fileclass, HdlFile):
             return fileclass(path=path, library=self.libraries[libraryname])
         else:
             return fileclass(path=path)
@@ -118,10 +120,10 @@ class Spd:
     def filesets(self):
         filesets = list()
         for library in self.libraries.values():
-            name = f"{self._filename}.{library.Name}"
-            fileset = FileSet(name, vhdlLibrary=library)
+            name = f"{self._filename}.{library.name}"
+            fileset = Fileset(name, library=library)
             for file in self._files:
-                if isinstance(file, HDLSourceFile):
+                if isinstance(file, HdlFile):
                     if file.Library == library:
                         fileset.AddFile(file)
                 else:
@@ -133,12 +135,12 @@ class Spd:
 @GeneratorFactory.register('QuartusIP')
 class QuartusIP(GeneratorBase):
 
-    def unpack_ip(self, filename: QuartusIPSpecificationFile) -> QuartusIPSpecificationFile:  # noqa: C901
+    def unpack_ip(self, filename: QuartusIpFile) -> QuartusIpFile:  # noqa: C901
         ipdir = self.builddir.joinpath('ips')
         dest = ipdir.joinpath(filename.Path.name).with_suffix('')
         md5file = dest.with_suffix('.md5')
         ipdir.mkdir(exist_ok=True)
-        if filename.FileType == QuartusQSYSSpecificationFile:
+        if filename.FileType == QuartusQsysFile:
             filename = self.copy_qsys(filename, dest, md5file)
             ipfiles = self.parse_qsys(filename)
             if self.flow.category == FlowCategory.SIMULATION:
@@ -150,10 +152,10 @@ class QuartusIP(GeneratorBase):
                         parent._fileSets[fileset.Name] = fileset
                         parent = fileset
             else:
-                fileset = FileSet(filename.Path.name, vhdlLibrary=self.project.DefaultDesign.DefaultFileSet.VHDLLibrary)
+                fileset = Fileset(filename.Path.name, library=self.project.defaultDesign.defaultLibrary)
                 fileset.AddFiles(ipfiles)
                 filename.FileSet.AddFileSet(fileset)
-        elif filename.FileType == QuartusIPCompressedSpecificationFile:
+        elif isinstance(filename, QuartusIpZipFile):
             update = True
             if md5file.exists():
                 update = not md5check(filename.Path, filename=md5file)
@@ -167,9 +169,9 @@ class QuartusIP(GeneratorBase):
                 filename._path = dest.absolute()
             else:
                 filename._path = dest.with_suffix('.ip').absolute()
-            filename._fileType = QuartusIPSpecificationFile
+            filename._fileType = QuartusIpFile
 
-        elif filename.FileType == QuartusIPSpecificationFile:
+        elif isinstance(filename, QuartusIpFile):
             update = True
             dir = filename.Path.with_suffix('')
             if dir.exists():
@@ -190,12 +192,12 @@ class QuartusIP(GeneratorBase):
         self.flow = flow
         ip_dir = self.builddir.joinpath('ips')
         qsys_dir = self.builddir.joinpath('qsys')
-        all_files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=QuartusIPSpecificationFile))
+        all_files = list(self.project.defaultDesign.files(file_type=QuartusIpFile))
 
         if flow.category == FlowCategory.SIMULATION:
-            files = [f for f in all_files if SIMULATION in f[UsedIn]]
+            files = [f for f in all_files if simulation in f.usedin]
         elif flow.category == FlowCategory.IMPLEMENTATION:
-            files = [f for f in all_files if IMPLEMENTATION in f[UsedIn]]
+            files = [f for f in all_files if implementation in f.usedin]
         elif flow.category == FlowCategory.DEFAULT:
             return
         else:
@@ -208,22 +210,22 @@ class QuartusIP(GeneratorBase):
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
-            if file.FileType == QuartusQIPSpecificationFile:
+            if isinstance(file, QuartusQipFile):
                 continue
-            elif file.FileType == QuartusIPCompressedSpecificationFile:
+            elif file.FileType == QuartusIpZipFile:
                 file = unpack_ipfile(file, ip_dir)
-            elif file.FileType == QuartusIPSpecificationFile:
+            elif file.FileType == QuartusIpFile:
                 file = copy_ipfile(file, ip_dir)
-            elif file.FileType == QuartusQSYSCompressedSpecificationFile:
+            elif file.FileType == QuartusQsysZipFile:
                 file = unpack_qsysfile(file, qsys_dir)
-            elif file.FileType == QuartusQSYSSpecificationFile:
+            elif file.FileType == QuartusQsysFile:
                 file = copy_qsysfile(file, qsys_dir)
-            parse_file(file, flow, self.project.DefaultDesign.DefaultFileSet.VHDLLibrary)
+            parse_file(file, flow, self.project.defaultDesign.defaultLibrary)
             # register the file as seen
             seen[fileid] = file
 
 
-def get_list_of_ipfiles(filename: QuartusQSYSSpecificationFile) -> List[File]:
+def get_list_of_ipfiles(filename: QuartusQsysFile) -> List[File]:
     """
     Search for IP files in a QSYS file and return a list of QuartusIPSpecificationFile objects.
     """
@@ -236,7 +238,7 @@ def get_list_of_ipfiles(filename: QuartusQSYSSpecificationFile) -> List[File]:
                 ipfile = filename.Path.parent.joinpath(m.group(1))
                 if ipfile.exists():
                     logger.debug(f"Found {ipfile} in {filename.Path}")
-                    files.append(QuartusIPSpecificationFile(ipfile))
+                    files.append(QuartusIpFile(ipfile))
                 else:
                     logger.warning(f"File {ipfile} not found")
             m = re.search(r'<parameter name="logicalView">(.*\.ip)</parameter>', line)
@@ -244,13 +246,13 @@ def get_list_of_ipfiles(filename: QuartusQSYSSpecificationFile) -> List[File]:
                 ipfile = filename.Path.parent.joinpath(m.group(1))
                 if ipfile.exists():
                     logger.debug(f"Found {ipfile} in {filename.Path}")
-                    files.append(QuartusIPSpecificationFile(ipfile))
+                    files.append(QuartusIpFile(ipfile))
                 else:
                     logger.warning(f"File {ipfile} not found")
     return files
 
 
-def qsys_to_fileset(file: QuartusQSYSSpecificationFile, flow: FlowBase, library) -> FileSet:
+def qsys_to_fileset(file: QuartusQsysFile, flow: FlowBase, library) -> Fileset:
     """
     Parse a QSYS file and return a FileSet object.
     """
@@ -265,17 +267,17 @@ def qsys_to_fileset(file: QuartusQSYSSpecificationFile, flow: FlowBase, library)
                 parent = fileset
     elif flow.category == FlowCategory.IMPLEMENTATION:
         # NOTE: Some qsys require a search path to find the HEX files
-        searchpath = HDLSearchPath(file.Path.parent)
-        searchpath[UsedIn] = {'implementation'}
-        fileset = FileSet(file.Path.name, vhdlLibrary=library)
-        fileset.AddFiles(ipfiles + [searchpath])
-        file.FileSet.AddFileSet(fileset)
+        searchpath = HdlSearchPath(file.Path.parent)
+        searchpath.usedin = {'implementation'}
+        fileset = Fileset(file.Path.name, library=library)
+        fileset.add_files(ipfiles + [searchpath])
+        file.parent.add_fileset(fileset)
 
 
-def parse_file(file: File, flow: FlowBase, library) -> FileSet:
-    if file.FileType == QuartusQSYSSpecificationFile:
+def parse_file(file: File, flow: FlowBase, library) -> Fileset:
+    if file.FileType == QuartusQsysFile:
         return qsys_to_fileset(file, flow, library)
-    elif file.FileType == QuartusIPSpecificationFile:
+    elif file.FileType == QuartusIpFile:
         if flow.category == FlowCategory.SIMULATION:
             spd = Spd(file.Path, flow)
             parent = file.FileSet
@@ -289,7 +291,7 @@ def parse_file(file: File, flow: FlowBase, library) -> FileSet:
         raise GeneratorError(f"Unsupported file type: {file.FileType}")
 
 
-def copy_ipfile(file: QuartusIPSpecificationFile, dest: Path) -> QuartusIPSpecificationFile:
+def copy_ipfile(file: QuartusIpFile, dest: Path) -> QuartusIpFile:
     """
     Copy IP files to a directory and return a new QuartusIPSpecificationFile object with the new path.
     """
@@ -311,12 +313,12 @@ def copy_ipfile(file: QuartusIPSpecificationFile, dest: Path) -> QuartusIPSpecif
             rmtree(destdir, ignore_errors=True)
             copy(str(file.Path), str(destfile))
             md5write(file.Path, filename=md5file)
-    file._fileType = QuartusIPSpecificationFile
+    file._fileType = QuartusIpFile
     file._path = destfile.resolve()
     return file
 
 
-def copy_qsysfile(file: QuartusQSYSSpecificationFile, dest: Path) -> QuartusQSYSSpecificationFile:
+def copy_qsysfile(file: QuartusQsysFile, dest: Path) -> QuartusQsysFile:
     """
     Copy QSYS files to a directory and return a new QuartusQSYSSpecificationFile object with the new path.
     """
@@ -334,7 +336,7 @@ def copy_qsysfile(file: QuartusQSYSSpecificationFile, dest: Path) -> QuartusQSYS
         else:
             copytree(str(src), str(qsysdir), dirs_exist_ok=True)
         md5write(src, filename=md5file)
-    file._fileType = QuartusQSYSSpecificationFile
+    file._fileType = QuartusQsysFile
     file._path = qsysdir.joinpath(file.Path.name).with_suffix('.qsys').resolve()
     if file.Path.exists():
         return file
@@ -342,12 +344,12 @@ def copy_qsysfile(file: QuartusQSYSSpecificationFile, dest: Path) -> QuartusQSYS
         raise FileNotFoundError(f"{file.Path}: doesn't exits")
 
 
-def unpack_ipfile(file: QuartusIPCompressedSpecificationFile, dest: Path) -> QuartusIPSpecificationFile:
+def unpack_ipfile(file: QuartusIpZipFile, dest: Path) -> QuartusIpFile:
     """
     Unpack IP files to a directory and return a new QuartusIPSpecificationFile object with the new path.
     """
     unpack(file.Path, dest)
-    file._fileType = QuartusIPSpecificationFile
+    file._fileType = QuartusIpFile
     file._path = dest.joinpath(file.Path.name).with_suffix('').resolve()
     if file.Path.exists():
         return file
@@ -355,13 +357,13 @@ def unpack_ipfile(file: QuartusIPCompressedSpecificationFile, dest: Path) -> Qua
         raise FileNotFoundError(f"{file.Path.resolve()}: doesn't exits")
 
 
-def unpack_qsysfile(file: QuartusQSYSCompressedSpecificationFile, dest: Path) -> QuartusQSYSSpecificationFile:
+def unpack_qsysfile(file: QuartusQsysZipFile, dest: Path) -> QuartusQsysFile:
     """
     Unpack QSYS files to a directory and return a new QuartusQSYSSpecificationFile object with the new path.
     """
     dest = dest.joinpath(file.Path.name).with_suffix('').with_suffix('')
     unpack(file.Path, dest)
-    file._fileType = QuartusQSYSSpecificationFile
+    file._fileType = QuartusQsysFile
     file._path = dest.joinpath(file.Path.name).with_suffix('').resolve()
     if file.Path.exists():
         return file

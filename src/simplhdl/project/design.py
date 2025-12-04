@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING, Generator, Type
 
 import networkx as nx
+
+from .files import filter_files
 
 if TYPE_CHECKING:
     from .files import File
@@ -26,9 +28,19 @@ class Design:
     def toplevels(self) -> list[str]:
         return self._toplevels
 
-    @property
-    def files(self) -> Generator[File, None, None]:
-        return nx.topological_sort(self._files)
+    def files(
+        self,
+        file_type: Type[File] | tuple[Type[File], ...] | None = None,
+        **filters,
+    ) -> Generator[File, None, None]:
+        """
+        Retrieves files from the design, with optional filtering.
+        If no arguments are provided, all files are returned.
+        """
+        all_files = nx.topological_sort(self._files)
+        if file_type is None and not filters:
+            return all_files
+        return filter_files(all_files, file_type=file_type, **filters)
 
     @property
     def filesets(self) -> Generator[File, None, None]:

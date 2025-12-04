@@ -7,6 +7,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.dynamic]
 version = {attr = "simplhdl.__version__"}
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [project]
 name = "SimplHDL"
 description = "A framework for simulating and implementing HDL designs"
@@ -64,3 +67,6 @@ Homepage = "https://github.com/SimplHDL"
 Documentation = "https://simplhdl.readthedocs.io/en/latest/"
 Repository = "https://github.com/SimplHDL/simplhdl.git"
 Issues = "https://github.com/SimplHDL/simplhdl/issues"
+
+[project.entry-points."simplhdl.plugins"]
+chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"

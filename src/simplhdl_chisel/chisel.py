@@ -1,18 +1,17 @@
 import logging
 
-from ..generator import GeneratorFactory, GeneratorBase
-from ..pyedaa import ChiselBuildFile, VerilogSourceFile
-from ..flow import FlowBase
-from ..utils import sh
+from simplhdl.generator import GeneratorBase
+from simplhdl.project.files import ChiselBuildFile, SystemVerilogFile
+from simplhdl.flow import FlowBase
+from simplhdl.utils import sh
 
 logger = logging.getLogger(__name__)
 
 
-@GeneratorFactory.register('Chisel')
-class Chisel(GeneratorBase):
+class ChiselGenerator(GeneratorBase):
 
     def run(self, flow: FlowBase):
-        sbt_files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=ChiselBuildFile))
+        sbt_files = list(self.project.defaultDesign.files(file_type=ChiselBuildFile))
         if sbt_files:
             logging.debug("Running Chisel Generator")
             chisel_dir = self.builddir.joinpath('chisel')
@@ -35,27 +34,12 @@ class Chisel(GeneratorBase):
                 except FileExistsError:
                     pass
 
-            # sh(
-            #     ['sbt', '--sbt-dir', sbt_dir.absolute(), 'compile'],
-            #     cwd=output_dir,
-            #     output=True)
-
-            # sh(
-            #     ['sbt', '--sbt-dir', sbt_dir.absolute(), '--ivy', ivy_dir, 'publishLocal'],
-            #     cwd=output_dir,
-            #     output=True)
-
             sh(
                 ['sbt', '--sbt-dir', sbt_dir.absolute(), 'run'],
                 cwd=output_dir,
                 output=True)
 
-            # sh(
-            #     ['sbt', '--sbt-dir', sbt_dir.absolute(), 'run --backend c --genHarness'],
-            #     cwd=output_dir,
-            #     output=True)
-
-            for file in output_dir.rglob('*.v'):
-                verilog_file = VerilogSourceFile(file.absolute())
+            for file in output_dir.rglob('*.sv'):
+                verilog_file = SystemVerilogFile(file.absolute())
                 sbt_file.FileSet.InsertFileAfter(sbt_file, verilog_file)
             next(sbt_files)

@@ -22,13 +22,13 @@ from systemrdl.rdltypes import AccessType, OnReadType, OnWriteType
 
 from ..flow import FlowBase, FlowCategory
 from ..generator import GeneratorBase, GeneratorFactory
-from ..pyedaa import (
+from ..project.files import (
     CocotbPythonFile,
-    SystemRDLSourceFile,
-    SystemVerilogSourceFile,
-    VerilogSourceFile,
+    SystemRdlFile,
+    SystemVerilogFile,
+    VerilogFile,
 )
-from ..pyedaa.fileset import FileSet
+from ..project.fileset import Fileset
 
 logger = logging.getLogger(__name__)
 
@@ -196,9 +196,9 @@ class SystemRDL(GeneratorBase):
         rdlfile = self.project.DefaultDesign.GetFile(node.inst.def_src_ref.path)
         fileset = rdlfile.FileSet
         if outputfile.suffix == '.sv':
-            fileset.InsertFileAfter(rdlfile, SystemVerilogSourceFile(outputfile))
+            fileset.InsertFileAfter(rdlfile, SystemVerilogFile(outputfile))
         if outputfile.suffix == '.v':
-            fileset.InsertFileAfter(rdlfile, VerilogSourceFile(outputfile))
+            fileset.InsertFileAfter(rdlfile, VerilogFile(outputfile))
 
     def peakrdl_regmodel(self, node, outputdir, config) -> None:
         RegblockExporter().export(
@@ -215,14 +215,14 @@ class SystemRDL(GeneratorBase):
         modulefile: Path = outputdir.joinpath(f'{node.type_name}_pkg.sv').absolute()
         packetfile: Path = outputdir.joinpath(f'{node.type_name}_addrmap.sv').absolute()
         rdlfile = self.project.DefaultDesign.GetFile(node.inst.def_src_ref.path)
-        parent_fileset = rdlfile.FileSet
-        fileset = FileSet(name=rdlfile.Path, vhdlLibrary=parent_fileset.VHDLLibrary)
-        fileset.AddFile(SystemVerilogSourceFile(modulefile))
-        fileset.AddFile(SystemVerilogSourceFile(packetfile))
-        parent_fileset.AddFileSet(fileset)
+        parent_fileset = rdlfile.parent
+        fileset = Fileset(name=str(rdlfile), library=parent_fileset.library)
+        fileset.add_file(SystemVerilogFile(modulefile))
+        fileset.add_file(SystemVerilogFile(packetfile))
+        parent_fileset.add_fileset(fileset)
 
     def run(self, flow: FlowBase):
-        rdlfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=SystemRDLSourceFile))
+        rdlfiles = list(self.project.defaultDesign.files(file_type=SystemRdlFile))
         output_dir = self.builddir.joinpath('systemrdl')
         config = dict()
         if os.getenv('SIMPLHDL_CONFIG'):

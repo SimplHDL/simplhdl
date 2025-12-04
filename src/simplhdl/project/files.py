@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Type
+from typing import TYPE_CHECKING, Callable, Type, Iterable, Generator
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -55,6 +55,47 @@ class File:
 
 
 FileClass = Type[File]
+
+def filter_files(
+    files: Iterable[File],
+    file_type: Type[File] | tuple[Type[File], ...] | None = None,
+    **filters,
+) -> Generator[File, None, None]:
+    """
+    Filters a sequence of files based on type and arbitrary attributes.
+
+    Args:
+        files: An iterable of `File` objects to filter.
+        file_type: A file class or a tuple of file classes to filter by.
+        **filters: Arbitrary keyword arguments to filter on file attributes.
+                   For most attributes, an exact match is performed.
+                   For the 'usedin' attribute, a membership check is performed
+                   (i.e., it checks if the value is `in` the file's `usedin` list).
+
+    Yields:
+        A generator of `File` objects that match the filter criteria.
+    """
+    for file in files:
+        # Check file type
+        if file_type and not isinstance(file, file_type):
+            continue
+
+        # Check other attributes from filters
+        all_filters_match = True
+        for key, value in filters.items():
+            if not hasattr(file, key):
+                all_filters_match = False
+                break
+            if key == 'usedin':  # Special case for membership check
+                if value not in getattr(file, key):
+                    all_filters_match = False
+                    break
+            elif getattr(file, key) != value:
+                all_filters_match = False
+                break
+
+        if all_filters_match:
+            yield file
 
 
 class FileFactory:
@@ -225,8 +266,18 @@ class QuartusQsysFile(IPSpecificationFile):
     ...
 
 
+@FileFactory.register(extension='.qsys.zip')
+class QuartusQsysZipFile(IPSpecificationFile):
+    ...
+
+
 @FileFactory.register(extension='.ip')
 class QuartusIpFile(IPSpecificationFile):
+    ...
+
+
+@FileFactory.register(extension='.ip.zip')
+class QuartusIpZipFile(IPSpecificationFile):
     ...
 
 
@@ -236,6 +287,11 @@ class QuartusIpxFile(IPSpecificationFile):
 
 @FileFactory.register(extension='.source.tcl')
 class QuartusTCLSourceFile(ImplementationFile):
+    ...
+
+
+@FileFactory.register(extension='quartus.ini')
+class QuartusIniFile(ImplementationFile):
     ...
 
 
@@ -277,3 +333,22 @@ class VivadoStepFile(ImplementationFile):
 @FileFactory.register(extension='.sbt')
 class ChiselBuildFile(File):
     ...
+
+
+class HdlSearchPath(VerilogIncludeFile):
+    ...
+
+
+@FileFactory.register(extension='.hex')
+class MemoryHexFile(File):
+    ...
+
+
+@FileFactory.register(extension='modelsim.ini')
+class ModelsimIniFile(SimulationFile):
+    ...
+
+
+@FileFactory.register(extension='.rdl')
+class SystemRdlFile(File):
+    _default_usedin = [simulation, implementation]

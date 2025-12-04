@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Generator
+from typing import TYPE_CHECKING, Generator, Type
 from uuid import uuid4
 
 import networkx as nx
 
-from .attributes import Library
-from .files import File
-from .project import Project
+if TYPE_CHECKING:
+    from .attributes import Library
+    from .files import File, filter_files
+    from .project import Project
 
 
 class Fileset:
@@ -31,11 +32,22 @@ class Fileset:
     def project(self) -> Project:
         return self._project
 
-    @property
-    def files(self) -> Generator[File, None, None]:
+    def files(
+        self,
+        file_type: Type[File] | tuple[Type[File], ...] | None = None,
+        **filters,
+    ) -> Generator[File, None, None]:
+        """
+        Retrieves files from the fileset, with optional filtering.
+        If no arguments are provided, all files in this fileset are returned.
+        """
         file_nodes = [f for f in self._files.nodes() if f.parent is self]
         subgraph = self._files.subgraph(file_nodes)
-        return nx.topological_sort(subgraph)
+        all_files = nx.topological_sort(subgraph)
+
+        if file_type is None and not filters:
+            return all_files
+        return filter_files(all_files, file_type=file_type, **filters)
 
     @property
     def filesets(self) -> nx.DiGraph:
