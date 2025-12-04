@@ -1,19 +1,19 @@
-import sys
 import argparse
-import argcomplete
 import logging
+import sys
 import traceback
-
-from typing import Sequence
 from pathlib import Path
+from typing import Sequence
+
+import argcomplete
 from rich.logging import RichHandler
 
 from . import __version__
+from .plugin.flow import FlowError, FlowFactory
+from .plugin.generator import GeneratorError
+from .plugin.loader import load_plugins
+from .plugin.parser import ParserError
 from .simplhdl import Simplhdl
-from .plugins import load_plugins
-from .flow import FlowFactory, FlowError
-from .generator import GeneratorError
-from .parser import ParserError
 from .utils import CalledShError
 
 logger = logging.getLogger(__name__)

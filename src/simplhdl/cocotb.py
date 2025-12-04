@@ -1,16 +1,22 @@
 import logging
-import re
 import os
-
-from packaging.version import Version
+import re
 from importlib.metadata import version
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict, Optional
 
-from .utils import sh
+from packaging.version import Version
+
+from .plugin.flow import FlowError
+from .pyedaa import (
+    CocotbPythonFile,
+    SystemVerilogSourceFile,
+    VerilogIncludeFile,
+    VerilogSourceFile,
+    VHDLSourceFile,
+)
 from .pyedaa.project import Project
-from .pyedaa import VerilogIncludeFile, VerilogSourceFile, SystemVerilogSourceFile, VHDLSourceFile, CocotbPythonFile
-from .flow import FlowError
+from .utils import sh
 
 logger = logging.getLogger(__name__)
 

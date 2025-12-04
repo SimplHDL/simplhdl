@@ -1,11 +1,19 @@
 [build-system]
 requires = [
-    "setuptools>=60",
-    "setuptools-scm>=8.0"]
+    "setuptools>=64.0",
+    "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
 version = {attr = "simplhdl.__version__"}
+
+[tool.flake8]
+max-line-length = 120
+max_complexity = 10
+per-file-ignores = [
+    # Ignore the F401 (unused import) error in all __init__.py files
+    "__init__.py:F401",
+]
 
 [project]
 name = "SimplHDL"
@@ -62,3 +70,23 @@ Homepage = "https://github.com/SimplHDL"
 Documentation = "https://simplhdl.readthedocs.io/en/latest/"
 Repository = "https://github.com/SimplHDL/simplhdl.git"
 Issues = "https://github.com/SimplHDL/simplhdl/issues"
+
+
+[project.entry-points."simplhdl.plugins"]
+chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"
+encrypt_flow = "simplhdl_encrypt.encrypt.encryptflow:EncryptFlow"
+fusersoc_parser = "simplhdl_fusesocparser.fusesocparser:FuseSocParser"
+lint_flow = "simplhdl_lint.lint.lintflow:LintFlow"
+modelsim = "simplhdl_modelsim.modelsim.modelsimflow:ModelSimFlow"
+peakrdl_generator = "simplhdl_peakrdl.systemrdl:PeakRdlGenerator"
+quartus = "simplhdl_quartus.quartusflow:QuartusFlow"
+quartus_generator = "simplhdl_quartus.spd:QuartusGenerator"
+quartus-dse = "simplhdl_quartus.quartusdse.quartusdseflow:QuartusDseFlow"
+quartus-export = "simplhdl_quartus.quartusexport.quartusexportflow:QuartusExportFlow"
+questasim = "simplhdl_questasim.questasim.questasimflow:QuestaSimFlow"
+rivierapro = "simplhdl_rivierapro.rivierapro.rivieraproflow:RivieraProFlow"
+simplhdl_parser = "simplhdl_parser.simplhdlparser:SimplHdlParser"
+vcs = "simplhdl_vcs.vcs.vcsflow:VcsFlow"
+vivado = "simplhdl_vivado.vivadoflow:VivadoFlow"
+vivado_generator = "simplhdl_vivado.ipxact:VivadoGenerator"
+xsim = "simplhdl_vivado.xsim.xsimflow:XsimFlow"

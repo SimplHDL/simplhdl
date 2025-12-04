@@ -3,7 +3,7 @@ import pyEDAA.ProjectModel as pm  # type: ignore
 
 from typing import Dict, List, Optional
 from pathlib import Path
-from ..repo import Repo
+from .repo import Repo
 from .design import Design
 from .target import Target
 from . import (

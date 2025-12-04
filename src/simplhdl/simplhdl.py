@@ -6,9 +6,9 @@ from argparse import Namespace
 from .pyedaa.project import Project
 from .pyedaa.design import Design
 from .pyedaa.vhdllibrary import VHDLLibrary
-from .parser import ParserFactory
-from .flow import FlowFactory
-from .generator import GeneratorFactory
+from .plugin.parser import ParserFactory
+from .plugin.flow import FlowFactory
+from .plugin.generator import GeneratorFactory
 
 logger = logging.getLogger(__name__)
 
