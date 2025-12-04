@@ -10,11 +10,10 @@ from argparse import Namespace
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 
-from ..flow import FlowFactory, FlowTools
-from .implementationflow import ImplementationFlow
-from ..resources.templates import quartus as templates
-from ..utils import sh, generate_from_template
-from ..pyedaa import (
+from simplhdl.flow import FlowFactory, FlowTools
+from simplhdl.flows.implementationflow import ImplementationFlow
+from simplhdl.utils import sh, generate_from_template
+from simplhdl.files import (
     VerilogIncludeFile,
     VerilogSourceFile,
     SystemVerilogSourceFile,
@@ -33,8 +32,10 @@ from ..pyedaa import (
     QuartusIPSpecificationFile,
     QuartusSourceTCLFile
 )
-from ..pyedaa.project import Project
-from ..pyedaa.attributes import UsedIn, Scope
+from simplhdl import Project
+from simplhdl.attributes import UsedIn, Scope
+from .resources.templates import quartus as templates
+
 
 logger = logging.getLogger(__name__)
 

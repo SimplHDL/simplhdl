@@ -70,3 +70,5 @@ Issues = "https://github.com/SimplHDL/simplhdl/issues"
 
 [project.entry-points."simplhdl.plugins"]
 chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"
+quartus_flow = "simplhdl_quartus.quartusflow:QuartusFlow"
+quartus_generator = "simplhdl_quartus.spd:QuartusGenerator"

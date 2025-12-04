@@ -1,58 +1,17 @@
 import logging
 
 try:
-    from importlib.metadata import entry_points, EntryPoint
+    from importlib.metadata import EntryPoint, entry_points
 except ImportError:
-    from importlib_metadata import entry_points, EntryPoint
+    from importlib_metadata import EntryPoint, entry_points
 
-from importlib import import_module
-from itertools import chain
-from pkgutil import ModuleInfo, iter_modules
 from typing import Iterator
 
-import simplhdl
-import simplhdl.flows
-import simplhdl.generators
-import simplhdl.parsers
-
+from .flow import FlowBase, FlowFactory
 from .generator import GeneratorBase, GeneratorFactory
 from .parser import ParserBase, ParserFactory
-from .flow import FlowBase, FlowFactory
 
 logger = logging.getLogger(__name__)
-
-
-def iter_namespace(package) -> Iterator[ModuleInfo]:
-    modules = iter_modules(package.__path__, package.__name__ + '.')
-    return modules
-
-
-def load_builtin_plugins() -> None:
-    """
-    Loads builtin plugins.
-    """
-    import_module('simplhdl.info')
-    import_module('simplhdl.run')
-    import_module('simplhdl.flows.vcs.vcsflow')
-    import_module('simplhdl.flows.questasim.questasimflow')
-    import_module('simplhdl.flows.modelsim.modelsimflow')
-    import_module('simplhdl.flows.xsim.xsimflow')
-    import_module('simplhdl.flows.rivierapro.rivieraproflow')
-    import_module('simplhdl.flows.quartusdse.quartusdseflow')
-    import_module('simplhdl.flows.quartusexport.quartusexportflow')
-    import_module('simplhdl.flows.encrypt.encryptflow')
-    import_module('simplhdl.flows.vsg.vsgflow')
-    import_module('simplhdl.flows.verible.veribleflow')
-    import_module('simplhdl.flows.lint.lintflow')
-    import_module('simplhdl.flows.flake8.flake8flow')
-    packages = chain(
-        iter_namespace(simplhdl.parsers),
-        iter_namespace(simplhdl.flows),
-        iter_namespace(simplhdl.generators))
-    plugins = {
-        name: import_module(name) for _, name, _ in packages
-    }
-    logger.debug(plugins)
 
 
 def get_external_plugins(group_name: str) -> Iterator[EntryPoint]:
@@ -115,5 +74,4 @@ def load_plugins() -> None:
     """
     Loads all plugins, both builtin and external.
     """
-    load_builtin_plugins()
     load_external_plugins()

@@ -124,16 +124,15 @@ class Spd:
             fileset = Fileset(name, library=library)
             for file in self._files:
                 if isinstance(file, HdlFile):
-                    if file.Library == library:
-                        fileset.AddFile(file)
+                    if file.library == library:
+                        fileset.add_file(file)
                 else:
-                    fileset.AddFile(file)
+                    fileset.add_file(file)
             filesets.append(fileset)
         return filesets
 
 
-@GeneratorFactory.register('QuartusIP')
-class QuartusIP(GeneratorBase):
+class QuartusGenerator(GeneratorBase):
 
     def unpack_ip(self, filename: QuartusIpFile) -> QuartusIpFile:  # noqa: C901
         ipdir = self.builddir.joinpath('ips')
