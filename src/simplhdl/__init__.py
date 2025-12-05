@@ -1,4 +1,4 @@
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 from .pyedaa.project import Project
 from .pyedaa.fileset import FileSet
