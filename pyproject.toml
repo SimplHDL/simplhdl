@@ -4,24 +4,34 @@ requires = [
     "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "simplhdl.__version__"}
-
-[tool.setuptools.package-data]
-"*" = ["*.j2"]
-
-[tool.flake8]
-max-line-length = 120
-max_complexity = 10
-per-file-ignores = [
-    # Ignore the F401 (unused import) error in all __init__.py files
-    "__init__.py:F401",
-]
-
 [project]
 name = "SimplHDL"
-description = "A framework for simulating and implementing HDL designs"
 dynamic = ["version"]
+description = "A framework for simulating and implementing HDL designs"
+readme = "README.md"
+authors = [
+    {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
+]
+maintainers = [
+    {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
+]
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
 dependencies = [
     "importlib-resources;python_version<'3.9'",
     "pySVModel==0.3.5",
@@ -40,33 +50,6 @@ dependencies = [
     "peakrdl-regblock>=1.2.0",
     "peakrdl-pyuvm",
 ]
-requires-python = ">=3.8"
-authors = [
-  {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
-]
-maintainers = [
-  {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
-]
-
-readme = "README.md"
-license = {file = "LICENSE"}
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-
-[project.scripts]
-simpl = "simplhdl.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/SimplHDL"
@@ -74,6 +57,21 @@ Documentation = "https://simplhdl.readthedocs.io/en/latest/"
 Repository = "https://github.com/SimplHDL/simplhdl.git"
 Issues = "https://github.com/SimplHDL/simplhdl/issues"
 
+[project.scripts]
+simpl = "simplhdl.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "flake8",
+    "mypy",
+    "robotframework",
+    "tox",
+]
+docs = [
+    "furo",
+    "Sphinx",
+    "sphinx_pyproject",
+]
 
 [project.entry-points."simplhdl.plugins"]
 chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"
@@ -93,3 +91,16 @@ vcs = "simplhdl_vcs.vcs.vcsflow:VcsFlow"
 vivado = "simplhdl_vivado.vivadoflow:VivadoFlow"
 vivado_generator = "simplhdl_vivado.ipxact:VivadoGenerator"
 xsim = "simplhdl_vivado.xsim.xsimflow:XsimFlow"
+
+[tool.setuptools.dynamic]
+version = {attr = "simplhdl.__version__"}
+
+[tool.setuptools.package-data]
+"*" = ["*.j2"]
+
+[tool.flake8]
+max-line-length = 120
+max_complexity = 10
+per-file-ignores = [
+    "__init__.py:F401",
+]
