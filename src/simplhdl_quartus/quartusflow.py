@@ -145,7 +145,8 @@ class QuartusFlow(ImplementationFlow):
             return
 
         command = f"quartus_sh -t run.tcl {step} -project {name}".split()
-        sh(command, cwd=self.builddir, output=True)
+        logfile = self.builddir.joinpath('quartus.log')
+        sh(command, cwd=self.builddir, output=True, log=logfile)
 
     def is_tool_setup(self) -> None:
         exit: bool = False

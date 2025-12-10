@@ -17,7 +17,15 @@ class CalledShError(Exception):
     pass
 
 
-def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False, env=None, indent=2):
+def sh(
+    command: List[str],
+    cwd: Optional[Path] = None,
+    output: bool = False,
+    shell: bool = False,
+    env=None,
+    indent: int = 2,
+    log: Path | None = None
+):
     if os.name == 'nt':
         shell = True
 
@@ -33,6 +41,10 @@ def sh(command: List[str], cwd: Optional[Path] = None, output=False, shell=False
         else:
             stdout, stderr = p.communicate()
             stdout = stdout.decode().strip()
+        if log:
+            with log.open('a') as f:
+                f.write(stdout)
+                f.write(stderr.decode())
 
     if p.returncode != 0:
         if not output:
