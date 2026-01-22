@@ -11,8 +11,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from simplhdl import Project
 from simplhdl.plugin import FlowBase, FlowError
-from simplhdl.pyedaa import VHDLSourceFile
-from simplhdl.pyedaa.attributes import UsedIn
+from simplhdl.project.files import VhdlFile
 from simplhdl.utils import CalledShError, generate_from_template, sh
 
 from ..resources.templates import vsg as templates
@@ -69,9 +68,8 @@ class VsgFlow(FlowBase):
             trim_blocks=True)
         template = environment.get_template('files.json.j2')
         generate_from_template(template, self.builddir,
-                               VHDLSourceFile=VHDLSourceFile,
-                               project=self.project,
-                               UsedIn=UsedIn)
+                               VHDLSourceFile=VhdlFile,
+                               project=self.project)
         if self.args.rules:
             self.rules = self.args.rules
         elif os.getenv('SIMPLHDL_VSG_CONFIG'):
@@ -87,7 +85,7 @@ class VsgFlow(FlowBase):
     def execute(self):
         command = ["vsg"]
         user_files = len(self.args.files)
-        project_files = len(list(self.project.DefaultDesign.DefaultFileSet.Files(VHDLSourceFile)))
+        project_files = len(list(self.project.defaultDesign.files(VhdlFile)))
 
         if self.args.fix:
             command.append("--fix")

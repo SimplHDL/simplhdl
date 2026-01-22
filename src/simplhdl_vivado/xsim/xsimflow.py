@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from jinja2 import Template
 
-from simplhdl import FileSet, Project
+from simplhdl import Fileset, Project
 from simplhdl.plugin import FlowTools, SimulationFlow
 from simplhdl.utils import escape, sh
 
@@ -93,7 +95,7 @@ class XsimFlow(SimulationFlow):
             os.environ['MODULE'] = self.cocotb.module()
             raise NotImplementedError("Xsim currently doesn't support cocotb")
 
-    def get_globals(self) -> Dict[str, Any]:
+    def get_globals(self) -> dict[str, Any]:
         globals = super().get_globals()
         globals['xvlog_args'] = self.xvlog_args()
         globals['xvhdl_args'] = self.xvhdl_args()
@@ -101,7 +103,7 @@ class XsimFlow(SimulationFlow):
         globals['xsim_args'] = self.xsim_args()
         return globals
 
-    def get_project_templates(self, environment) -> List[Template]:
+    def get_project_templates(self, environment) -> list[Template]:
         return [
             environment.get_template('Makefile.j2'),
             environment.get_template('project.mk.j2')
@@ -115,22 +117,22 @@ class XsimFlow(SimulationFlow):
         else:
             return list()
 
-    def fileset_verilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-work {library.Name}"
+    def fileset_verilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-work {library.name}"
 
-    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-sv -work {library.Name}"
+    def fileset_systemverilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-sv -work {library.name}"
 
-    def fileset_vhdl_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"--2008 -work {library.Name}"
+    def fileset_vhdl_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"--2008 -work {library.name}"
 
     def xvlog_args(self) -> str:
         args = set()
         args.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
-        for name, value in self.project.Defines.items():
+        for name, value in self.project.defines.items():
             args.add(f"-d {name}={escape(value)}")
         if self.is_uvm():
             args.add('-L uvm')
@@ -147,9 +149,9 @@ class XsimFlow(SimulationFlow):
         args.add(verbosity)
         if self.args.timescale:
             args.add(f"--timescale={self.args.timescale}")
-        for name, value in self.project.Generics.items():
+        for name, value in self.project.generics.items():
             args.add(f"--generic_top {name}={escape(value)}")
-        for name, value in self.project.Parameters.items():
+        for name, value in self.project.parameters.items():
             args.add(f"--generic_top {name}={escape(value)}")
         if self.args.wave or self.args.gui:
             args.add('-debug all')
@@ -161,7 +163,7 @@ class XsimFlow(SimulationFlow):
         if self.cocotb.enabled:
             # xsim currently doesn't work with cocotb
             pass
-        for name, value in self.project.PlusArgs.items():
+        for name, value in self.project.plusargs.items():
             args.add(f"--testplusarg {name}={escape(value)}")
         return ' '.join(list(args) + [self.args.xsim_args])
 
@@ -172,7 +174,7 @@ class XsimFlow(SimulationFlow):
             return
 
         if self.cocotb.enabled:
-            for toplevel in [t for t in self.project.DefaultDesign.TopLevel.split() if t != self.cocotb.module()]:
+            for toplevel in [t for t in self.project.defaultDesign.toplevels if t != self.cocotb.module()]:
                 # TODO: what should happend in Vcs?
                 # self.hdl_language = get_hdl_language(toplevel, directory=self.builddir)
                 # os.environ['SIMPLHDL_LANGUAGE'] = self.hdl_language
@@ -188,7 +190,7 @@ class XsimFlow(SimulationFlow):
 
     def run_hooks(self, name):
         try:
-            for command in self.project.Hooks[name]:
+            for command in self.project.hooks[name]:
                 logger.info(f"Running {name} hook: {command}")
                 sh(command.split(), cwd=self.builddir, output=True)
         except KeyError:

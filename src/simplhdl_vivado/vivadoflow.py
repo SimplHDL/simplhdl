@@ -12,19 +12,21 @@ from jinja2 import Environment, FileSystemLoader
 
 from simplhdl import Project
 from simplhdl.plugin import FlowBase, FlowTools
-from simplhdl.pyedaa import (
-    ConstraintFile,
-    EDIFNetlistFile,
-    NetlistFile,
-    SystemVerilogSourceFile,
+from simplhdl.project.files import (
+    VivadoXdcFile,
+    EdifFile,
+    SystemVerilogFile,
     VerilogIncludeFile,
-    VerilogSourceFile,
-    VHDLSourceFile,
-    VivadoBDTclFile,
-    VivadoIPSpecificationFile,
-    VivadoProjectStepFile,
+    VerilogFile,
+    VhdlFile,
+    VivadoBdTclFile,
+    VivadoDcpFile,
+    VivadoXciFile,
+    VivadoXcixFile,
+    VivadoBdFile,
+    VivadoStepFile,
+    UsedIn,
 )
-from simplhdl.pyedaa.attributes import Scope, UsedIn
 from simplhdl.utils import dict2str, generate_from_template, sh
 
 from .resources.templates import vivado as templates
@@ -82,7 +84,7 @@ class VivadoFlow(FlowBase):
             raise FileNotFoundError("Vivado is not setup correctly")
 
     def archive(self) -> None:
-        name = self.project.Name
+        name = self.project.name
         if self.args.archive == 'project':
             tclargs = 'archive'
         elif self.args.archive == 'project-exclude-results':
@@ -98,9 +100,9 @@ class VivadoFlow(FlowBase):
     def get_files(self):
         files = []
         seen = []
-        for f in self.project.DefaultDesign.Files():
-            if 'implementation' in f[UsedIn] and f.Path not in seen:
-                seen.append(f.Path)
+        for f in self.project.defaultDesign.files():
+            if UsedIn.IMPLEMENTATION in f.usedin and f.path not in seen:
+                seen.append(f.path)
                 files.append(f)
         return files
 
@@ -115,31 +117,31 @@ class VivadoFlow(FlowBase):
             trim_blocks=True)
         template = environment.get_template('project.tcl.j2')
         generate_from_template(template, self.builddir,
+                               isinstance=isinstance,
                                files=self.get_files(),
                                dict2str=dict2str,
                                VerilogIncludeFile=VerilogIncludeFile,
-                               VerilogSourceFile=VerilogSourceFile,
-                               SystemVerilogSourceFile=SystemVerilogSourceFile,
-                               VHDLSourceFile=VHDLSourceFile,
-                               ConstraintFile=ConstraintFile,
-                               VivadoIPSpecificationFile=VivadoIPSpecificationFile,
-                               VivadoProjectStepFile=VivadoProjectStepFile,
-                               VivadoBDTclFile=VivadoBDTclFile,
-                               EDIFNetlistFile=EDIFNetlistFile,
-                               NetlistFile=NetlistFile,
+                               VerilogFile=VerilogFile,
+                               SystemVerilogFile=SystemVerilogFile,
+                               VhdlFile=VhdlFile,
+                               VivadoXdcFile=VivadoXdcFile,
+                               VivadoXciFile=VivadoXciFile,
+                               VivadoXcixFile=VivadoXcixFile,
+                               VivadoStepFile=VivadoStepFile,
+                               VivadoBdTclFile=VivadoBdTclFile,
+                               VivadoBdFile=VivadoBdFile,
+                               EdifFile=EdifFile,
+                               VivadoDcpFile=VivadoDcpFile,
                                project=self.project,
-                               UsedIn=UsedIn,
-                               Scope=Scope)
+                               UsedIn=UsedIn)
         template = environment.get_template('run.tcl.j2')
         generate_from_template(template, self.builddir,
                                project=self.project)
-        template = environment.get_template('launch_run.sh.j2')
-        generate_from_template(template, self.builddir)
         command = "vivado -mode batch -notrace -source project.tcl".split()
         sh(command, cwd=self.builddir, output=True)
 
     def execute(self, step: str):
-        name = self.project.Name
+        name = self.project.name
         command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {step}".split()
         sh(command, cwd=self.builddir, output=True)
 
@@ -147,7 +149,7 @@ class VivadoFlow(FlowBase):
         if self.args.archive:
             self.archive()
         if self.args.gui:
-            projectfile = self.builddir.joinpath(f"{self.project.Name}.xpr")
+            projectfile = self.builddir.joinpath(f"{self.project.name}.xpr")
             if not projectfile.exists():
                 self.setup()
                 self.generate()

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 try:
     from importlib.resources import files as resources_files
 except ImportError:
@@ -9,15 +11,14 @@ import re
 import shutil
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template
 
+from simplhdl import Project, FilesetOrder
 from simplhdl.cli.info import Info
 from simplhdl.plugin import FlowTools, SimulationFlow
-from simplhdl.plugin.simulationflow import FileSetWalker
-from simplhdl.pyedaa import ModelsimIniFile
-from simplhdl.pyedaa.project import Project
+from simplhdl.project.files import ModelsimIniFile
 from simplhdl.utils import escape, generate_from_template, sh
 
 from ..resources.templates import questasim as questasimtemplates
@@ -141,11 +142,11 @@ class QuestaSimFlow(SimulationFlow):
         self.templates = questasimtemplates
         self.tools.add(FlowTools.QUESTASIM)
 
-    def get_globals(self) -> Dict[str, Any]:
+    def get_globals(self) -> dict[str, Any]:
         globals = super().get_globals()
         globals['qrunfile'] = qrunfile
         globals['wavedump'] = self.args.wavedump
-        globals['filesets'] = self.get_filesets()
+        globals['filesets'] = self.project.defaultDesign.filesets(order=FilesetOrder.COMPILE)
         globals['vlog_args'] = self.vlog_args()
         globals['vcom_args'] = self.vcom_args()
         globals['vopt_args'] = self.vopt_args()
@@ -157,7 +158,7 @@ class QuestaSimFlow(SimulationFlow):
         args = Flag()
         args.add('-sv')
         args.add('-suppress vlog-2720')
-        for name, value in self.project.Defines.items():
+        for name, value in self.project.defines.items():
             args.add(f"+define+{name}={escape(value)}")
         return ' '.join(list(args) + [self.args.vlog_args])
 
@@ -170,9 +171,9 @@ class QuestaSimFlow(SimulationFlow):
         args = Flag()
         if self.args.timescale:
             args.add(f"-timescale {self.args.timescale}")
-        for name, value in self.project.Generics.items():
+        for name, value in self.project.generics.items():
             args.add(f"-g{name}={escape(value)}")
-        for name, value in self.project.Parameters.items():
+        for name, value in self.project.parameters.items():
             args.add(f"-g{name}={escape(value)}")
         if self.args.gui or self.args.debug:
             args.add('+acc')
@@ -190,7 +191,7 @@ class QuestaSimFlow(SimulationFlow):
             args.add(timescale)
         if self.args.verbose == 0:
             args.add('-quiet')
-        for name, value in self.project.PlusArgs.items():
+        for name, value in self.project.plusargs.items():
             args.add(f"+{name}={escape(value)}")
         if self.cocotb.enabled:
             args.add(self.cocotb.args())
@@ -202,7 +203,7 @@ class QuestaSimFlow(SimulationFlow):
 
     def qrun_args(self) -> str:
         args = Flag()
-        for top in self.cocotb.toplevels.split():
+        for top in self.cocotb.toplevels:
             if self.args.verbose > 0:
                 args.add("-verbose")
             if self.version > 2023.0:
@@ -249,7 +250,7 @@ class QuestaSimFlow(SimulationFlow):
         if step in ['simulate', '']:
             self.run_hooks('post')
 
-    def get_command(self, step: str) -> List[str]:
+    def get_command(self, step: str) -> list[str]:
 
         """
         Construct the command list to run qrun based on the given step and any command line arguments.
@@ -285,7 +286,7 @@ class QuestaSimFlow(SimulationFlow):
             command += ['-do', 'vsim-run.do']
         return command
 
-    def get_environment(self, command: List[str]) -> Dict[str, str]:
+    def get_environment(self, command: list[str]) -> dict[str, str]:
         """
         Construct the environment for running qrun based on the given command and any
         enabled cocotb features.
@@ -312,14 +313,14 @@ class QuestaSimFlow(SimulationFlow):
 
     def run_hooks(self, name):
         try:
-            for command in self.project.Hooks[name]:
+            for command in self.project.hooks[name]:
                 logger.info(f"Running {name} hook: {command}")
                 sh(command.split(), cwd=self.builddir, output=True)
         except KeyError:
             # NOTE: Continue if no hook is registret
             pass
 
-    def timescale(self) -> Optional[str]:
+    def timescale(self) -> str | None:
         """
         Sets the timescale for VHDL based on the Verilog timescale
         resolution.
@@ -349,16 +350,16 @@ class QuestaSimFlow(SimulationFlow):
         return False
 
     def copy_modelsim_ini(self):
-        files = list(self.project.DefaultDesign.Files(ModelsimIniFile))
+        files = list(self.project.defaultDesign.files(ModelsimIniFile))
         if len(files) > 1:
             logger.warning("Multiple modelsim.ini files found in project. Only the first file will be used.")
         for i, file in enumerate(reversed(files)):
             if i > 0:
-                logger.warning(f"ignore {file.Path}")
+                logger.warning(f"ignore {file.path}")
             else:
-                logger.debug(f"Copy {file.Path} to {self.builddir}")
-                logger.info(f"Use {file.Path}")
-                shutil.copy(file.Path.absolute(), self.builddir.absolute())
+                logger.debug(f"Copy {file.path} to {self.builddir}")
+                logger.info(f"Use {file.path}")
+                shutil.copy(file.path.absolute(), self.builddir.absolute())
 
     def generate(self):
         self.check_external_libraries()
@@ -366,7 +367,7 @@ class QuestaSimFlow(SimulationFlow):
         env = Environment(
             loader=FileSystemLoader(templatedir),
             trim_blocks=True)
-        templates: List[Template] = [
+        templates: list[Template] = [
             env.get_template(f'{qrunfile}.j2'),
             env.get_template('vsim-run.do.j2'),
             env.get_template('modelsim.tcl.j2'),
@@ -381,10 +382,3 @@ class QuestaSimFlow(SimulationFlow):
         output = sh(['qrun', '-version'], self.builddir)
         m = re.search(r'qrun\s+([\d.]+)', output)
         return float(m.group(1))
-
-    def get_filesets(self):
-        walker = FileSetWalker()
-        filesets = list()
-        for fileset in walker.walk(self.project.DefaultDesign.DefaultFileSet, reverse=True):
-            filesets.append(fileset)
-        return filesets

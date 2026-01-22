@@ -1,5 +1,6 @@
-__version__ = "0.8.2"
+__version__ = "0.10.0"
 
-from .pyedaa.project import Project
-from .pyedaa.fileset import FileSet
-from .pyedaa.design import Design
+from .__main__ import parse_arguments
+from .project.project import Project
+from .project.fileset import Fileset, FileOrder, FilesetOrder
+from .project.design import Design

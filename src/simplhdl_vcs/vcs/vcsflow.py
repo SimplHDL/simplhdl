@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import logging
 import os
 import re
 import shutil
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from jinja2 import Template
 
-from simplhdl import FileSet, Project
+from simplhdl import Fileset, Project
 from simplhdl.plugin import FlowTools, SimulationFlow
 from simplhdl.utils import escape, sh
 
@@ -90,14 +92,14 @@ class VcsFlow(SimulationFlow):
         self.templates = vcstemplates
         self.tools.add(FlowTools.VCS)
 
-    def get_globals(self) -> Dict[str, Any]:
+    def get_globals(self) -> dict[str, Any]:
         globals = super().get_globals()
         globals['wavedump'] = self.args.wavedump
         globals['vlogan_args'] = self.vlogan_args()
         globals['vhdlan_args'] = self.vhdlan_args()
         globals['vcs_args'] = self.vcs_args()
         globals['simv_args'] = self.simv_args()
-        globals['parameters'] = {**self.project.Generics, **self.project.Parameters}
+        globals['parameters'] = {**self.project.generics, **self.project.parameters}
         globals['format'] = self.format
         return globals
 
@@ -119,7 +121,7 @@ class VcsFlow(SimulationFlow):
         else:
             return f'"{value}"'
 
-    def get_project_templates(self, environment) -> List[Template]:
+    def get_project_templates(self, environment) -> list[Template]:
         return [
             environment.get_template('Makefile.j2'),
             environment.get_template('synopsys_sim.setup.j2'),
@@ -138,21 +140,21 @@ class VcsFlow(SimulationFlow):
         else:
             return list()
 
-    def fileset_verilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"+v2k -work {library.Name}"
+    def fileset_verilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"+v2k -work {library.name}"
 
-    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-sverilog -work {library.Name}"
+    def fileset_systemverilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-sverilog -work {library.name}"
 
-    def fileset_vhdl_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-vhdl08 -work {library.Name}"
+    def fileset_vhdl_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-vhdl08 -work {library.name}"
 
     def vlogan_args(self) -> str:
         args = set()
-        for name, value in self.project.Defines.items():
+        for name, value in self.project.defines.items():
             args.add(f"+define+{name}={escape(value)}")
         if self.args.verbose == 0:
             args.add('-q')
@@ -186,7 +188,7 @@ class VcsFlow(SimulationFlow):
             args.add('-debug_access+all')
             if self.is_verdi():
                 args.add('-kdb')
-        parameters = {**self.project.Generics, **self.project.Parameters}
+        parameters = {**self.project.generics, **self.project.parameters}
         if parameters:
             args.add('-gfile vcs.parameters -lca')
 
@@ -196,7 +198,7 @@ class VcsFlow(SimulationFlow):
         args = set()
         if self.args.seed != '1':
             args.add(f"+ntb_random_seed={self.args.seed}")
-        for name, value in self.project.PlusArgs.items():
+        for name, value in self.project.plusargs.items():
             args.add(f"+{name}={escape(value)}")
         if self.args.wavedump == 'vpd':
             args.add('-ucli -do simv-run.do')
@@ -204,9 +206,9 @@ class VcsFlow(SimulationFlow):
             raise NotImplementedError(f"Wavedump for {self.args.wavedump} format is not yet implemented")
         return ' '.join(list(args) + [self.args.simv_args])
 
-    def get_library(self, fileset: FileSet) -> str:
+    def get_library(self, fileset: Fileset) -> str:
         try:
-            library = fileset.VHDLLibrary.Name
+            library = fileset.library.name
         except AttributeError:
             # TODO: This is a workaround The default fileset is FileSet
             #       which is bugged. Because it is empty we don't need it
@@ -230,7 +232,7 @@ class VcsFlow(SimulationFlow):
 
     def run_hooks(self, name):
         try:
-            for command in self.project.Hooks[name]:
+            for command in self.project.hooks[name]:
                 logger.info(f"Running {name} hook: {command}")
                 sh(command.split(), cwd=self.builddir, output=True)
         except KeyError:

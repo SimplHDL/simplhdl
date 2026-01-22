@@ -6,8 +6,8 @@ from pathlib import Path
 from abc import ABCMeta, abstractmethod
 from argparse import Namespace
 
-from ..pyedaa.fileset import FileSet
-from ..pyedaa.project import Project
+from ..project.fileset import Fileset
+from ..project.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class ParserBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def parse(self, filename: Path, project: Project, args: Namespace) -> FileSet:
+    def parse(self, filename: Path, project: Project, args: Namespace) -> Fileset:
         pass
 
 
@@ -33,8 +33,8 @@ class NoParser(ParserBase):
     def is_valid_format(self, filename: Path) -> bool:
         return True
 
-    def parse(self, filename: Path, project: Project, args: Namespace) -> FileSet:
-        return FileSet('Empty')
+    def parse(self, filename: Path, project: Project, args: Namespace) -> Fileset:
+        return Fileset('Empty')
 
 
 class ParserFactory:

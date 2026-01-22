@@ -33,22 +33,23 @@ classifiers = [
 ]
 
 dependencies = [
-    "importlib-resources;python_version<'3.9'",
-    "pySVModel==0.3.5",
-    "pyEDAA.ProjectModel==0.4.3",
-    "pyyaml",
-    "types-PyYAML",
     "argcomplete",
-    "jinja2",
-    "GitPython",
-    "rich",
-    "vsg",
-    "flake8",
     "black",
-    "systemrdl-compiler",
+    "flake8",
+    "GitPython",
+    "importlib-resources;python_version<'3.9'",
+    "jinja2",
+    "matplotlib",
+    "networkx",
     "peakrdl-html",
-    "peakrdl-regblock>=1.2.0",
     "peakrdl-pyuvm",
+    "peakrdl-regblock>=1.2.0",
+    "pyyaml",
+    "rich",
+    "singleton-decorator",
+    "systemrdl-compiler",
+    "types-PyYAML",
+    "vsg",
 ]
 
 [project.urls]
@@ -75,9 +76,9 @@ docs = [
 
 [project.entry-points."simplhdl.plugins"]
 chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"
-encrypt_flow = "simplhdl_encrypt.encrypt.encryptflow:EncryptFlow"
+encrypt = "simplhdl_encrypt.encrypt.encryptflow:EncryptFlow"
 fusersoc_parser = "simplhdl_fusesocparser.fusesocparser:FuseSocParser"
-lint_flow = "simplhdl_lint.lint.lintflow:LintFlow"
+lint = "simplhdl_lint.lint.lintflow:LintFlow"
 modelsim = "simplhdl_modelsim.modelsim.modelsimflow:ModelSimFlow"
 peakrdl_generator = "simplhdl_peakrdl.systemrdl:PeakRdlGenerator"
 quartus = "simplhdl_quartus.quartusflow:QuartusFlow"

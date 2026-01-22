@@ -1,7 +1,7 @@
 import logging
 
 from simplhdl.plugin import GeneratorBase, FlowBase
-from simplhdl.pyedaa import ChiselBuildFile, VerilogSourceFile
+from simplhdl.project.files import ChiselBuildFile, VerilogFile
 from simplhdl.utils import sh
 
 logger = logging.getLogger(__name__)
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class ChiselGenerator(GeneratorBase):
 
     def run(self, flow: FlowBase):
-        sbt_files = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=ChiselBuildFile))
+        sbt_files = list(self.project.defaultDesign.files(type=ChiselBuildFile))
         if sbt_files:
             logging.debug("Running Chisel Generator")
             chisel_dir = self.builddir.joinpath('chisel')
@@ -19,12 +19,12 @@ class ChiselGenerator(GeneratorBase):
             ivy_dir.mkdir(parents=True, exist_ok=True)
 
         for sbt_file in sbt_files:
-            name = sbt_file.Path.parent.name
+            name = sbt_file.path.parent.name
             output_dir = self.builddir.joinpath('chisel', 'projects', name)
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            for item in sbt_file.Path.parent.glob('*'):
-                if item.absolute() == self.builddir.parent.absolute():
+            for item in sbt_file.path.parent.glob('*'):
+                if item.resolve() == self.builddir.parent.resolve():
                     continue
 
                 try:
@@ -34,11 +34,11 @@ class ChiselGenerator(GeneratorBase):
                     pass
 
             sh(
-                ['sbt', '--sbt-dir', sbt_dir.absolute(), 'run'],
+                ['sbt', '--sbt-dir', str(sbt_dir.resolve()), 'run'],
                 cwd=output_dir,
                 output=True)
 
             for file in output_dir.rglob('*.v'):
-                verilog_file = VerilogSourceFile(file.absolute())
-                sbt_file.FileSet.InsertFileAfter(sbt_file, verilog_file)
+                verilog_file = VerilogFile(file.resolve())
+                sbt_file.fileset.insert_file_after(sbt_file, verilog_file)
             next(sbt_files)

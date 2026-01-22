@@ -1,5 +1,18 @@
 package require Vivado
 
+proc get_version {} {
+    # NOTE: We cannot use standard method of getting a Tcl package version
+    # because some Vivado versions do not report it correctly.
+    # Vivado 2022.1 will return 1.2020.3 when querying the Tcl package version
+    # of Vivado (package present Vivado).
+    # Instead, we parse the output of 'version -short' command. We extract the
+    # version string up to the first underscore character, because installing
+    # pactches creates a version string like '2025.1_AR000036275' which
+    # is not compatible with version comparison operations.
+    set version [lindex [split [version -short] "_"] 0]
+}
+
+
 proc source_script {filename} {
     if {[catch {source -notrace $filename} err]} {
         send_msg_id {SimplHDL SOURCE-1} {ERROR} "Error sourcing $filename: $err"
@@ -65,7 +78,7 @@ proc set_hooks {filename} {
 
 proc add_reports {} {
     # Report strategies are only available from Vivado 2021.1
-    if {[package vsatisfies 1.[version -s] 1.2021.1]} {
+    if {[package vsatisfies 1.[get_version] 1.2021.1]} {
         foreach run [get_runs -filter {IS_IMPLEMENTATION==true}] {
             set reportName "${run}__route_report_cdc"
             create_report_config -report_name $reportName -step route_design -report_type report_cdc -run $run
@@ -86,66 +99,75 @@ proc add_filesets {} {
 }
 
 
-create_project -force -part {{project.Part}} {{project.Name}} [pwd]
+create_project -force -part {{project.part}} {{project.name}} [pwd]
 set_msg_config -suppress -id {Board 49-26}
 add_filesets
-{% if project.Parameters or project.Generics %}
+{% if project.parameters or project.generics %}
 foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
-    set_property generic "{{dict2str(project.Parameters, project.Generics)}}" $fileset
+    set_property generic "{{dict2str(project.parameters, project.generics)}}" $fileset
 }
 {% endif %}
-{% if project.Defines %}
+{% if project.defines %}
 foreach fileset [get_filesets -filter {FILESET_TYPE =~ *Srcs}] {
-    set_property verilog_define "{{dict2str(project.Defines)}}" $fileset
+    set_property verilog_define "{{dict2str(project.defines)}}" $fileset
 }
 {% endif %}
-{% for file in files %}
-{% if file.FileType == VerilogIncludeFile %}
-add_files "{{file.Path|replace('\\', '/')}}"
-{% elif file.FileType == SystemVerilogSourceFile %}
-read_verilog -sv "{{file.Path|replace('\\', '/')}}"
-{% elif file.FileType == VerilogSourceFile %}
-read_verilog "{{file.Path|replace('\\', '/')}}"
-{% elif file.FileType == VHDLSourceFile %}
-read_vhdl -vhdl2008 -library {{file.Library}} "{{file.Path|replace('\\', '/')}}"
-{% elif file.FileType == ConstraintFile %}
-{% if file[Scope] is not none %}
-read_xdc "{{file.Path|replace('\\', '/')}}" -ref "{{file[Scope]}}"
+{% for file in project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION) %}
+{% if isinstance(file, VerilogIncludeFile) %}
+add_files "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, SystemVerilogFile) %}
+read_verilog -sv "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, VerilogFile) %}
+read_verilog "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, VhdlFile) %}
+{# NOTE: Do not specify a library for VHDL components unless it differs from the default.
+   All Verilog modules are compiled into 'xil_defaultlib' by default.
+   Explicitly mapping a VHDL entity to a specific library (e.g., 'work.my_entity')
+   will cause elaboration errors if the underlying source is a Verilog module,
+   as the compiler will look for VHDL-style library bindings that don't exist
+   in the unified Verilog namespace.
+#}
+{% if file.library.name == project.defaultDesign.defaultLibrary.name %}
+read_vhdl -vhdl2008 "{{file.path|replace('\\', '/')}}"
 {% else %}
-read_xdc "{{file.Path|replace('\\', '/')}}"
+read_vhdl -vhdl2008 -library {{file.library.name}} "{{file.path|replace('\\', '/')}}"
 {% endif %}
-{% elif file.FileType == VivadoIPSpecificationFile %}
-{% if file.Path.suffix == '.bd' %}
-import_bd_file "{{file.Path|replace('\\', '/')}}"
-{% elif file.Path.suffix == '.xcix' %}
-add_files -norecurse "{{file.Path|replace('\\', '/')}}"
+{% elif isinstance(file, VivadoXdcFile) %}
+{% if file.scope is not none %}
+read_xdc "{{file.path|replace('\\', '/')}}" -ref "{{file.scope}}"
 {% else %}
-import_ip "{{file.Path|replace('\\', '/')}}"
+read_xdc "{{file.path|replace('\\', '/')}}"
 {% endif %}
-{% elif file.Path.suffix == '.dcp' %}
-add_files "{{file.Path|replace('\\', '/')}}"
-{% elif file.Path.suffix in ['.edif', '.ngc'] %}
-read_edif "{{file.Path|replace('\\', '/')}}"
-{% elif file.FileType == VivadoBDTclFile %}
-send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.Path|replace('\\', '/')}}: this might take some time."
-source_bd_script "{{file.Path|replace('\\', '/')}}"
-{% elif file.FileType == VivadoProjectStepFile %}
-add_files -fileset utils_1 "{{file.Path|replace('\\', '/')}}"
+{% elif isinstance(file, VivadoXciFile) %}
+import_ip "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, VivadoBdFile) %}
+import_bd_file "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, VivadoXcixFile) %}
+add_files -norecurse "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, VivadoDcpFile) %}
+add_files "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, EdifFile) %}
+read_edif "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, VivadoBdTclFile) %}
+send_msg_id {SimplHDL PRJ-3} {INFO} "Sourcing BD tcl file {{file.path|replace('\\', '/')}}: this might take some time."
+source_bd_script "{{file.path|replace('\\', '/')}}"
+{% elif isinstance(file, VivadoStepFile) %}
+add_files -fileset utils_1 "{{file.path|replace('\\', '/')}}"
 global step
 set step {project}
-send_msg_id {SimplHDL PRJ-2} {INFO} "Sourcing step tcl file {{file.Path|replace('\\', '/')}}."
-source_step_script "{{file.Path|replace('\\', '/')}}"
+send_msg_id {SimplHDL PRJ-2} {INFO} "Sourcing step tcl file {{file.path|replace('\\', '/')}}."
+source_step_script "{{file.path|replace('\\', '/')}}"
 unset step
 {% else %}
-add_files -fileset utils_1 "{{file.Path|replace('\\', '/')}}"
+add_files -fileset utils_1 "{{file.path|replace('\\', '/')}}"
 {% endif %}
 {% endfor %}
-{% if project.Parameters or project.Generics %}
-set_property generic "{{dict2str(project.Parameters, project.Generics)}}" [current_fileset]
+{% if project.garameters or project.generics %}
+set_property generic "{{dict2str(project.parameters, project.generics)}}" [current_fileset]
 {% endif %}
-{% if project.Defines %}
-set_property verilog_define "{{dict2str(project.Defines)}}" [current_fileset]
+{% if project.defines %}
+set_property verilog_define "{{dict2str(project.defines)}}" [current_fileset]
 {% endif %}
-set_property top {{project.DefaultDesign.DefaultFileSet.TopLevel}} [current_fileset]
+set_property top {{project.defaultDesign.toplevels[0]}} [current_fileset]
 add_reports
 update_compile_order -fileset [current_fileset]

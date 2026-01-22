@@ -11,19 +11,16 @@
 +incdir+{{incdir}}
 {% endfor %}
 {% for library in external_libraries %}
--makelib "{{library.Path}}":{{library.Name}} -endlib
--reflib {{library.Name}}
+-makelib "{{library.path}}":{{library.name}} -endlib
+-reflib {{library.name}}
 {% endfor %}
 {% for library in libraries %}
--reflib {{library.Name}}
+-reflib {{library.name}}
 {% endfor %}
 {% for fileset in filesets %}
--makelib {{fileset.VHDLLibrary.Name}}:"{{fileset.VHDLLibrary.Path}}"
-{% for file in fileset.GetFiles() %}
-
-{% if isinstance(file, (SystemVerilogSourceFile, VerilogSourceFile, VHDLSourceFile)) and 'simulation' in file[UsedIn] %}
-	"{{file.Path}}"
-{% endif %}
+-makelib {{fileset.library.name}}:"{{fileset.library.name}}"
+{% for file in fileset.files(type=(SystemVerilogFile, VerilogFile, VhdlFile), usedin=UsedIn.SIMULATION) %}
+	"{{file.path}}"
 {% endfor %}
 -endlib
 {% endfor %}

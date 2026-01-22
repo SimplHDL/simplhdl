@@ -1,6 +1,9 @@
 #%SimplAPI=1.0
+
+dependencies:
+  - hdl/add.yml
+
 files:
   - hdl/alu.sv
-  - hdl/add.sv
   - hdl/sub.sv
   - hdl/mul.sv

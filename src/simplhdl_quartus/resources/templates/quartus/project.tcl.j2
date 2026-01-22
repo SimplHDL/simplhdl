@@ -1,67 +1,67 @@
-project_new -overwrite -part "{{project.Part}}" "{{project.Name}}"
-set_global_assignment -name TOP_LEVEL_ENTITY "{{project.DefaultDesign.DefaultFileSet.TopLevel}}"
+project_new -overwrite -part "{{project.part}}" "{{project.name}}"
+set_global_assignment -name TOP_LEVEL_ENTITY "{{project.defaultDesign.toplevels[0]}}"
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2012
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name IP_SEARCH_PATHS "qsys/**/*"
-{% for parameter, value in project.Parameters.items() %}
+{% for parameter, value in project.parameters.items() %}
 set_parameter -name {{parameter}} {{value}}
 {% endfor %}
-{% for generic, value in project.Generics.items() %}
+{% for generic, value in project.generics.items() %}
 set_parameter -name {{generic}} {{value}}
 {% endfor %}
-{% for define, value in project.Defines.items() %}
+{% for define, value in project.defines.items() %}
 set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% endfor %}
-{% for file in project.DefaultDesign.Files(unique=True) if 'implementation' in file[UsedIn] %}
-{% if file.FileType == HDLSearchPath %}
-set_global_assignment -name SEARCH_PATH "{{file.Path}}"
-{% elif file.FileType == VerilogIncludeFile %}
-set_global_assignment -name VERILOG_INCLUDE_FILE "{{file.Path}}"
-set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
-{% elif file.FileType == SystemVerilogSourceFile %}
-set_global_assignment -library {{file.Library}} -name SYSTEMVERILOG_FILE "{{file.Path}}"
-{% elif file.FileType == VerilogSourceFile %}
-set_global_assignment -library {{file.Library}} -name VERILOG_FILE "{{file.Path}}"
-{% elif file.FileType == VHDLSourceFile %}
-set_global_assignment -library {{file.Library}} -name VHDL_FILE "{{file.Path}}"
-{% elif file.FileType == ConstraintFile %}
-{% if file[Scope] is not none %}
-set_global_assignment -name SDC_ENTITY_FILE "{{file.Path}}" -entity "{{file[Scope]}}"
+{% for file in project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION) %}
+{% if isinstance(file, HdlSearchPath) %}
+set_global_assignment -name SEARCH_PATH "{{file.path}}"
+{% elif isinstance(file, VerilogIncludeFile) %}
+set_global_assignment -name VERILOG_INCLUDE_FILE "{{file.path}}"
+set_global_assignment -name SEARCH_PATH "{{file.path.parent}}"
+{% elif isinstance(file, SystemVerilogFile) %}
+set_global_assignment -library {{file.library.name}} -name SYSTEMVERILOG_FILE "{{file.path}}"
+{% elif isinstance(file, VerilogFile) %}
+set_global_assignment -library {{file.library.name}} -name VERILOG_FILE "{{file.path}}"
+{% elif isinstance(file, VhdlFile) %}
+set_global_assignment -library {{file.library.name}} -name VHDL_FILE "{{file.path}}"
+{% elif isinstance(file, SdcFile) %}
+{% if file.scope is not none %}
+set_global_assignment -name SDC_ENTITY_FILE "{{file.path}}" -entity "{{file.scope}}"
 {% else %}
-set_global_assignment -name SDC_FILE "{{file.Path}}"
+set_global_assignment -name SDC_FILE "{{file.path}}"
 {% endif %}
-{% elif file.FileType == TCLSourceFile %}
-set_global_assignment -name TCL_SCRIPT_FILE "{{file.Path}}"
-{% elif file.FileType == QuartusSourceTCLFile %}
-set_global_assignment -name SOURCE_TCL_SCRIPT_FILE "{{file.Path}}"
-{% elif file.FileType == QuartusIPSpecificationFile %}
-set_global_assignment -name IP_FILE "{{file.Path}}"
-{% elif file.FileType == QuartusQIPSpecificationFile %}
-set_global_assignment -name QIP_FILE "{{file.Path}}"
-{% elif file.FileType == QuartusQSYSSpecificationFile %}
-set_global_assignment -name QSYS_FILE "{{file.Path}}"
-set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
-{% elif file.FileType == MemoryInitFile %}
-{% if file.Path.suffix == '.mif' %}
-set_global_assignment -name MIF_FILE "{{file.Path}}"
+{% elif isinstance(file, TclFile) %}
+set_global_assignment -name TCL_SCRIPT_FILE "{{file.path}}"
+{% elif isinstance(file, QuartusSourceTclFile) %}
+set_global_assignment -name SOURCE_TCL_SCRIPT_FILE "{{file.path}}"
+{% elif isinstance(file, QuartusIpFile) %}
+set_global_assignment -name IP_FILE "{{file.path}}"
+{% elif isinstance(file, QuartusQipFile) %}
+set_global_assignment -name QIP_FILE "{{file.path}}"
+{% elif isinstance(file, QuartusQsysFile) %}
+set_global_assignment -name QSYS_FILE "{{file.path}}"
+set_global_assignment -name SEARCH_PATH "{{file.path.parent}}"
+{% elif isinstance(file, MemoryInitFile) %}
+set_global_assignment -name MIF_FILE "{{file.path}}"
+set_global_assignment -name SEARCH_PATH "{{file.path.parent}}"
+{% elif isinstance(file, MemoryHexFile) %}
+set_global_assignment -name HEX_FILE "{{file.path}}"
+set_global_assignment -name SEARCH_PATH "{{file.path.parent}}"
+{% elif isinstance(file, QuartusQsfFile) %}
+source "{{file.path}}"
+{% elif isinstance(file, QuartusIniFile) %}
+file copy -force "{{file.path}}" "quartus.ini"
+{% elif isinstance(file, QuartusStpFile) %}
 {% else %}
-set_global_assignment -name HEX_FILE "{{file.Path}}"
-{% endif %}
-set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
-{% elif file.FileType == SettingFile and file.Path.suffix == '.qsf' %}
-source "{{file.Path}}"
-{% elif file.FileType == QuartusIniFile %}
-file copy -force "{{file.Path}}" "quartus.ini"
-{% else %}
-set_global_assignment -name SOURCE_FILE "{{file.Path}}"
-set_global_assignment -name SEARCH_PATH "{{file.Path.parent}}"
+set_global_assignment -name SOURCE_FILE "{{file.path}}"
+set_global_assignment -name SEARCH_PATH "{{file.path.parent}}"
 {% endif %}
 {% endfor %}
 
-{% for file in project.DefaultDesign.Files(QuartusSignalTapFile) %}
-set_global_assignment -name SIGNALTAP_FILE "{{file.Path}}"
+{% for file in project.defaultDesign.files(type=QuartusStpFile) %}
+set_global_assignment -name SIGNALTAP_FILE "{{file.path}}"
 {% if loop.last %}
 set_global_assignment -name ENABLE_SIGNALTAP ON
-set_global_assignment -name USE_SIGNALTAP_FILE "{{file.Path}}"
+set_global_assignment -name USE_SIGNALTAP_FILE "{{file.path}}"
 {% endif %}
 {% endfor %}

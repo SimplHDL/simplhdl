@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from jinja2 import Template
 
-from simplhdl import FileSet, Project
+from simplhdl import Fileset, Project
 from simplhdl.plugin import FlowTools, SimulationFlow
 from simplhdl.utils import escape, sh
 
@@ -104,7 +106,7 @@ class RivieraProFlow(SimulationFlow):
         self.templates = rivieraprotemplates
         self.tools.add(FlowTools.RIVIERAPRO)
 
-    def get_globals(self) -> Dict[str, Any]:
+    def get_globals(self) -> dict[str, Any]:
         globals = super().get_globals()
         globals['vlog_args'] = self.vlog_args()
         globals['vcom_args'] = self.vcom_args()
@@ -112,7 +114,7 @@ class RivieraProFlow(SimulationFlow):
         globals['vsim_args'] = self.vsim_args()
         return globals
 
-    def get_project_templates(self, environment) -> List[Template]:
+    def get_project_templates(self, environment) -> list[Template]:
         return [
             environment.get_template('Makefile.j2'),
             environment.get_template('project.mk.j2')
@@ -126,17 +128,17 @@ class RivieraProFlow(SimulationFlow):
         else:
             return list()
 
-    def fileset_verilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-work {library.Name}"
+    def fileset_verilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-work {library.name}"
 
-    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-sv2k17 -work {library.Name}"
+    def fileset_systemverilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-sv2k17 -work {library.name}"
 
-    def fileset_vhdl_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-2008 -work {library.Name}"
+    def fileset_vhdl_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-2008 -work {library.name}"
 
     def vlog_args(self) -> str:
         args = set()
@@ -148,7 +150,7 @@ class RivieraProFlow(SimulationFlow):
             args.add(f"-l {name}")
         if self.args.gui:
             args.add('-dbg')
-        for name, value in self.project.Defines.items():
+        for name, value in self.project.defines.items():
             args.add(f"+define+{name}={escape(value)}")
         return ' '.join(list(args) + [self.args.vlog_args])
 
@@ -173,11 +175,11 @@ class RivieraProFlow(SimulationFlow):
             args.add('-quiet')
         for name in self.get_libraries().keys():
             args.add(f"-L {name}")
-        for name, value in self.project.Generics.items():
+        for name, value in self.project.generics.items():
             args.add(f"-g{name}={escape(value)}")
-        for name, value in self.project.Parameters.items():
+        for name, value in self.project.parameters.items():
             args.add(f"-g{name}={escape(value)}")
-        for name, value in self.project.PlusArgs.items():
+        for name, value in self.project.plusargs.items():
             args.add(f"+{name}={escape(value)}")
         if self.args.gui:
             args.add('-dbg +access +r')
@@ -188,23 +190,9 @@ class RivieraProFlow(SimulationFlow):
         args.add(f"-random_seed {self.args.random_seed}")
         return ' '.join(list(args) + [self.args.vopt_args])
 
-#    def vsim_args(self) -> str:
-#        args = set()
-#        args.add(f"-sv_seed {self.args.seed}")
-#        if self.args.verbose == 0:
-#            args.add('-quiet')
-#        for name, value in self.project.PlusArgs.items():
-#            args.add(f"+{name}={value}")
-#        if self.args.gui:
-#            args.add('-onfinish final')
-#        else:
-#            args.add('-onfinish exit')
-
-        return ' '.join(list(args) + [self.args.vsim_args])
-
-    def get_library(self, fileset: FileSet) -> str:
+    def get_library(self, fileset: Fileset) -> str:
         try:
-            library = fileset.VHDLLibrary.Name
+            library = fileset.library.name
         except AttributeError:
             # TODO: This is a workaround The default fileset is FileSet
             #       which is bugged. Because it is empty we don't need it
@@ -220,7 +208,7 @@ class RivieraProFlow(SimulationFlow):
 
         if self.args.do:
             if Path(self.args.do).exists():
-                os.environ['DO_CMD'] = f"-do {Path(self.args.do).absolute()}"
+                os.environ['DO_CMD'] = f"-do {Path(self.args.do).resolve()}"
             else:
                 os.environ['DO_CMD'] = f"-do '{self.args.do}'"
 
@@ -234,7 +222,7 @@ class RivieraProFlow(SimulationFlow):
 
     def run_hooks(self, name):
         try:
-            for command in self.project.Hooks[name]:
+            for command in self.project.hooks[name]:
                 logger.info(f"Running {name} hook: {command}")
                 sh(command.split(), cwd=self.builddir, output=True)
         except KeyError:

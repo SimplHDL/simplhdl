@@ -1,16 +1,17 @@
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from jinja2 import Template
 
+from simplhdl import Fileset, Project
 from simplhdl.plugin import FlowTools, SimulationFlow
-from simplhdl.pyedaa import ModelsimIniFile
-from simplhdl.pyedaa.fileset import FileSet
-from simplhdl.pyedaa.project import Project
+from simplhdl.project.files import ModelsimIniFile
 from simplhdl.utils import escape, sh
 
 from ..resources.templates import modelsim as modelsimtemplates
@@ -120,7 +121,7 @@ class ModelSimFlow(SimulationFlow):
         self.templates = modelsimtemplates
         self.tools.add(FlowTools.MODELSIM)
 
-    def get_globals(self) -> Dict[str, Any]:
+    def get_globals(self) -> dict[str, Any]:
         globals = super().get_globals()
         globals['vlog_args'] = self.vlog_args()
         globals['vcom_args'] = self.vcom_args()
@@ -129,7 +130,7 @@ class ModelSimFlow(SimulationFlow):
         globals['wavedump'] = self.args.wavedump
         return globals
 
-    def get_project_templates(self, environment) -> List[Template]:
+    def get_project_templates(self, environment) -> list[Template]:
         return [
             environment.get_template('Makefile.j2'),
             environment.get_template('project.mk.j2'),
@@ -145,25 +146,25 @@ class ModelSimFlow(SimulationFlow):
         else:
             return list()
 
-    def fileset_verilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-work {library.Name}"
+    def fileset_verilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-work {library.name}"
 
-    def fileset_systemverilog_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-sv -work {library.Name}"
+    def fileset_systemverilog_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-sv -work {library.name}"
 
-    def fileset_vhdl_args(self, fileset: FileSet) -> str:
-        library = fileset.VHDLLibrary
-        return f"-2008 -work {library.Name}"
+    def fileset_vhdl_args(self, fileset: Fileset) -> str:
+        library = fileset.library
+        return f"-2008 -work {library.name}"
 
     def vlog_args(self) -> str:
         args = Flag()
         if self.args.verbose == 0:
             args.add('-quiet')
-        for name in self.get_libraries().keys():
-            args.add(f"-L {name}")
-        for name, value in self.project.Defines.items():
+        for library in self.project.defaultDesign.libraries:
+            args.add(f"-L {library.name}")
+        for name, value in self.project.defines.items():
             args.add(f"+define+{name}={escape(value)}")
         return ' '.join(list(args) + [self.args.vlog_args])
 
@@ -181,13 +182,13 @@ class ModelSimFlow(SimulationFlow):
         args = Flag()
         if self.args.verbose == 0:
             args.add('-quiet')
-        for name in self.get_libraries().keys():
-            args.add(f"-L {name}")
+        for library in self.project.defaultDesign.libraries:
+            args.add(f"-L {library.name}")
         if self.args.timescale:
             args.add(f"-timescale {self.args.timescale}")
-        for name, value in self.project.Generics.items():
+        for name, value in self.project.generics.items():
             args.add(f"-g{name}={escape(value)}")
-        for name, value in self.project.Parameters.items():
+        for name, value in self.project.parameters.items():
             args.add(f"-g{name}={escape(value)}")
         if self.args.debug:
             args.add('+acc')
@@ -205,7 +206,7 @@ class ModelSimFlow(SimulationFlow):
             args.add(timescale)
         if self.args.verbose == 0:
             args.add('-quiet')
-        for name, value in self.project.PlusArgs.items():
+        for name, value in self.project.plusargs.items():
             args.add(f"+{name}={escape(value)}")
         if self.args.gui:
             args.add('-onfinish final')
@@ -216,9 +217,9 @@ class ModelSimFlow(SimulationFlow):
 
         return ' '.join(list(args) + [self.args.vsim_args])
 
-    def get_library(self, fileset: FileSet) -> str:
+    def get_library(self, fileset: Fileset) -> str:
         try:
-            library = fileset.VHDLLibrary.Name
+            library = fileset.library.name
         except AttributeError:
             # TODO: This is a workaround The default fileset is FileSet
             #       which is bugged. Because it is empty we don't need it
@@ -231,16 +232,16 @@ class ModelSimFlow(SimulationFlow):
         self.copy_modelsim_ini()
 
     def copy_modelsim_ini(self):
-        files = list(self.project.DefaultDesign.Files(ModelsimIniFile))
+        files = list(self.project.defaultDesign.files(ModelsimIniFile))
         if len(files) > 1:
             logger.warning("Multiple modelsim.ini files found in project. Only the first file will be used.")
         for i, file in enumerate(reversed(files)):
             if i > 0:
-                logger.warning(f"ignore {file.Path}")
+                logger.warning(f"ignore {file.path}")
             else:
-                logger.debug(f"Copy {file.Path} to {self.builddir}")
-                logger.info(f"Use {file.Path}")
-                shutil.copy(file.Path.absolute(), self.builddir.absolute())
+                logger.debug(f"Copy {file.path} to {self.builddir}")
+                logger.info(f"Use {file.path}")
+                shutil.copy(file.path.resolve(), self.builddir.resolve())
 
     def execute(self, step: str) -> None:
         self.run_hooks('pre')
@@ -254,7 +255,7 @@ class ModelSimFlow(SimulationFlow):
 
         if self.args.do:
             if Path(self.args.do).exists():
-                os.environ['DO_CMD'] = f"-do {Path(self.args.do).absolute()}"
+                os.environ['DO_CMD'] = f"-do {Path(self.args.do).resolve()}"
             else:
                 os.environ['DO_CMD'] = f"-do '{self.args.do}'"
 
@@ -268,14 +269,14 @@ class ModelSimFlow(SimulationFlow):
 
     def run_hooks(self, name):
         try:
-            for command in self.project.Hooks[name]:
+            for command in self.project.hooks[name]:
                 logger.info(f"Running {name} hook: {command}")
                 sh(command.split(), cwd=self.builddir, output=True)
         except KeyError:
             # NOTE: Continue if no hook is registret
             pass
 
-    def timescale(self) -> Optional[str]:
+    def timescale(self) -> str | None:
         """
         Sets the timescale for VHDL based on the Verilog timescale
         resolution.

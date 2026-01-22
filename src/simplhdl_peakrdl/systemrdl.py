@@ -20,14 +20,14 @@ from systemrdl import RDLCompileError, RDLCompiler, RDLListener, RDLWalker
 from systemrdl.node import AddrmapNode
 from systemrdl.rdltypes import AccessType, OnReadType, OnWriteType
 
-from simplhdl import FileSet
+from simplhdl import FileOrder
 from simplhdl.plugin import FlowBase, FlowCategory, GeneratorBase
-from simplhdl.pyedaa import (
+from simplhdl.project.files import (
     CocotbPythonFile,
-    SystemRDLSourceFile,
-    SystemVerilogSourceFile,
-    VerilogSourceFile,
-    VHDLSourceFile,
+    SystemRdlFile,
+    SystemVerilogFile,
+    VerilogFile,
+    VhdlFile,
 )
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class Listener(RDLListener):
 def get_template_dirs() -> List[Path]:
     string = os.getenv('SIMPLHDL_SYSTEMRDL_TEMPLATES')
     if string:
-        templates = [Path(p) for p in string.split(':')]
+        templates = {Path(p).resolve() for p in string.split(':')}
         for t in templates:
             if not t.is_dir():
                 logger.error(f"Directory {t} does not exist")
@@ -77,7 +77,7 @@ def get_template_dirs() -> List[Path]:
     else:
         logger.error("SIMPLHDL_SYSTEMRDL_TEMPLATES is not set, no templates found")
         raise SystemError
-    return templates
+    return list(templates)
 
 
 def get_reg_access(reg) -> str:
@@ -189,24 +189,22 @@ class PeakRdlGenerator(GeneratorBase):
             return
         context = template.render(node=node)
         outputdir.mkdir(parents=True, exist_ok=True)
-        outputfile: Path = outputdir.joinpath(f'{node.type_name}__{Path(template.filename).name[:-3]}').absolute()
+        outputfile: Path = outputdir.joinpath(f'{node.type_name}__{Path(template.filename).name[:-3]}').resolve()
         with outputfile.open('w') as f:
             f.write(context)
-        rdlfile = self.project.DefaultDesign.GetFile(node.inst.def_src_ref.path)
-        parent_fileset = rdlfile.FileSet
-        fileset = FileSet(name=rdlfile.Path, vhdlLibrary=parent_fileset.VHDLLibrary)
+        rdlfile = self.project.defaultDesign.get_file(node.inst.def_src_ref.path)
+        fileset = rdlfile.parent
         if outputfile.suffix == '.sv':
-            fileset.AddFile(SystemVerilogSourceFile(outputfile))
+            fileset.insert_file_after(rdlfile, SystemVerilogFile(outputfile))
         if outputfile.suffix == '.v':
-            fileset.AddFile(VerilogSourceFile(outputfile))
+            fileset.insert_file_after(rdlfile, VerilogFile(outputfile))
         if outputfile.suffix == '.vhd':
-            fileset.AddFile(VHDLSourceFile(outputfile))
-        parent_fileset.AddFileSet(fileset)
+            fileset.insert_file_after(rdlfile, VhdlFile(outputfile))
 
-    def peakrdl_regmodel(self, node, outputdir, config) -> None:
+    def peakrdl_regblock(self, node, outputdir, config) -> None:
         RegblockExporter().export(
             node=node,
-            output_dir=str(outputdir.absolute()),
+            output_dir=str(outputdir.resolve()),
             cpuif_cls=AXI4Lite_Cpuif_flattened,
             module_name=config.get('module_name', f'{node.type_name}_addrmap'),
             package_name=config.get('package_name', f'{node.type_name}_pkg'),
@@ -215,17 +213,15 @@ class PeakRdlGenerator(GeneratorBase):
             err_if_bad_addr=config.get('err_if_bad_addr', False),
             err_if_bad_rw=config.get('err_if_bad_rw', False)
         )
-        modulefile: Path = outputdir.joinpath(f'{node.type_name}_pkg.sv').absolute()
-        packetfile: Path = outputdir.joinpath(f'{node.type_name}_addrmap.sv').absolute()
-        rdlfile = self.project.DefaultDesign.GetFile(node.inst.def_src_ref.path)
-        parent_fileset = rdlfile.FileSet
-        fileset = FileSet(name=rdlfile.Path, vhdlLibrary=parent_fileset.VHDLLibrary)
-        fileset.AddFile(SystemVerilogSourceFile(modulefile))
-        fileset.AddFile(SystemVerilogSourceFile(packetfile))
-        parent_fileset.AddFileSet(fileset)
+        modulefile: Path = outputdir.joinpath(f'{node.type_name}_pkg.sv').resolve()
+        packetfile: Path = outputdir.joinpath(f'{node.type_name}_addrmap.sv').resolve()
+        rdlfile = self.project.defaultDesign.get_file(node.inst.def_src_ref.path)
+        fileset = rdlfile.parent
+        fileset.insert_file_after(rdlfile, SystemVerilogFile(modulefile))
+        fileset.insert_file_after(rdlfile, SystemVerilogFile(packetfile))
 
     def run(self, flow: FlowBase):  # noqa: C901
-        rdlfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=SystemRDLSourceFile))
+        rdlfiles = self.project.defaultDesign.files(type=SystemRdlFile, order=FileOrder.COMPILE)
         output_dir = self.builddir.joinpath('systemrdl')
         config = dict()
         if os.getenv('SIMPLHDL_CONFIG'):
@@ -252,7 +248,7 @@ class PeakRdlGenerator(GeneratorBase):
 
         try:
             for rdlfile in rdlfiles:
-                rdlc.compile_file(rdlfile.Path, defines=self.project.Defines)
+                rdlc.compile_file(rdlfile.path, defines=self.project.defines)
                 root = rdlc.elaborate()
         except RDLCompileError as e:
             logger.error(str(e))
@@ -262,7 +258,6 @@ class PeakRdlGenerator(GeneratorBase):
         walker.walk(root, Listener())
 
         templatedirs = get_template_dirs()
-
         for templatedir in templatedirs:
             logger.info(f"Generate from template {templatedir}")
             sub_dir = output_dir.joinpath(templatedir.name)
@@ -282,24 +277,28 @@ class PeakRdlGenerator(GeneratorBase):
             template = env.find_template('registermap')
             for node in leafnodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
-                self.peakrdl_regmodel(node=node, outputdir=output_dir.joinpath('hdl'), config=regblock_config)
 
             template = env.find_template('hierachymap')
             for node in hierachynodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
 
-        # NOTE: generate PyUVM Register Model if simulation and Cocotb is present, i.e. has cocotb files
-        if flow.category == FlowCategory.SIMULATION and list(self.project.DefaultDesign.Files(CocotbPythonFile)):
-            logger.info("Generate PyUVM Register Model")
-            output = output_dir.joinpath('pyuvm', 'ralmodel.py')
+        # NOTE: generate PeakRDL Register Block
+        logger.info("Generate PeakRDL Register Block")
+        for node in leafnodetypes:
+            self.peakrdl_regblock(node=node, outputdir=output_dir.joinpath('peakrdl-regblock'), config=regblock_config)
+
+        # NOTE: generate PeakRDL PyUVM Register Model if simulation and Cocotb is present, i.e. has cocotb files
+        if flow.category == FlowCategory.SIMULATION and list(self.project.defaultDesign.files(CocotbPythonFile)):
+            logger.info("Generate PeakRDL PyUVM Register Model")
+            output = output_dir.joinpath('peakrdl-pyuvm', 'ralmodel.py')
             output.parent.mkdir(parents=True, exist_ok=True)
             PyUVMExporter().export(root, str(output))
-            fileset = rdlfiles[-1].FileSet
-            fileset.InsertFileAfter(rdlfile, CocotbPythonFile(output))
+            fileset = rdlfiles[-1].parent
+            fileset.insert_file_after(rdlfile, CocotbPythonFile(output))
 
         logger.info("Generate HTML Documentation")
         HTMLExporter().export(
             root,
-            output_dir.joinpath('docs'),
+            output_dir.joinpath('peakrdl-docs'),
             skip_not_present=html_config.get('skip_not_present', False),
         )

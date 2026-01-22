@@ -2,38 +2,39 @@ try:
     from importlib.resources import files as resources_files
 except ImportError:
     from importlib_resources import files as resources_files
+import logging
 import os
 import shutil
-import logging
-
 from argparse import Namespace
-from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 
-from simplhdl.plugin import ImplementationFlow, FlowTools
-from .resources.templates import quartus as templates
-from simplhdl.utils import sh, generate_from_template
-from simplhdl.pyedaa import (
-    VerilogIncludeFile,
-    VerilogSourceFile,
-    SystemVerilogSourceFile,
-    VHDLSourceFile,
-    ConstraintFile,
-    EDIFNetlistFile,
-    NetlistFile,
-    SettingFile,
-    HDLSearchPath,
-    VerilogIncludeSearchPath,
+from jinja2 import Environment, FileSystemLoader
+
+from simplhdl import Project, FileOrder, FilesetOrder
+from simplhdl.plugin import FlowTools, ImplementationFlow
+from simplhdl.project.files import (
+    EdifFile,
+    HdlSearchPath,
+    MemoryHexFile,
     MemoryInitFile,
-    QuartusSignalTapFile,
     QuartusIniFile,
-    QuartusQIPSpecificationFile,
-    QuartusQSYSSpecificationFile,
-    QuartusIPSpecificationFile,
-    QuartusSourceTCLFile
+    QuartusIpFile,
+    QuartusQipFile,
+    QuartusQsfFile,
+    QuartusQsysFile,
+    QuartusSourceTclFile,
+    QuartusStpFile,
+    SdcFile,
+    SystemVerilogFile,
+    TclFile,
+    VerilogFile,
+    VerilogIncludeFile,
+    VhdlFile,
+    UsedIn,
 )
-from simplhdl import Project
-from simplhdl.pyedaa.attributes import UsedIn, Scope
+from simplhdl.utils import generate_from_template, sh
+
+from .resources.templates import quartus as templates
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class QuartusFlow(ImplementationFlow):
             self.execute(self.args.step)
 
     def archive(self) -> None:
-        name = self.project.Name
+        name = self.project.name
         if self.args.archive == 'project':
             fileset = 'full_db'
         elif self.args.archive == 'project-service-request':
@@ -94,7 +95,7 @@ class QuartusFlow(ImplementationFlow):
         sh(command.split(), output=True, cwd=self.builddir)
 
     def validate(self):
-        if self.project.DefaultDesign.DefaultFileSet.TopLevel is None:
+        if not self.project.defaultDesign.toplevels:
             raise Exception("No top level specified")
 
     def configure(self):
@@ -110,26 +111,28 @@ class QuartusFlow(ImplementationFlow):
         template = environment.get_template('project.tcl.j2')
         project_updated = generate_from_template(
             template, self.builddir,
-            HDLSearchPath=HDLSearchPath,
-            VerilogIncludeSearchPath=VerilogIncludeSearchPath,
+            HdlSearchPath=HdlSearchPath,
+            isinstance=isinstance,
             VerilogIncludeFile=VerilogIncludeFile,
-            VerilogSourceFile=VerilogSourceFile,
-            SystemVerilogSourceFile=SystemVerilogSourceFile,
-            VHDLSourceFile=VHDLSourceFile,
-            ConstraintFile=ConstraintFile,
-            QuartusIPSpecificationFile=QuartusIPSpecificationFile,
-            EDIFNetlistFile=EDIFNetlistFile,
-            NetlistFile=NetlistFile,
-            SettingFile=SettingFile,
-            QuartusSignalTapFile=QuartusSignalTapFile,
-            QuartusQIPSpecificationFile=QuartusQIPSpecificationFile,
-            QuartusQSYSSpecificationFile=QuartusQSYSSpecificationFile,
-            QuartusSourceTCLFile=QuartusSourceTCLFile,
+            VerilogFile=VerilogFile,
+            SystemVerilogFile=SystemVerilogFile,
+            VhdlFile=VhdlFile,
+            SdcFile=SdcFile,
+            QuartusIpFile=QuartusIpFile,
+            EdifFile=EdifFile,
+            QuartusQsfFile=QuartusQsfFile,
+            QuartusStpFile=QuartusStpFile,
+            QuartusQipFile=QuartusQipFile,
+            QuartusQsysFile=QuartusQsysFile,
+            QuartusSourceTclFile=QuartusSourceTclFile,
             QuartusIniFile=QuartusIniFile,
             MemoryInitFile=MemoryInitFile,
+            MemoryHexFile=MemoryHexFile,
+            TclFile=TclFile,
             project=self.project,
             UsedIn=UsedIn,
-            Scope=Scope)
+            FileOrder=FileOrder,
+            FilesetOrder=FilesetOrder)
         template = environment.get_template('run.tcl.j2')
         generate_from_template(template, self.builddir,
                                project=self.project)
@@ -139,7 +142,7 @@ class QuartusFlow(ImplementationFlow):
             sh(command, cwd=self.builddir, output=True)
 
     def execute(self, step: str):
-        name = self.project.Name
+        name = self.project.name
         if self.args.gui:
             sh(['quartus', name], cwd=self.builddir)
             return

@@ -1,4 +1,4 @@
 TOPLEVELS := {{toplevels}}
-LIBRARIES := {{ libraries | join(' ', 'Name') }}
+LIBRARIES := {{ libraries | join(' ', 'name') }}
 VHDL_FILESETS := $(addsuffix .com,$(wildcard *-vhdl.fileset))
 VERILOG_FILESETS := $(addsuffix .com,$(wildcard *verilog.fileset))

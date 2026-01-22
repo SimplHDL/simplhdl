@@ -1,10 +1,10 @@
 VPI_SO_PATH := $(shell cocotb-config --lib-name-path vpi questa)
 FLI_SO_PATH := $(shell cocotb-config --lib-name-path fli questa)
 
-{% if cocotbhdltype == VerilogSourceFile %}
+{% if cocotbhdltype == VerilogFile %}
 COCOTB_FLAGS := -no_autoacc -pli $(VPI_SO_PATH)
 export GPI_EXTRA := $(FLI_SO_PATH):cocotbfli_entry_point
-{% elif cocotbhdltype == VHDLSourceFile %}
+{% elif cocotbhdltype == VhdlFile %}
 COCOTB_FLAGS := -no_autoacc -foreign "cocotb_init $(FLI_SO_PATH)"
 export GPI_EXTRA := $(VPI_SO_PATH):cocotbvpi_entry_point
 {% endif %}
@@ -17,6 +17,9 @@ else
 endif
 export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
 
+export PYGPI_PYTHON_BIN := $(shell cocotb-config --python-bin)
+export COCOTB_TEST_MODULES := {{cocotbtop}}
+export COCOTB_TOPLEVEL := {{cocotbdut}}
 export MODULE := {{cocotbtop}}
 export TOPLEVEL := {{cocotbdut}}
 

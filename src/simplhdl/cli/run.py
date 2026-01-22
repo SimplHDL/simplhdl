@@ -40,9 +40,9 @@ class Run(FlowBase):
 
     def _run_target(self) -> None:
         if self.args.target:
-            target = self.project.GetTarget(self.args.target)
+            target = self.project.get_target(self.args.target)
         else:
-            target = self.project.DefaultTarget
+            target = self.project.defaultTarget
         if target.args.flow == 'run':
             raise FlowError("Target flow can't be 'run'")
         with chdir(target.cwd):

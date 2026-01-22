@@ -12,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from simplhdl import Project
 from simplhdl.plugin import FlowBase
-from simplhdl.pyedaa import PythonSourceFile
+from simplhdl.project.files import CocotbPythonFile
 from simplhdl.utils import CalledShError, generate_from_template, sh
 
 from ..resources.templates import flake8 as templates
@@ -47,7 +47,7 @@ class Flake8Flow(FlowBase):
         if self.args.files:
             self.files = [Path(f) for f in self.args.files if Path(f).suffix == '.py']
         else:
-            self.files = [f.Path for f in self.project.DefaultDesign.DefaultFileSet.Files(PythonSourceFile)]
+            self.files = [f.Path for f in self.project.defaultDesign.files(CocotbPythonFile)]
 
     def generate(self):
         config = os.getenv('SIMPLHDL_FLAKE8_CONFIG')

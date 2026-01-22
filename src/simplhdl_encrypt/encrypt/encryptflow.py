@@ -7,13 +7,12 @@ from typing import List
 from simplhdl import Project
 from simplhdl.cli.info import Info
 from simplhdl.plugin import FlowError, FlowTools, ImplementationFlow
-from simplhdl.pyedaa import (
-    SystemVerilogSourceFile,
+from simplhdl.project.files import (
+    SystemVerilogFile,
+    VerilogFile,
     VerilogIncludeFile,
-    VerilogSourceFile,
-    VHDLSourceFile,
+    VhdlFile,
 )
-from simplhdl.pyedaa.attributes import Encrypt
 from simplhdl.utils import sh
 
 logger = logging.getLogger(__name__)
@@ -80,32 +79,32 @@ class EncryptFlow(ImplementationFlow):
         outputdir = self.args.outdir or self.builddir
         outputdir.mkdir(parents=True, exist_ok=True)
 
-        for file in self.project.DefaultDesign.Files():
-            if file.FileType in [SystemVerilogSourceFile, VerilogIncludeFile]:
+        for file in self.project.defaultDesign.files():
+            if isinstance(file, (SystemVerilogFile, VerilogIncludeFile)):
                 language = "systemverilog"
-            elif file.FileType == VerilogSourceFile:
+            elif isinstance(file, VerilogFile):
                 language = "verilog"
-            elif file.FileType == VHDLSourceFile:
+            elif isinstance(file, VhdlFile):
                 language = "vhdl"
             else:
                 continue
 
             if self.args.no_encrypt:
-                destFile = outputdir.joinpath(file.Path.name)
+                destFile = outputdir.joinpath(file.path.name)
             elif self.args.inplace:
-                destFile = file.Path.with_suffix(f"{file.Path.suffix}p")
+                destFile = file.path.with_suffix(f"{file.path.suffix}p")
             else:
-                destFile = outputdir.joinpath(file.Path.name).with_suffix(f"{file.Path.suffix}p")
+                destFile = outputdir.joinpath(file.path.name).with_suffix(f"{file.path.suffix}p")
 
             if self.args.vendors:
                 vendors = self.args.vendors
             else:
                 vendors = VENDORS
 
-            if self.args.no_encrypt or not file[Encrypt]:
-                shutil.copyfile(file.Path.absolute(), destFile.absolute())
+            if self.args.no_encrypt or not file.encrypt:
+                shutil.copyfile(file.path.resolve(), destFile.resolve())
             else:
-                encrypt(file.Path, destFile, language, vendors)
+                encrypt(file.path, destFile, language, vendors)
 
     def is_tool_setup(self) -> None:
         exit: bool = False
@@ -135,10 +134,10 @@ def encrypt(src: Path, dst: Path, language: str, vendors: List[str]) -> Path:
     """
     destFile = dst.joinpath(src.name) if dst.is_dir() else dst
     command = [
-        "encrypt_1735", str(src.absolute()),
+        "encrypt_1735", str(src.resolve()),
         "--language", language,
         "--quartus",
         f"--simulation={','.join(vendors)}",
-        "-of", f"{destFile.absolute()}"
+        "-of", f"{destFile.resolve()}"
     ]
     sh(command, output=True)

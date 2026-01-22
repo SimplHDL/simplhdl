@@ -6,7 +6,7 @@ from typing import Dict, Set
 from abc import ABCMeta, abstractmethod
 from enum import Flag, auto
 
-from ..pyedaa.project import Project
+from ..project.project import Project
 
 
 class FlowBase(metaclass=ABCMeta):

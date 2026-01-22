@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Generator
 from abc import ABCMeta, abstractmethod
 
-from ..pyedaa.project import Project
+from ..project.project import Project
 from .flow import FlowCategory
 
 

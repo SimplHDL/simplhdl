@@ -56,7 +56,7 @@ class QuartusDseFlow(ImplementationFlow):
         self.execute()
 
     def execute(self):
-        name = self.project.Name
+        name = self.project.name
         if self.args.gui:
             sh(['quartus_dsew', name], cwd=self.builddir)
             return

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from argparse import Namespace
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
-from simplhdl import FileSet, Project
+from simplhdl import Fileset, Project
 from simplhdl.plugin import ParserBase
 
 
@@ -15,7 +16,7 @@ class FuseSocParser(ParserBase):
     def __init__(self):
         super().__init__()
 
-    def is_valid_format(self, filename: Optional[Path]) -> bool:
+    def is_valid_format(self, filename: Path | None) -> bool:
         if filename is None:
             return False
 
@@ -25,11 +26,11 @@ class FuseSocParser(ParserBase):
             else:
                 return False
 
-    def parse(self, filename: Optional[Path], project: Project, args: Namespace) -> FileSet:
+    def parse(self, filename: Path | None, project: Project, args: Namespace) -> Fileset:
         with open(filename, 'r') as fp:
             try:
                 spec = yaml.safe_load(fp)
             except yaml.YAMLError as e:
                 raise e
         print(spec)
-        return FileSet("name")
+        return Fileset("name")

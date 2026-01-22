@@ -4,7 +4,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from .flow import FlowBase, FlowCategory
-from ..pyedaa.project import Project
+from ..project.project import Project
 
 logger = logging.getLogger(__name__)
 

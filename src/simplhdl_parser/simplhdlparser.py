@@ -1,34 +1,20 @@
+from __future__ import annotations
+
 from argparse import Namespace
 from pathlib import Path
 from shlex import split
-from typing import Dict, Optional
 
 import yaml
 
 from simplhdl import (
-    FileSet,
+    Fileset,
     Project,
 )
 from simplhdl.__main__ import parse_arguments
 from simplhdl.plugin import ParserBase
-from simplhdl.pyedaa import (
-    ChiselBuildFile,
-    CocotbPythonFile,
-    ConstraintFile,
-    CSourceFile,
-    EDIFNetlistFile,
-    File,
-    IPSpecificationFile,
-    NetlistFile,
-    SettingFile,
-    SourceFile,
-    SystemVerilogSourceFile,
-    TCLSourceFile,
-    VerilogIncludeFile,
-    VHDLSourceFile,
-)
-from simplhdl.pyedaa.target import Target
-from simplhdl.pyedaa.vhdllibrary import VHDLLibrary
+from simplhdl.project.files import FileFactory
+from simplhdl.project.attributes import Target
+from simplhdl.project.attributes import Library
 
 
 class SimplHdlParser(ParserBase):
@@ -40,7 +26,7 @@ class SimplHdlParser(ParserBase):
         self._core_stack = list()
         self._core_visited = list()
 
-    def is_valid_format(self, filename: Optional[Path]) -> bool:
+    def is_valid_format(self, filename: Path | None) -> bool:
         if filename is None:
             filenames = Path('.').glob('*.yml')
         else:
@@ -53,7 +39,7 @@ class SimplHdlParser(ParserBase):
                         return True
         return False
 
-    def parse(self, filename: Optional[Path], project: Project, args: Namespace) -> FileSet:
+    def parse(self, filename: Path | None, project: Project, args: Namespace) -> Fileset:
         if filename is None:
             files = Path('.').glob('*.yml')
         else:
@@ -63,49 +49,55 @@ class SimplHdlParser(ParserBase):
             if self.is_valid_format(file):
                 return self.parse_core(file, project)
 
-    def parse_core(self, filename: Path, project: Project) -> FileSet:  # noqa C901
+    def parse_core(self, filename: Path, project: Project) -> Fileset:  # noqa: C901
         self._core_stack.append(filename)
         spec = self.read_spec(filename)
-        # TODO: The library should be handled differently
-        fileset = FileSet(str(filename), vhdlLibrary=VHDLLibrary(spec.get('library', 'work')))
+        libname = spec.get('library')
+        if not libname:
+            library = project.defaultDesign.defaultLibrary
+        else:
+            library = Library(libname)
+
+        fileset = Fileset(str(filename), Library=library)
         for corefile in spec.get('dependencies', list()):
             corefile = self.path(corefile)
             if corefile.absolute() in self._core_visited:
                 continue
             subfileset = self.parse_core(corefile, project)
-            fileset.AddFileSet(subfileset)
+            fileset.add_fileset(subfileset)
 
         if 'top' in spec:
             fileset.TopLevel = spec.get('top')
 
         for name, value in spec.get('targets', dict()).items():
             target = Target(name=name, args=parse_arguments(split(value)), cwd=self._core_stack[-1].parent)
-            project.AddTarget(target)
+            project.add_target(target)
         for name, value in spec.get('defines', dict()).items():
-            project.AddDefine(name, value)
+            project.add_define(name, value)
         for name, value in spec.get('parameters', dict()).items():
-            project.AddParameter(name, value)
+            project.add_parameter(name, value)
         for name, value in spec.get('plusargs', dict()).items():
-            project.AddPlusArg(name, value)
+            project.add_plusarg(name, value)
         for name, value in spec.get('generics', dict()).items():
-            project.AddGeneric(name, value)
+            project.add_generic(name, value)
         for filepath in spec.get('files', list()):
-            file = self.file(filepath)
-            fileset.AddFile(file)
+            resolvefilepath = filename.parent.joinpath(filepath).resolve()
+            file = FileFactory.create(resolvefilepath)
+            fileset.add_file(file)
         # Top level spec
         if len(self._core_stack) == 1:
             if 'project' in spec:
-                project.Name = spec.get('project')
+                project.name = spec.get('project')
             if 'part' in spec:
-                project.Part = spec.get('part')
+                project.part = spec.get('part')
             if 'top' in spec:
-                project.DefaultDesign.TopLevel = spec.get('top')
+                project.defaultDesign.toplevels = spec.get('top').split()
 
         self._core_stack.pop()
         return fileset
 
-    def read_spec(self, filename: Path) -> Dict:
-        self._core_visited.append(filename.absolute())
+    def read_spec(self, filename: Path) -> dict:
+        self._core_visited.append(filename.resolve())
         with filename.open() as fp:
             try:
                 return yaml.safe_load(fp)
@@ -114,43 +106,9 @@ class SimplHdlParser(ParserBase):
 
     def path(self, filename: str) -> Path:
         if Path(filename).is_absolute():
-            path = Path(filename).absolute()
+            path = Path(filename).resolve()
         else:
             path = self._core_stack[-1].parent.joinpath(filename).resolve()
         if not path.exists():
             raise FileNotFoundError(f"No such file: {str(path)}")
         return path
-
-    def file(self, filename: str) -> File:
-        """
-        Return a file type class object based on the file extension.
-        """
-        fileClasses = {
-            '.sv': SystemVerilogSourceFile,
-            '.svh': VerilogIncludeFile,
-            '.v': SystemVerilogSourceFile,
-            '.vh': VerilogIncludeFile,
-            '.vhd': VHDLSourceFile,
-            '.vhdl': VHDLSourceFile,
-            '.xdc': ConstraintFile,
-            '.sdc': ConstraintFile,
-            '.xci': IPSpecificationFile,
-            '.xcix': IPSpecificationFile,
-            '.ip': IPSpecificationFile,
-            '.ipx': IPSpecificationFile,
-            '.qip': IPSpecificationFile,
-            '.qsys': IPSpecificationFile,
-            '.edif': EDIFNetlistFile,
-            '.edn': EDIFNetlistFile,
-            '.dcp': NetlistFile,
-            '.tcl': TCLSourceFile,
-            '.c': CSourceFile,
-            '.h': CSourceFile,
-            '.S': CSourceFile,
-            '.py': CocotbPythonFile,
-            '.qsf': SettingFile,
-            '.sbt': ChiselBuildFile,
-        }
-        path = self.path(filename)
-        fileClass = fileClasses.get(path.suffix, SourceFile)
-        return fileClass(path)

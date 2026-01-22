@@ -7,21 +7,19 @@ from pathlib import Path
 
 from simplhdl import Project
 from simplhdl.plugin import FlowTools, ImplementationFlow
-from simplhdl.pyedaa import (
+from simplhdl.project.files import (
     ConstraintFile,
     File,
-    HDLIncludeFile,
-    HDLSearchPath,
-    HDLSourceFile,
-    QuartusIPSpecificationFile,
-    QuartusQIPSpecificationFile,
-    SettingFile,
-    SystemVerilogSourceFile,
+    HdlSearchPath,
+    QuartusIpFile,
+    QuartusQipFile,
+    QuartusQsfFile,
+    SystemVerilogFile,
     VerilogIncludeFile,
-    VerilogSourceFile,
-    VHDLSourceFile,
+    VerilogFile,
+    VhdlFile,
+    UsedIn,
 )
-from simplhdl.pyedaa.attributes import Encrypt, UsedIn
 from simplhdl_encrypt.encrypt.encryptflow import encrypt
 
 from ..quartusflow import QuartusFlow
@@ -67,46 +65,45 @@ class QuartusExportFlow(ImplementationFlow):
 
     def directory_root(self):
         files = list()
-        for file in [f for f in self.project.DefaultDesign.Files() if 'implementation' in f[UsedIn]]:
-            if isinstance(file, SettingFile):
+        for file in [f for f in self.project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION)]:
+            if isinstance(file, QuartusQsfFile):
                 continue
-            elif isinstance(file, (ConstraintFile, QuartusQIPSpecificationFile)):
+            elif isinstance(file, (ConstraintFile, QuartusQipFile)):
                 pass
-            elif isinstance(file, (HDLSearchPath, QuartusIPSpecificationFile)):
+            elif isinstance(file, (HdlSearchPath, QuartusIpFile)):
                 continue
-            files.append(file.Path.absolute())
+            files.append(file.path.resolve())
         return Path(os.path.commonpath(files))
 
     def copy_files(self):
         seen = dict()
-        files = [f for f in self.project.DefaultDesign.Files() if 'implementation' in f[UsedIn]]
+        files = [f for f in self.project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION)]
         for file in files:
-            fileid = str(file.Path.resolve())
-            dest = self.builddir.joinpath('src', file.Path.relative_to(self.rootdir))
+            fileid = str(file.path.resolve())
+            dest = self.builddir.joinpath('src', file.path.relative_to(self.rootdir))
             if self.args.structure == 'flat':
-                dest = self.builddir.joinpath('src', file.Path.name)
-            print(f'{dest=}')
+                dest = self.builddir.joinpath('src', file.path.name)
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
-            elif isinstance(file, SettingFile):
+            elif isinstance(file, QuartusQsfFile):
                 continue
-            elif isinstance(file, (ConstraintFile, QuartusQIPSpecificationFile)):
+            elif isinstance(file, (ConstraintFile, QuartusQipFile)):
                 dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(file.Path, dest)
-            elif isinstance(file, (HDLSearchPath, QuartusIPSpecificationFile)):
-                dest = file.Path
-            elif isinstance(file, (HDLSourceFile, HDLIncludeFile)):
+                shutil.copyfile(file.path, dest)
+            elif isinstance(file, (HdlSearchPath, QuartusIpFile)):
+                dest = file.path
+            elif isinstance(file, (VerilogFile, VerilogIncludeFile, SystemVerilogFile, VhdlFile)):
                 dest.parent.mkdir(parents=True, exist_ok=True)
-                if self.args.encrypt and file[Encrypt]:
-                    encrypt(file.Path, dest, language=get_language(file), vendors=self.vendors)
+                if self.args.encrypt and file.encrypt:
+                    encrypt(file.path, dest, language=get_language(file), vendors=self.vendors)
                 else:
-                    shutil.copyfile(file.Path, dest)
+                    shutil.copyfile(file.path, dest)
             else:
                 dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(file.Path, dest)
+                shutil.copyfile(file.path, dest)
             # Convert to relative path
-            file._path = dest.absolute().relative_to(self.builddir.absolute())
+            file._path = dest
             seen[fileid] = file
 
     def create_project(self) -> None:
@@ -125,7 +122,7 @@ class QuartusExportFlow(ImplementationFlow):
             tmp = self.builddir.parent.joinpath(self.args.archivefile.name)
             output = self.args.archivefile
         else:
-            tmp = self.builddir.parent.joinpath(f'{self.project.Name}.zip')
+            tmp = self.builddir.parent.joinpath(f'{self.project.name}.zip')
             output = self.builddir.joinpath(tmp.name)
         archive(self.builddir, tmp)
         if tmp == output:
@@ -138,6 +135,8 @@ class QuartusExportFlow(ImplementationFlow):
 
     def run(self) -> None:
         self.copy_files()
+        # NOTE: Set path relative to builddir for all files
+        File.set_path_relative_to(self.builddir)
         self.create_project()
         self.archive_project()
 
@@ -155,12 +154,12 @@ class QuartusExportFlow(ImplementationFlow):
 
 def get_language(file: File) -> str:
     fileMap = {
-        SystemVerilogSourceFile: 'systemverilog',
-        VerilogSourceFile: 'verilog',
+        SystemVerilogFile: 'systemverilog',
+        VerilogFile: 'verilog',
         VerilogIncludeFile: 'systemverilog',
-        VHDLSourceFile: 'vhdl'
+        VhdlFile: 'vhdl'
     }
-    return fileMap[file.FileType]
+    return fileMap[type(file)]
 
 
 def archive(directory: Path, destination: Path) -> Path:

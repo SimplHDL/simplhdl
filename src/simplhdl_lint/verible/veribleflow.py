@@ -11,10 +11,10 @@ from jinja2 import Environment, FileSystemLoader
 
 from simplhdl import Project
 from simplhdl.plugin import FlowBase, FlowError
-from simplhdl.pyedaa import (
-    SystemVerilogSourceFile,
+from simplhdl.project.files import (
+    SystemVerilogFile,
     VerilogIncludeFile,
-    VerilogSourceFile,
+    VerilogFile,
 )
 from simplhdl.utils import CalledShError, generate_from_template, sh
 
@@ -82,11 +82,11 @@ class VeribleFlow(FlowBase):
         if self.args.fix:
             command += ["--autofix=inplace"]
 
-        file_types = [VerilogIncludeFile, VerilogSourceFile, SystemVerilogSourceFile]
-        files = [f for f in self.project.DefaultDesign.Files() if f.FileType in file_types]
+        file_types = (VerilogIncludeFile, VerilogFile, SystemVerilogFile)
+        files = [f for f in self.project.defaultDesign.files() if isinstance(f, file_types)]
         for file in files:
             try:
-                cmd = command + [str(file.Path)]
+                cmd = command + [str(file.path)]
                 sh(cmd, cwd=self.builddir, output=True)
             except CalledShError as e:
                 errors = True

@@ -1,7 +1,7 @@
 WORK > {{defaultlib}}
 {% for library in libraries %}
-{{library.Name}}: {{library.Path}}
+{{library.name}}: {{library.path}}
 {% endfor %}
 {% for library in external_libraries %}
-{{library.Name}}: {{library.Path}}
+{{library.name}}: {{library.path}}
 {% endfor %}

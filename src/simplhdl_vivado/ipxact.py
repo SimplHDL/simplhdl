@@ -1,29 +1,30 @@
+from __future__ import annotations
+
 import logging
 import os
 import re
 from pathlib import Path
-from typing import Dict, List
 from xml.etree.ElementTree import Element, parse
 from zipfile import ZipFile
 
-from simplhdl import FileSet
+from simplhdl import Fileset
 from simplhdl.plugin import FlowBase, FlowCategory, GeneratorBase
-from simplhdl.pyedaa import (
-    SIMULATION,
-    ConstraintFile,
+from simplhdl.project.attributes import Library
+from simplhdl.project.files import (
+    CHeaderFile,
+    VivadoXcixFile,
+    SdcFile,
     File,
-    HDLSourceFile,
-    SystemCHeaderFile,
-    SystemCSourceFile,
-    SystemVerilogSourceFile,
-    TCLSourceFile,
+    SystemCFile,
+    SystemVerilogFile,
+    TclFile,
     VerilogIncludeFile,
-    VerilogSourceFile,
-    VHDLSourceFile,
-    VivadoIPSpecificationFile,
+    VerilogFile,
+    VhdlFile,
+    VivadoXciFile,
+    UnknownFile,
+    UsedIn,
 )
-from simplhdl.pyedaa.attributes import UsedIn
-from simplhdl.pyedaa.vhdllibrary import VHDLLibrary
 from simplhdl.utils import md5check, md5write
 
 logger = logging.getLogger(__name__)
@@ -31,24 +32,24 @@ logger = logging.getLogger(__name__)
 DEFAULT_LIB = 'xil_defaultlib'
 
 FILETYPE_2014_MAP = {
-    'systemVerilogSource': SystemVerilogSourceFile,
+    'systemVerilogSource': SystemVerilogFile,
     'systemVerilogSourceInclude': VerilogIncludeFile,
-    '.sv': SystemVerilogSourceFile,
+    '.sv': SystemVerilogFile,
     '.svh': VerilogIncludeFile,
-    'verilogSource': VerilogSourceFile,
+    'verilogSource': VerilogFile,
     'verilogSourceInclude': VerilogIncludeFile,
-    '.v': VerilogSourceFile,
+    '.v': VerilogFile,
     '.vh': VerilogIncludeFile,
-    'vhdlSource': VHDLSourceFile,
-    '.vhd': VHDLSourceFile,
-    '.vhdl': VHDLSourceFile,
-    'tclSource': TCLSourceFile,
-    '.tcl': TCLSourceFile,
-    'SDC': ConstraintFile,
-    '.sdc': ConstraintFile,
-    'systemCSource': SystemCSourceFile,
-    'systemCSourceInclude': SystemCHeaderFile,
-    'unknown': File,
+    'vhdlSource': VhdlFile,
+    '.vhd': VhdlFile,
+    '.vhdl': VhdlFile,
+    'tclSource': TclFile,
+    '.tcl': TclFile,
+    'SDC': SdcFile,
+    '.sdc': SdcFile,
+    'systemCSource': SystemCFile,
+    'systemCSourceInclude': CHeaderFile,
+    'unknown': UnknownFile,
 }
 
 
@@ -64,7 +65,7 @@ class Component:
         self.namespaces = {'ipxact': self.root.tag.split('}')[0].strip('{')}
         self.location = filename.parent.absolute()
 
-    def views(self, pattern: str = r'.*') -> List[Element]:
+    def views(self, pattern: str = r'.*') -> list[Element]:
         views = list()
         for view in self.root.findall("ipxact:model/ipxact:views/ipxact:view", self.namespaces):
             name = view.find('ipxact:name', self.namespaces).text
@@ -72,7 +73,7 @@ class Component:
                 views.append(view)
         return views
 
-    def filesets(self, view: Element) -> List[Element]:
+    def filesets(self, view: Element) -> list[Element]:
         fileset_refs = view.findall("ipxact:fileSetRef", self.namespaces)
         allfilesets = self.root.findall("ipxact:fileSets/ipxact:fileSet", self.namespaces)
         fileset_names = list()
@@ -87,14 +88,14 @@ class Component:
                 filesets.append(fileset)
         return filesets
 
-    def files(self, fileset: Element) -> List[Element]:
+    def files(self, fileset: Element) -> list[Element]:
         files = list()
         file_elements = fileset.findall('ipxact:file', self.namespaces)
         for file_element in file_elements:
             files.append(self.element_to_file(file_element))
         return file_elements
 
-    def pyedaa_files(self, fileset: Element) -> List[Element]:
+    def pyedaa_files(self, fileset: Element) -> list[Element]:
         files = list()
         file_elements = fileset.findall('ipxact:file', self.namespaces)
         for file_element in file_elements:
@@ -104,13 +105,13 @@ class Component:
     def filepath(self, file: Element) -> Path:
         return self.location.joinpath(file.find('ipxact:name', self.namespaces).text)
 
-    def element_to_fileset(self, element: Element) -> FileSet:
+    def element_to_fileset(self, element: Element) -> Fileset:
         if not element.tag.endswith('fileSet'):
             raise Exception(f"Wrong tag {element.tag}")
         name = f"{self.filename}.{element.find('ipxact:name', self.namespaces).text}"
-        fileset = FileSet(name)
+        fileset = Fileset(name)
         for file in self.files(element):
-            fileset.AddFile(self.element_to_file(file))
+            fileset.add_file(self.element_to_file(file))
         return fileset
 
     def element_to_file(self, element: Element) -> File:  # noqa C901
@@ -146,15 +147,15 @@ class Component:
         else:
             raise Exception(f"{filetype}: Unknown file type")
 
-        if issubclass(fileclass, HDLSourceFile):
-            library = VHDLLibrary(logicalname)
-            if path.suffix.endswith('vh') and fileclass in [VerilogSourceFile, SystemVerilogSourceFile]:
+        if issubclass(fileclass, (VerilogFile, SystemVerilogFile, VhdlFile)):
+            library = Library(logicalname)
+            if path.suffix.endswith('vh') and fileclass in [VerilogFile, SystemVerilogFile]:
                 logger.info(f"Changing {path} to VerilogIncludeFile")
                 fileclass = VerilogIncludeFile
                 return fileclass(path)
-            elif path.suffix.endswith('.sv') and fileclass in [VerilogSourceFile]:
+            elif path.suffix.endswith('.sv') and fileclass in [VerilogFile]:
                 logger.info(f"Changing {path} to SystemVerilogSourceFile")
-                fileclass = SystemVerilogSourceFile
+                fileclass = SystemVerilogFile
             return fileclass(path, library=library)
         else:
             return fileclass(path)
@@ -162,29 +163,29 @@ class Component:
 
 class VivadoGenerator(GeneratorBase):
 
-    def unpack_ip(self, filename: VivadoIPSpecificationFile) -> Path:
+    def unpack_ip(self, filename: VivadoXciFile | VivadoXcixFile) -> Path:
         ipdir = self.builddir.joinpath('ips')
-        dest = ipdir.joinpath(filename.Path.stem)
+        dest = ipdir.joinpath(filename.path.stem)
         md5file = dest.with_suffix('.md5')
         ipdir.mkdir(exist_ok=True)
-        if filename.Path.suffix == '.xcix':
+        if filename.path.suffix == '.xcix':
             update = True
             if md5file.exists():
-                update = not md5check(filename.Path, filename=md5file)
+                update = not md5check(filename.path, filename=md5file)
             if update:
-                with ZipFile(filename.Path, 'r') as zip:
+                with ZipFile(filename.path, 'r') as zip:
                     zip.extractall(ipdir)
-                md5write(filename.Path, filename=md5file)
-                logger.debug(f"Unpack {filename.Path} to {dest}")
-        elif filename.Path.suffix == '.xci':
-            return filename.Path.with_suffix('.xml')
+                md5write(filename.path, filename=md5file)
+                logger.debug(f"Unpack {filename.path} to {dest}")
+        elif filename.path.suffix == '.xci':
+            return filename.path.with_suffix('.xml')
         else:
             # Unknown IP file
             return filename
-        filename._path = dest.joinpath(filename.Path.name).with_suffix('.xml').absolute()
+        filename._path = dest.joinpath(filename.path.name).with_suffix('.xml').resolve()
         return filename
 
-    def get_files(self, filename: Path) -> Dict[str, str]:
+    def get_files(self, filename: Path) -> dict[str, str]:
         component = Component()
         component.load(filename)
         files = list()
@@ -207,26 +208,26 @@ class VivadoGenerator(GeneratorBase):
     def run(self, flow: FlowBase):
         if flow.category == FlowCategory.SIMULATION:
             os.makedirs(self.builddir, exist_ok=True)
-            ipfiles = list(self.project.DefaultDesign.DefaultFileSet.Files(fileType=VivadoIPSpecificationFile))
-            ipfiles = [f for f in ipfiles if SIMULATION in f[UsedIn]]
+            ipfiles = list(self.project.defaultDesign.files(type=(VivadoXciFile, VivadoXcixFile)))
+            ipfiles = [f for f in ipfiles if UsedIn.SIMULATION in f.usedin]
 
             for ipfile in ipfiles:
                 newipfile = self.unpack_ip(ipfile)
-                files = self.get_files(newipfile.Path)
+                files = self.get_files(newipfile.path)
                 last_lib = ''
                 i = 0
                 filesets = list()
                 for file in files:
-                    if isinstance(file, HDLSourceFile):
-                        if last_lib != file.Library.Name:
-                            library = VHDLLibrary(file.Library.Name)
-                            fileset = FileSet(f"{ipfile.Path}.{i}", vhdlLibrary=library)
+                    if isinstance(file, (VerilogFile, VerilogIncludeFile, SystemVerilogFile, VhdlFile)):
+                        if last_lib != file.library.name:
+                            library = Library(file.library.name)
+                            fileset = Fileset(f"{ipfile.path}.{i}", library=library)
                             i += 1
                             filesets.append(fileset)
-                        last_lib = file.Library.Name
+                        last_lib = file.library.name
                     try:
-                        fileset.AddFile(file)
+                        fileset.add_file(file)
                     except Exception:
-                        logger.warning(f"Failed to add {file.Path}")
+                        logger.warning(f"Failed to add {file.path}")
                 for fileset in filesets:
-                    newipfile.FileSet._fileSets[fileset.Name] = fileset
+                    ipfile.parent.add_fileset(fileset)

@@ -1,5 +1,17 @@
 package require Vivado
 
+proc get_version {} {
+    # NOTE: We cannot use standard method of getting a Tcl package version
+    # because some Vivado versions do not report it correctly.
+    # Vivado 2022.1 will return 1.2020.3 when querying the Tcl package version
+    # of Vivado (package present Vivado).
+    # Instead, we parse the output of 'version -short' command. We extract the
+    # version string up to the first underscore character, because installing
+    # pactches creates a version string like '2025.1_AR000036275' which
+    # is not compatible with version comparison operations.
+    set version [lindex [split [version -short] "_"] 0]
+}
+
 set step [lindex $::argv 0]
 
 switch $step {
@@ -52,7 +64,7 @@ if {$step == "lint"} {
 }
 
 # wait_on_run renamed to wait_on_runs from Vivado 2022.1
-if {[package vsatisfies 1.[version -s] 1.2022.1]} {
+if {[package vsatisfies 1.[get_version] 1.2022.1]} {
     wait_on_runs $runs
 } else {
     foreach run $runs {
