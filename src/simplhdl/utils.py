@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import os
 import sys
 import logging
 
-from typing import Dict, List, Optional, Union, Generator
+from typing import Union, Generator
 from pathlib import Path
 from contextlib import contextmanager
 from time import sleep
@@ -18,8 +20,8 @@ class CalledShError(Exception):
 
 
 def sh(
-    command: List[str],
-    cwd: Optional[Path] = None,
+    command: list[str],
+    cwd: Path | None = None,
     output: bool = False,
     shell: bool = False,
     env=None,
@@ -122,7 +124,7 @@ def append_suffix(path: Path, suffix: str) -> Path:
     return path.with_suffix(path.suffix + suffix)
 
 
-def dict2str(*dictionaries: Dict[str, str]) -> str:
+def dict2str(*dictionaries: dict[str, str]) -> str:
     dictionary = dict()
     for d in dictionaries:
         dictionary.update(d)
