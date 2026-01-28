@@ -3,12 +3,16 @@ VHPI_SO_PATH = $(shell cocotb-config --lib-name-path vhpi riviera)
 
 VLOG_FLAGS += -pli libgpi
 
+{% if has_verilog  and has_vhdl %}
 {% if cocotbhdltype == VerilogFile %}
 COCOTB_FLAGS += -pli $(VPI_SO_PATH)
 export GPI_EXTRA := $(VHPI_SO_PATH):cocotbvhpi_entry_point
 {% elif cocotbhdltype == VhdlFile %}
 COCOTB_FLAGS := -loadvhpi $(VHPI_SO_PATH):vhpi_startup_routines_bootstrap
 export GPI_EXTRA := $(VPI_SO_PATH):cocotbvpi_entry_point
+{% endif %}
+{% else %}
+export GPI_EXTRA := ""
 {% endif %}
 
 export PYTHONPYCACHEPREFIX = ./pycache

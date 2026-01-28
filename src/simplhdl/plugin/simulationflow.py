@@ -82,6 +82,8 @@ class SimulationFlow(FlowBase):
         globals['cocotbtop'] = self.cocotb.top
         globals['cocotbhdltype'] = self.cocotb.duttype
         globals['cocotbdut'] = self.cocotb.dut
+        globals['has_verilog'] = self.cocotb.has_verilog
+        globals['has_vhdl'] = self.cocotb.has_vhdl
         globals['incdirs'] = incdirpaths
         globals['VerilogFile'] = VerilogFile
         globals['SystemVerilogFile'] = SystemVerilogFile

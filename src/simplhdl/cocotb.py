@@ -13,6 +13,7 @@ from .plugin.flow import FlowError
 from .project.files import (
     CocotbPythonFile,
     SystemVerilogFile,
+    UsedIn,
     VerilogFile,
     VerilogIncludeFile,
     VhdlFile,
@@ -35,6 +36,10 @@ class Cocotb:
         self.dut = self.get_dut()
         self.toplevels = self.hdltoplevels()
         self.duttype = self.hdltype()
+        self.has_verilog = project.defaultDesign.files(type=(
+            VerilogFile, SystemVerilogFile), usedin=UsedIn.SIMULATION) != []
+        self.has_vhdl = project.defaultDesign.files(
+            type=VhdlFile, usedin=UsedIn.SIMULATION) != []
 
     def lib_name_path(self, simulator: str, interface: str) -> Path:
         output = sh(['cocotb-config', '--lib-name-path', interface, simulator])
@@ -172,12 +177,14 @@ class Cocotb:
             e['TOPLEVEL'] = self.dut
         e['PYTHONPYCACHEPREFIX'] = './pycache'
         e['LIBPYTHON_LOC'] = self.libpython()
-        if self.duttype == VhdlFile:
-            lib_name_path = self.lib_name_path("questa", "vpi")
-            e['GPI_EXTRA'] = f"{lib_name_path}:cocotbvpi_entry_point"
-        elif self.duttype == VerilogFile:
-            lib_name_path = self.lib_name_path("questa", "fli")
-            e['GPI_EXTRA'] = f"{lib_name_path}:cocotbfli_entry_point"
+        e['GPI_EXTRA'] = ''
+        if self.has_verilog and self.has_vhdl:
+            if self.duttype == VhdlFile:
+                lib_name_path = self.lib_name_path("questa", "vpi")
+                e['GPI_EXTRA'] = f"{lib_name_path}:cocotbvpi_entry_point"
+            elif self.duttype == VerilogFile:
+                lib_name_path = self.lib_name_path("questa", "fli")
+                e['GPI_EXTRA'] = f"{lib_name_path}:cocotbfli_entry_point"
         if 'PYTHONPATH' in e:
             e['PYTHONPATH'] = self.pythonpath + os.pathsep + e.get('PYTHONPATH')
         else:
