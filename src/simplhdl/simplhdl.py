@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 class Simplhdl:
-
     def __init__(self, args: Namespace):
         self.args = args
         self.builddir: Path = args.outputdir

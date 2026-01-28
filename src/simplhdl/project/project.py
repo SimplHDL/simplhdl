@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from .attributes import Target
     from .design import Design
 
+__all__ = ["Project", "ProjectError"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +21,6 @@ class ProjectError(Exception):
 
 @singleton
 class Project:
-
     def __init__(self, name: str, **attributes) -> None:
         self._name = name
         self._designs: list[Design] = []

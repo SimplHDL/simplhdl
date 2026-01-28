@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from .fileset import Fileset
     from .project import Project
 
+__all__ = ["Design"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,7 +83,7 @@ class Design:
 
     def filesets(self, order: FilesetOrder = FilesetOrder.COMPILE) -> list[File]:
         fs = list(nx.topological_sort(self._filesets))
-        if order == FilesetOrder.HIERACHY:
+        if order == FilesetOrder.HIERARCHY:
             return fs
         return list(reversed(fs))
 
@@ -94,7 +96,7 @@ class Design:
         fileset._project = self._project
         self._filesets.add_node(fileset)
 
-    def add_toplevel(self, name: str, type: str = '') -> None:
+    def add_toplevel(self, name: str, type: str = "") -> None:
         self._toplevels.append(name)
 
     def add_library(self, library: Library) -> None:
@@ -107,19 +109,19 @@ class Design:
 
     def validate(self) -> None:
         is_dag_fileset = nx.is_directed_acyclic_graph(self._filesets)
-        logger.debug(f'Fileset DAG check: {is_dag_fileset}')
+        logger.debug(f"Fileset DAG check: {is_dag_fileset}")
         if not is_dag_fileset:
             cycle_edges = nx.find_cycle(self._filesets)
             # Format the cycle into a human-readable string like "A -> C -> A"
             path = " -> ".join(str(u) for u, v in cycle_edges) + f" -> {cycle_edges[0][0]}"
-            raise ProjectError(f'Cyclic dependency found: {path}')
+            raise ProjectError(f"Cyclic dependency found: {path}")
         is_dag_file = nx.is_directed_acyclic_graph(self._files)
-        logger.debug(f'Files DAG check: {is_dag_file}')
+        logger.debug(f"Files DAG check: {is_dag_file}")
         if not is_dag_file:
             cycle_edges = nx.find_cycle(self._files)
             # Format the cycle into a human-readable string like "A -> C -> A"
             path = " -> ".join(str(u) for u, v in cycle_edges) + f" -> {cycle_edges[0][0]}"
-            raise ProjectError(f'Cyclic dependency found: {path}')
+            raise ProjectError(f"Cyclic dependency found: {path}")
 
     def elaborate(self) -> None:
         """

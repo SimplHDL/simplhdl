@@ -35,39 +35,31 @@ logger = logging.getLogger(__name__)
 
 
 class VivadoFlow(FlowBase):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('vivado', help='Vivado FPGA Build Flow')
+        parser = subparsers.add_parser("vivado", help="Vivado FPGA Build Flow")
         parser.add_argument(
-            '--step',
-            action='store',
+            "--step",
+            action="store",
             choices=[
-                'lint',
-                'elaborate',
-                'synthesis',
-                'opt',
-                'power_opt',
-                'place',
-                'phys_opt',
-                'route',
-                'bitstream'],
-            default='bitstream',
-            help="flow step to run"
-        )
-        parser.add_argument(
-            '--gui',
-            action='store_true',
-            help="Open project in Vivado GUI"
-        )
-        parser.add_argument(
-            '--archive',
-            choices=[
-                'project',
-                'project-exclude-results',
-                'project-include-settings'
+                "lint",
+                "elaborate",
+                "synthesis",
+                "opt",
+                "power_opt",
+                "place",
+                "phys_opt",
+                "route",
+                "bitstream",
             ],
-            help="Archive Vivado project, result can be excluded"
+            default="bitstream",
+            help="flow step to run",
+        )
+        parser.add_argument("--gui", action="store_true", help="Open project in Vivado GUI")
+        parser.add_argument(
+            "--archive",
+            choices=["project", "project-exclude-results", "project-include-settings"],
+            help="Archive Vivado project, result can be excluded",
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -77,20 +69,20 @@ class VivadoFlow(FlowBase):
 
     def is_tool_setup(self) -> None:
         exit: bool = False
-        if shutil.which('vivado') is None:
-            logger.error('vivado: not found in PATH')
+        if shutil.which("vivado") is None:
+            logger.error("vivado: not found in PATH")
             exit = True
         if exit:
             raise FileNotFoundError("Vivado is not setup correctly")
 
     def archive(self) -> None:
         name = self.project.name
-        if self.args.archive == 'project':
-            tclargs = 'archive'
-        elif self.args.archive == 'project-exclude-results':
-            tclargs = 'archive_exclude_results'
-        elif self.args.archive == 'project-include-settings':
-            tclargs = 'archive_include_settings'
+        if self.args.archive == "project":
+            tclargs = "archive"
+        elif self.args.archive == "project-exclude-results":
+            tclargs = "archive_exclude_results"
+        elif self.args.archive == "project-include-settings":
+            tclargs = "archive_include_settings"
         else:
             raise Exception("Unknown value for argument --archive: {self.args.archive}")
         command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {tclargs}".split()
@@ -112,31 +104,31 @@ class VivadoFlow(FlowBase):
 
     def generate(self):
         templatedir = resources_files(self.templates)
-        environment = Environment(
-            loader=FileSystemLoader(templatedir),
-            trim_blocks=True)
-        template = environment.get_template('project.tcl.j2')
-        generate_from_template(template, self.builddir,
-                               isinstance=isinstance,
-                               files=self.get_files(),
-                               dict2str=dict2str,
-                               VerilogIncludeFile=VerilogIncludeFile,
-                               VerilogFile=VerilogFile,
-                               SystemVerilogFile=SystemVerilogFile,
-                               VhdlFile=VhdlFile,
-                               VivadoXdcFile=VivadoXdcFile,
-                               VivadoXciFile=VivadoXciFile,
-                               VivadoXcixFile=VivadoXcixFile,
-                               VivadoStepFile=VivadoStepFile,
-                               VivadoBdTclFile=VivadoBdTclFile,
-                               VivadoBdFile=VivadoBdFile,
-                               EdifFile=EdifFile,
-                               VivadoDcpFile=VivadoDcpFile,
-                               project=self.project,
-                               UsedIn=UsedIn)
-        template = environment.get_template('run.tcl.j2')
-        generate_from_template(template, self.builddir,
-                               project=self.project)
+        environment = Environment(loader=FileSystemLoader(templatedir), trim_blocks=True)
+        template = environment.get_template("project.tcl.j2")
+        generate_from_template(
+            template,
+            self.builddir,
+            isinstance=isinstance,
+            files=self.get_files(),
+            dict2str=dict2str,
+            VerilogIncludeFile=VerilogIncludeFile,
+            VerilogFile=VerilogFile,
+            SystemVerilogFile=SystemVerilogFile,
+            VhdlFile=VhdlFile,
+            VivadoXdcFile=VivadoXdcFile,
+            VivadoXciFile=VivadoXciFile,
+            VivadoXcixFile=VivadoXcixFile,
+            VivadoStepFile=VivadoStepFile,
+            VivadoBdTclFile=VivadoBdTclFile,
+            VivadoBdFile=VivadoBdFile,
+            EdifFile=EdifFile,
+            VivadoDcpFile=VivadoDcpFile,
+            project=self.project,
+            UsedIn=UsedIn,
+        )
+        template = environment.get_template("run.tcl.j2")
+        generate_from_template(template, self.builddir, project=self.project)
         command = "vivado -mode batch -notrace -source project.tcl".split()
         sh(command, cwd=self.builddir, output=True)
 
@@ -153,7 +145,7 @@ class VivadoFlow(FlowBase):
             if not projectfile.exists():
                 self.setup()
                 self.generate()
-            sh(['vivado', projectfile.name], cwd=self.builddir)
+            sh(["vivado", projectfile.name], cwd=self.builddir)
             return
 
         self.setup()

@@ -14,21 +14,21 @@ logger = logging.getLogger(__name__)
 
 
 class LintFlow(FlowBase):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('lint', help='Lint Flow for Design and Verification code')
+        parser = subparsers.add_parser("lint", help="Lint Flow for Design and Verification code")
         parser.add_argument(
-            '--fix',
-            action='store_true',
-            help="Fix style formatting (Note: this modifies the source)"
+            "--fix",
+            action="store_true",
+            help="Fix style formatting (Note: this modifies the source)",
         )
         parser.add_argument(
-            '-f', '--files',
+            "-f",
+            "--files",
             type=lambda p: Path(p).absolute(),
-            nargs='+',
+            nargs="+",
             default=[],
-            help="Manually specify file list"
+            help="Manually specify file list",
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -42,11 +42,16 @@ class LintFlow(FlowBase):
 
     def execute(self):
         verible_args = Namespace(rules=None, files=self.args.files, fix=self.args.fix)
-        verible = VeribleFlow('verible', verible_args, self.project, self.builddir)
-        vsg_args = Namespace(rules=None, files=self.args.files, fix=self.args.fix, output_format='syntastic')
-        vsg = VsgFlow('vsg', vsg_args, self.project, self.builddir)
+        verible = VeribleFlow("verible", verible_args, self.project, self.builddir)
+        vsg_args = Namespace(
+            rules=None,
+            files=self.args.files,
+            fix=self.args.fix,
+            output_format="syntastic",
+        )
+        vsg = VsgFlow("vsg", vsg_args, self.project, self.builddir)
         flake_args = Namespace(files=self.args.files, fix=self.args.fix)
-        flake = Flake8Flow('flake8', flake_args, self.project, self.builddir)
+        flake = Flake8Flow("flake8", flake_args, self.project, self.builddir)
         system_error = False
         try:
             verible.run()

@@ -27,6 +27,6 @@ def design(project) -> Design:
 
 @pytest.fixture
 def fileset(design) -> Fileset:
-    fs = Fileset('fileset')
+    fs = Fileset("fileset")
     design.add_fileset(fs)
     return fs

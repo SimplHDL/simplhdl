@@ -31,21 +31,17 @@ class Library:
         return self._name
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(name={self._name}, path={self._path})'
+        return f"{self.__class__.__name__}(name={self._name}, path={self._path})"
 
     def __eq__(self, other):
-        return (
-            isinstance(other, Library) and
-            self.name == other.name and
-            self.path == other.path
-        )
+        return isinstance(other, Library) and self.name == other.name and self.path == other.path
 
 
 class Target:
     def __init__(self, name: str, args: Namespace | None = None, cwd: Path | None = None) -> None:
         self.name = name
         self._args = args
-        self._cwd = cwd or Path('.')
+        self._cwd = cwd or Path(".")
 
     @property
     def args(self) -> Namespace:

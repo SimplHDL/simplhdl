@@ -8,9 +8,10 @@ from enum import Flag, auto
 
 from ..project.project import Project
 
+__all__ = ["FlowBase", "FlowError", "FlowTools", "FlowCategory"]
+
 
 class FlowBase(metaclass=ABCMeta):
-
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         self.name: str = name
         self.args: Namespace = args
@@ -19,9 +20,9 @@ class FlowBase(metaclass=ABCMeta):
         self.category: FlowCategory = FlowCategory.DEFAULT
         self.tools: Set = set()
         self.builddir.mkdir(parents=True, exist_ok=True)
-        file = logging.FileHandler(self.builddir.joinpath('simplhdl.log'), mode='w')
+        file = logging.FileHandler(self.builddir.joinpath("simplhdl.log"), mode="w")
         file.setLevel(logging.NOTSET)
-        file.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s:%(filename)s:%(lineno)d - %(message)s'))
+        file.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s:%(filename)s:%(lineno)d - %(message)s"))
         logging.getLogger().addHandler(file)
 
     @classmethod
@@ -75,11 +76,11 @@ class FlowFactory:
         cls.registry[name] = _class
 
     @classmethod
-    def get_flow(cls, name: str, args: Namespace, project: Project, builddir: Path) -> 'FlowBase':
+    def get_flow(cls, name: str, args: Namespace, project: Project, builddir: Path) -> "FlowBase":
         if name in cls.registry:
             return cls.registry[name](name, args, project, builddir)
         raise Exception(f"Couldn't find Flow named {name}")
 
     @classmethod
-    def get_flows(cls) -> Dict[str, 'FlowBase']:
+    def get_flows(cls) -> Dict[str, "FlowBase"]:
         return cls.registry

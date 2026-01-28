@@ -16,45 +16,24 @@ from ..project.files import UsedIn
 
 
 class Info(FlowBase):
-
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.console = Console()
         self.style = {
-            'fileset': Style(color="color(4)", reverse=True),
-            'ifile': Style(color="color(2)", reverse=False),
-            'sfile': Style(color="color(3)", reverse=False),
-            'file': Style(color="default", reverse=False),
+            "fileset": Style(color="color(4)", reverse=True),
+            "ifile": Style(color="color(2)", reverse=False),
+            "sfile": Style(color="color(3)", reverse=False),
+            "file": Style(color="default", reverse=False),
         }
 
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('info', help='Project infomations')
-        parser.add_argument(
-            '--files',
-            action='store_true',
-            help="List files in project"
-        )
-        parser.add_argument(
-            '--filesets',
-            action='store_true',
-            help="List files sets in project"
-        )
-        parser.add_argument(
-            '--libraries',
-            action='store_true',
-            help="List libraries in project"
-        )
-        parser.add_argument(
-            '--hooks',
-            action='store_true',
-            help="List hooks in project"
-        )
-        parser.add_argument(
-            '--flow',
-            dest='infoflow',
-            help="List project based on flow"
-        )
+        parser = subparsers.add_parser("info", help="Project infomations")
+        parser.add_argument("--files", action="store_true", help="List files in project")
+        parser.add_argument("--filesets", action="store_true", help="List files sets in project")
+        parser.add_argument("--libraries", action="store_true", help="List libraries in project")
+        parser.add_argument("--hooks", action="store_true", help="List hooks in project")
+        parser.add_argument("--flow", dest="infoflow", help="List project based on flow")
 
     def run(self) -> None:
         self.project.validate()
@@ -77,7 +56,7 @@ class Info(FlowBase):
         for layer, nodes in enumerate(nx.topological_generations(G)):
             # Sort nodes within this layer by their parent's string representation
             # This ensures parent-groups are adjacent
-            sorted_nodes = sorted(nodes, key=lambda n: str(getattr(n, 'parent', '')))
+            sorted_nodes = sorted(nodes, key=lambda n: str(getattr(n, "parent", "")))
 
             for node in sorted_nodes:
                 G.nodes[node]["layer"] = layer
@@ -85,11 +64,12 @@ class Info(FlowBase):
 
         # 2. Dynamic Color Mapping (from previous step)
         unique_parents = sorted(
-            list(set(getattr(n, 'parent', None) for n in G.nodes() if getattr(n, 'parent', None))),
-            key=lambda p: str(p))
-        cmap = cm.get_cmap('tab20', len(unique_parents))
+            list(set(getattr(n, "parent", None) for n in G.nodes() if getattr(n, "parent", None))),
+            key=lambda p: str(p),
+        )
+        cmap = cm.get_cmap("tab20", len(unique_parents))
         parent_to_color = {p: cmap(i) for i, p in enumerate(unique_parents)}
-        node_colors = [parent_to_color.get(getattr(n, 'parent', None), (0.5, 0.5, 0.5, 1.0)) for n in G.nodes()]
+        node_colors = [parent_to_color.get(getattr(n, "parent", None), (0.5, 0.5, 0.5, 1.0)) for n in G.nodes()]
 
         # 3. Compute Layout
         # By default, multipartite_layout respects the order of G.nodes()
@@ -103,11 +83,13 @@ class Info(FlowBase):
         # 5. Plot
         plt.figure(figsize=(25, 15))
         nx.draw_networkx(
-            G, pos=pos, labels=labels,
+            G,
+            pos=pos,
+            labels=labels,
             node_color=node_colors,
             node_size=3500,
             arrowsize=20,
-            font_size=9
+            font_size=9,
         )
 
         plt.margins(0.15)
@@ -141,21 +123,24 @@ class Info(FlowBase):
 
     def print_fileset(self, fileset: Fileset, level: Tree) -> None:
         # indent = ' '*level
-        tree = level.add(f"[bold]{fileset.name}[/bold] ({fileset.library})", style=self.style['fileset'])
+        tree = level.add(
+            f"[bold]{fileset.name}[/bold] ({fileset.library})",
+            style=self.style["fileset"],
+        )
         for file in fileset.files():
             if UsedIn.IMPLEMENTATION in file.usedin and UsedIn.SIMULATION not in file.usedin:
-                style = self.style['ifile']
+                style = self.style["ifile"]
             elif UsedIn.SIMULATION in file.usedin and UsedIn.IMPLEMENTATION not in file.usedin:
-                style = self.style['sfile']
+                style = self.style["sfile"]
             else:
-                style = self.style['file']
+                style = self.style["file"]
 
             tree.add(f"{file.path}", style=style)
         for child_filset in fileset.children:
             self.print_fileset(child_filset, tree)
 
     def print_filesets(self) -> None:
-        tree = Tree('FILESETS:')
+        tree = Tree("FILESETS:")
         for fileset in self.project.defaultDesign.roots:
             self.print_fileset(fileset, tree)
             break
@@ -164,51 +149,51 @@ class Info(FlowBase):
         self.graph_filesets()
 
     def print_hooks(self) -> None:
-        self.console.print('HOOKS:')
+        self.console.print("HOOKS:")
         for name, value in self.project.hooks.items():
             self.console.print(f"  - {name}: {value}")
 
     def print_libraries(self) -> None:
-        self.console.print('LIBRARIES:')
+        self.console.print("LIBRARIES:")
         for library in self.project.defaultDesign.libraries:
             self.console.print(f"  - {library.name}")
 
     def print_parameters(self) -> None:
-        self.console.print('PARAMETERS')
+        self.console.print("PARAMETERS")
         for name, value in self.project.parameters.items():
             self.console.print(f"  - {name}: {value}")
 
     def print_generics(self) -> None:
-        self.console.print('GENERICS')
+        self.console.print("GENERICS")
         for name, value in self.project.generics.items():
             self.console.print(f"  - {name}: {value}")
 
     def print_defines(self) -> None:
-        self.console.print('DEFINES')
+        self.console.print("DEFINES")
         for name, value in self.project.defines.items():
             self.console.print(f"  - {name}: {value}")
 
     def print_plusargs(self) -> None:
-        self.console.print('PLUSARGS')
+        self.console.print("PLUSARGS")
         for name, value in self.project.plusargs.items():
             self.console.print(f"  - {name}: {value}")
 
     def print_toplevels(self) -> None:
-        self.console.print('TOPLEVELS')
+        self.console.print("TOPLEVELS")
         for top in self.project.defaultDesign.toplevels:
             self.console.print(f"  - {top}")
 
     def print_resources(self) -> None:
-        self.console.print('RESOURCES')
+        self.console.print("RESOURCES")
         for resource in [lib for lib in self.project.defaultDesign.libraries if lib.external is True]:
             self.console.print(f"  - {resource.name}: {resource.path}")
 
     def print_project(self) -> None:
-        self.console.print('PROJECTNAME')
+        self.console.print("PROJECTNAME")
         self.console.print(f"  - {self.project.name}")
 
     def print_part(self) -> None:
-        self.console.print('PART')
+        self.console.print("PART")
         self.console.print(f"  - {self.project.part}")
 
     def print_info(self) -> None:

@@ -1,107 +1,128 @@
 [build-system]
-requires = [
-    "setuptools>=64.0",
-    "wheel"]
 build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=64",
+  "wheel",
+]
 
 [project]
-name = "SimplHDL"
-dynamic = ["version"]
+name = "simplhdl"
 description = "A framework for simulating and implementing HDL designs"
 readme = "README.md"
-authors = [
-    {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
-]
+license = { file = "LICENSE" }
 maintainers = [
-    {name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com"},
+  { name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com" },
 ]
-license = {file = "LICENSE"}
+authors = [
+  { name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com" },
+]
 requires-python = ">=3.8"
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 
+dynamic = [ "version" ]
 dependencies = [
-    "argcomplete",
-    "black",
-    "flake8",
-    "GitPython",
-    "importlib-resources;python_version<'3.9'",
-    "jinja2",
-    "matplotlib",
-    "networkx",
-    "peakrdl-html",
-    "peakrdl-pyuvm",
-    "peakrdl-regblock>=1.2.0",
-    "pyyaml",
-    "rich",
-    "singleton-decorator",
-    "systemrdl-compiler",
-    "types-PyYAML",
-    "vsg",
+  "argcomplete",
+  "black",
+  "flake8",
+  "gitpython",
+  "importlib-resources; python_version<'3.9'",
+  "jinja2",
+  "matplotlib",
+  "networkx",
+  "peakrdl-html",
+  "peakrdl-pyuvm",
+  "peakrdl-regblock>=1.2",
+  "pyyaml",
+  "rich",
+  "singleton-decorator",
+  "systemrdl-compiler",
+  "types-pyyaml",
+  "vsg",
 ]
 
-[project.urls]
-Homepage = "https://github.com/SimplHDL"
-Documentation = "https://simplhdl.readthedocs.io/en/latest/"
-Repository = "https://github.com/SimplHDL/simplhdl.git"
-Issues = "https://github.com/SimplHDL/simplhdl/issues"
-
-[project.scripts]
-simpl = "simplhdl.__main__:main"
-
-[project.optional-dependencies]
-dev = [
-    "flake8",
-    "mypy",
-    "robotframework",
-    "tox",
+optional-dependencies.dev = [
+  "flake8",
+  "mypy",
+  "robotframework",
+  "tox",
 ]
-docs = [
-    "furo",
-    "Sphinx",
-    "sphinx_pyproject",
+optional-dependencies.docs = [
+  "furo",
+  "sphinx",
+  "sphinx-pyproject",
 ]
-
-[project.entry-points."simplhdl.plugins"]
-chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"
-encrypt = "simplhdl_encrypt.encrypt.encryptflow:EncryptFlow"
-fusersoc_parser = "simplhdl_fusesocparser.fusesocparser:FuseSocParser"
-lint = "simplhdl_lint.lint.lintflow:LintFlow"
-modelsim = "simplhdl_modelsim.modelsim.modelsimflow:ModelSimFlow"
-peakrdl_generator = "simplhdl_peakrdl.systemrdl:PeakRdlGenerator"
-quartus = "simplhdl_quartus.quartusflow:QuartusFlow"
-quartus_generator = "simplhdl_quartus.spd:QuartusGenerator"
-quartus-dse = "simplhdl_quartus.quartusdse.quartusdseflow:QuartusDseFlow"
-quartus-export = "simplhdl_quartus.quartusexport.quartusexportflow:QuartusExportFlow"
-questasim = "simplhdl_questasim.questasim.questasimflow:QuestaSimFlow"
-rivierapro = "simplhdl_rivierapro.rivierapro.rivieraproflow:RivieraProFlow"
-simplhdl_parser = "simplhdl_parser.simplhdlparser:SimplHdlParser"
-vcs = "simplhdl_vcs.vcs.vcsflow:VcsFlow"
-vivado = "simplhdl_vivado.vivadoflow:VivadoFlow"
-vivado_generator = "simplhdl_vivado.ipxact:VivadoGenerator"
-xsim = "simplhdl_vivado.xsim.xsimflow:XsimFlow"
+urls.Documentation = "https://simplhdl.readthedocs.io/en/latest/"
+urls.Homepage = "https://github.com/SimplHDL"
+urls.Issues = "https://github.com/SimplHDL/simplhdl/issues"
+urls.Repository = "https://github.com/SimplHDL/simplhdl.git"
+scripts.simpl = "simplhdl.__main__:main"
+entry-points."simplhdl.plugins".chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"
+entry-points."simplhdl.plugins".encrypt = "simplhdl_encrypt.encrypt.encryptflow:EncryptFlow"
+entry-points."simplhdl.plugins".fusersoc_parser = "simplhdl_fusesocparser.fusesocparser:FuseSocParser"
+entry-points."simplhdl.plugins".lint = "simplhdl_lint.lint.lintflow:LintFlow"
+entry-points."simplhdl.plugins".modelsim = "simplhdl_modelsim.modelsim.modelsimflow:ModelSimFlow"
+entry-points."simplhdl.plugins".peakrdl_generator = "simplhdl_peakrdl.systemrdl:PeakRdlGenerator"
+entry-points."simplhdl.plugins".quartus = "simplhdl_quartus.quartusflow:QuartusFlow"
+entry-points."simplhdl.plugins".quartus-dse = "simplhdl_quartus.quartusdse.quartusdseflow:QuartusDseFlow"
+entry-points."simplhdl.plugins".quartus-export = "simplhdl_quartus.quartusexport.quartusexportflow:QuartusExportFlow"
+entry-points."simplhdl.plugins".quartus_generator = "simplhdl_quartus.spd:QuartusGenerator"
+entry-points."simplhdl.plugins".questasim = "simplhdl_questasim.questasim.questasimflow:QuestaSimFlow"
+entry-points."simplhdl.plugins".rivierapro = "simplhdl_rivierapro.rivierapro.rivieraproflow:RivieraProFlow"
+entry-points."simplhdl.plugins".simplhdl_parser = "simplhdl_parser.simplhdlparser:SimplHdlParser"
+entry-points."simplhdl.plugins".vcs = "simplhdl_vcs.vcs.vcsflow:VcsFlow"
+entry-points."simplhdl.plugins".vivado = "simplhdl_vivado.vivadoflow:VivadoFlow"
+entry-points."simplhdl.plugins".vivado_generator = "simplhdl_vivado.ipxact:VivadoGenerator"
+entry-points."simplhdl.plugins".xsim = "simplhdl_vivado.xsim.xsimflow:XsimFlow"
 
 [tool.setuptools.dynamic]
-version = {attr = "simplhdl.__version__"}
+version = { attr = "simplhdl.__version__" }
 
 [tool.setuptools.package-data]
-"*" = ["*.j2"]
+"*" = [ "*.j2" ]
 
-[tool.flake8]
-max-line-length = 120
-max_complexity = 10
-per-file-ignores = [
-    "__init__.py:F401",
+[tool.ruff]
+line-length = 120
+fix = true
+lint.per-file-ignores."__init__.py" = [
+  "F401", # don't care about unused imports
+  "F403", # don't care about 'from module import *'
 ]
+lint.isort = { known-first-party = [
+  "simplhdl",
+  "simplhdl_chisel",
+  "simplhdl_encrypt",
+  "simplhdl_fusesocparser",
+  "simplhdl_lint",
+  "simplhdl_modelsim",
+  "simplhdl_parser",
+  "simplhdl_peakrdl",
+  "simplhdl_quartus",
+  "simplhdl_questasim",
+  "simplhdl_rivierapro",
+  "simplhdl_vcs",
+  "simplhdl_vivado",
+  "tests",
+], required-imports = [
+  "from __future__ import annotations",
+] }
+lint.preview = true
+
+[tool.codespell]
+ignore-words-list = "synopsys, edn"
+
+[[tool.mypy.overrides]]
+module = "networkx.*"
+ignore_missing_imports = true

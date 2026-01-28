@@ -6,11 +6,12 @@ from pathlib import Path
 from .flow import FlowBase, FlowCategory
 from ..project.project import Project
 
+__all__ = ["ImplementationFlow"]
+
 logger = logging.getLogger(__name__)
 
 
 class ImplementationFlow(FlowBase):
-
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.category = FlowCategory.IMPLEMENTATION

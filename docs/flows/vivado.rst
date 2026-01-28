@@ -3,7 +3,7 @@ Vivado
 
 The Vivado flow enabled SimplHDL to use Vivado to implement FPGA designs.
 The Vivado flow is based on the standard Vivado Project mode, but can be
-extended with Tcl hook to accomodate any Tcl flow with in Vivado,
+extended with Tcl hook to accommodate any Tcl flow with in Vivado,
 
 The Vivado flow support the following design files.
 

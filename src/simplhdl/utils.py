@@ -24,17 +24,17 @@ def sh(
     shell: bool = False,
     env=None,
     indent: int = 2,
-    log: Path | None = None
+    log: Path | None = None,
 ):
-    if os.name == 'nt':
+    if os.name == "nt":
         shell = True
 
-    logger.debug(' '.join(command))
+    logger.debug(" ".join(command))
     with Popen(command, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell, env=env) as p:
         if output:
-            stdout: str = ''
+            stdout: str = ""
             for line in p.stdout:
-                sys.stdout.buffer.write(b' '*indent + line)
+                sys.stdout.buffer.write(b" " * indent + line)
                 sys.stdout.buffer.flush()
                 stdout += line.decode()
             _, stderr = p.communicate()
@@ -42,7 +42,7 @@ def sh(
             stdout, stderr = p.communicate()
             stdout = stdout.decode().strip()
         if log:
-            with log.open('a') as f:
+            with log.open("a") as f:
                 f.write(stdout)
                 f.write(stderr.decode())
 
@@ -57,8 +57,8 @@ def generate_from_template(template: Template, output: Path, *args, **kwargs) ->
     templatefile = Path(template.filename)
     if output.is_dir():
         filename = output.joinpath(templatefile.name)
-        if filename.suffix == '.j2':
-            output = filename.with_suffix('')
+        if filename.suffix == ".j2":
+            output = filename.with_suffix("")
         else:
             output = filename
     text = template.render(*args, **kwargs)
@@ -69,7 +69,7 @@ def generate_from_template(template: Template, output: Path, *args, **kwargs) ->
             logger.debug(f"{output.absolute()}: is already up to date")
             return False
     logger.debug(f"{output.absolute()}: create new")
-    with output.open('w') as f:
+    with output.open("w") as f:
         f.write(text)
     return True
 
@@ -114,7 +114,7 @@ def md5check(*items: Path, filename: Path) -> bool:
 
 
 def md5write(*items: Path, filename: Path) -> None:
-    with filename.open('w') as f:
+    with filename.open("w") as f:
         f.write(md5sum(*items))
 
 
@@ -126,7 +126,7 @@ def dict2str(*dictionaries: Dict[str, str]) -> str:
     dictionary = dict()
     for d in dictionaries:
         dictionary.update(d)
-    return ' '.join([f"{k}={v}" for k, v in dictionary.items()])
+    return " ".join([f"{k}={v}" for k, v in dictionary.items()])
 
 
 def mkdir(name: Path) -> bool:
@@ -139,7 +139,7 @@ def mkdir(name: Path) -> bool:
 
 def escape(a: str) -> str:
     """
-    Escape characther for command line and add "<str>" around string
+    Escape character for command line and add "<str>" around string
     """
     return f'"{a}"'
 

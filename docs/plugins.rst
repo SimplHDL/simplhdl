@@ -14,9 +14,9 @@ Parsers
 Parsers are plugins for parsing project specifications. Parser plugins are
 essential for extending SimplHDL to understand specifications from different
 projects. Most design teams have there own way for specifying source files,
-parameters etc. A few project specifications parsers for simular open source
+parameters etc. A few project specifications parsers for similar open source
 project are already implemented and ready to use. But if you project uses its
-own propiritary format a parser for that is neccesary.
+own propiritary format a parser for that is necessary.
 
 - HDLMake
 - FuseSoc
@@ -28,7 +28,7 @@ Generators
 
 Generator are plugins that takes an input source and generates output. This
 output is added to the generic project model so the output is accessible for
-the different simulation and implementation flows. Typpically the output is
+the different simulation and implementation flows. Typically the output is
 Verilog or VHDL, but it can also be complete IPs with constraints and parameters.
 One limitation is that Generator cannot be chained together, meaning one
 generators output cannot be used as input to a second generator.

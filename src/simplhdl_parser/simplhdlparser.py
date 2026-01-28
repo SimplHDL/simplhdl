@@ -18,7 +18,6 @@ from simplhdl.project.attributes import Library
 
 
 class SimplHdlParser(ParserBase):
-
     _format_id: str = "#%SimplAPI=1.0"
 
     def __init__(self):
@@ -28,7 +27,7 @@ class SimplHdlParser(ParserBase):
 
     def is_valid_format(self, filename: Path | None) -> bool:
         if filename is None:
-            filenames = Path('.').glob('*.yml')
+            filenames = Path(".").glob("*.yml")
         else:
             filenames = [filename]
 
@@ -41,7 +40,7 @@ class SimplHdlParser(ParserBase):
 
     def parse(self, filename: Path | None, project: Project, args: Namespace) -> Fileset:
         if filename is None:
-            files = Path('.').glob('*.yml')
+            files = Path(".").glob("*.yml")
         else:
             files = [filename]
 
@@ -52,46 +51,50 @@ class SimplHdlParser(ParserBase):
     def parse_core(self, filename: Path, project: Project) -> Fileset:  # noqa: C901
         self._core_stack.append(filename)
         spec = self.read_spec(filename)
-        libname = spec.get('library')
+        libname = spec.get("library")
         if not libname:
             library = project.defaultDesign.defaultLibrary
         else:
             library = Library(libname)
 
         fileset = Fileset(str(filename), Library=library)
-        for corefile in spec.get('dependencies', list()):
+        for corefile in spec.get("dependencies", list()):
             corefile = self.path(corefile)
             if corefile.absolute() in self._core_visited:
                 continue
             subfileset = self.parse_core(corefile, project)
             fileset.add_fileset(subfileset)
 
-        if 'top' in spec:
-            fileset.TopLevel = spec.get('top')
+        if "top" in spec:
+            fileset.TopLevel = spec.get("top")
 
-        for name, value in spec.get('targets', dict()).items():
-            target = Target(name=name, args=parse_arguments(split(value)), cwd=self._core_stack[-1].parent)
+        for name, value in spec.get("targets", dict()).items():
+            target = Target(
+                name=name,
+                args=parse_arguments(split(value)),
+                cwd=self._core_stack[-1].parent,
+            )
             project.add_target(target)
-        for name, value in spec.get('defines', dict()).items():
+        for name, value in spec.get("defines", dict()).items():
             project.add_define(name, value)
-        for name, value in spec.get('parameters', dict()).items():
+        for name, value in spec.get("parameters", dict()).items():
             project.add_parameter(name, value)
-        for name, value in spec.get('plusargs', dict()).items():
+        for name, value in spec.get("plusargs", dict()).items():
             project.add_plusarg(name, value)
-        for name, value in spec.get('generics', dict()).items():
+        for name, value in spec.get("generics", dict()).items():
             project.add_generic(name, value)
-        for filepath in spec.get('files', list()):
+        for filepath in spec.get("files", list()):
             resolvefilepath = filename.parent.joinpath(filepath).resolve()
             file = FileFactory.create(resolvefilepath)
             fileset.add_file(file)
         # Top level spec
         if len(self._core_stack) == 1:
-            if 'project' in spec:
-                project.name = spec.get('project')
-            if 'part' in spec:
-                project.part = spec.get('part')
-            if 'top' in spec:
-                project.defaultDesign.toplevels = spec.get('top').split()
+            if "project" in spec:
+                project.name = spec.get("project")
+            if "part" in spec:
+                project.part = spec.get("part")
+            if "top" in spec:
+                project.defaultDesign.toplevels = spec.get("top").split()
 
         self._core_stack.pop()
         return fileset

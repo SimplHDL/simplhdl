@@ -3,7 +3,7 @@ from random import choice, randint
 
 from pyuvm import uvm_sequence_item
 
-__ALL__ = ['Command', 'SequenceItem']
+__ALL__ = ["Command", "SequenceItem"]
 
 
 class Command(IntEnum):
@@ -13,7 +13,6 @@ class Command(IntEnum):
 
 
 class SequenceItem(uvm_sequence_item):
-
     def __init__(self, name, cmd=None, a=None, b=None, delay=None):
         super().__init__(name)
         self.a = a
@@ -33,11 +32,7 @@ class SequenceItem(uvm_sequence_item):
             self.delay = randint(0, 8)
 
     def __eq__(self, others):
-        return (
-            self.a == others.a and
-            self.b == others.b and
-            self.cmd == others.cmd
-        )
+        return self.a == others.a and self.b == others.b and self.cmd == others.cmd
 
     def __str__(self):
-        return f'{self.get_name()} | a:{self.a}'
+        return f"{self.get_name()} | a:{self.a}"

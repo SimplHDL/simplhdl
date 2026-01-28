@@ -24,26 +24,22 @@ logger = logging.getLogger(__name__)
 
 
 class VeribleFlow(FlowBase):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('verible-verilog-lint', help='Verible Lint Flow')
+        parser = subparsers.add_parser("verible-verilog-lint", help="Verible Lint Flow")
         parser.add_argument(
-            '--fix',
-            action='store_true',
-            help="Fix style formatting (Note: this modifies the source)"
+            "--fix",
+            action="store_true",
+            help="Fix style formatting (Note: this modifies the source)",
         )
+        parser.add_argument("-r", "--rules", action="store", help="Rule configuration file")
         parser.add_argument(
-            '-r', '--rules',
-            action='store',
-            help="Rule configuration file"
-        )
-        parser.add_argument(
-            '-f', '--files',
+            "-f",
+            "--files",
             type=lambda p: Path(p).absolute(),
-            nargs='+',
+            nargs="+",
             default=[],
-            help="Manually specify file list"
+            help="Manually specify file list",
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -56,19 +52,17 @@ class VeribleFlow(FlowBase):
     def generate(self):
         if self.args.rules:
             self.rules = self.args.rules
-        elif os.getenv('SIMPLHDL_VERIBLE_CONFIG'):
-            rules = os.getenv('SIMPLHDL_VERIBLE_CONFIG')
+        elif os.getenv("SIMPLHDL_VERIBLE_CONFIG"):
+            rules = os.getenv("SIMPLHDL_VERIBLE_CONFIG")
             if not Path(rules).exists():
                 raise FlowError(f"Rules file {rules} does not exist")
             self.rules = rules
         else:
             templatedir = resources_files(self.templates)
-            environment = Environment(
-                loader=FileSystemLoader(templatedir),
-                trim_blocks=True)
-            template = environment.get_template('rules.cfg.j2')
+            environment = Environment(loader=FileSystemLoader(templatedir), trim_blocks=True)
+            template = environment.get_template("rules.cfg.j2")
             generate_from_template(template, self.builddir)
-            self.rules = 'rules.cfg'
+            self.rules = "rules.cfg"
 
     def execute(self):
         errors = False
@@ -76,7 +70,8 @@ class VeribleFlow(FlowBase):
             "verible-verilog-lint",
             "--check_syntax=false",
             "--ruleset=none",
-            "--rules_config", self.rules
+            "--rules_config",
+            self.rules,
         ]
 
         if self.args.fix:

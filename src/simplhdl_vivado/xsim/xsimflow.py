@@ -19,69 +19,59 @@ logger = logging.getLogger(__name__)
 
 
 class XsimFlow(SimulationFlow):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('xsim', help='Xilinx Xsim HDL Simulation Flow')
+        parser = subparsers.add_parser("xsim", help="Xilinx Xsim HDL Simulation Flow")
         parser.add_argument(
-            '-s',
-            '--step',
-            action='store',
-            choices=['compile', 'elaborate', 'simulate'],
-            default='simulate',
-            help="flow step to run"
+            "-s",
+            "--step",
+            action="store",
+            choices=["compile", "elaborate", "simulate"],
+            default="simulate",
+            help="flow step to run",
+        )
+        parser.add_argument("-w", "--wave", action="store_true", help="Dump waveforms")
+        parser.add_argument("--gui", action="store_true", help="Open project in GUI")
+        parser.add_argument(
+            "--xsim-args",
+            default="",
+            action="store",
+            help="Extra args for Xsim xsim command",
         )
         parser.add_argument(
-            '-w',
-            '--wave',
-            action='store_true',
-            help="Dump waveforms"
+            "--xelab-args",
+            default="",
+            action="store",
+            help="Extra args for Xsim xelab command",
         )
         parser.add_argument(
-            '--gui',
-            action='store_true',
-            help="Open project in GUI"
+            "--xvhdl-args",
+            default="",
+            action="store",
+            help="Extra args for Xsim xvhdl command",
         )
         parser.add_argument(
-            '--xsim-args',
-            default='',
-            action='store',
-            help="Extra args for Xsim xsim command"
+            "--xvlog-args",
+            default="",
+            action="store",
+            help="Extra args for Xsim xvlog command",
         )
         parser.add_argument(
-            '--xelab-args',
-            default='',
-            action='store',
-            help="Extra args for Xsim xelab command"
+            "--seed",
+            default="1",
+            action="store",
+            help="Seed to initialize random generator",
         )
         parser.add_argument(
-            '--xvhdl-args',
-            default='',
-            action='store',
-            help="Extra args for Xsim xvhdl command"
+            "--random-seed",
+            action="store_true",
+            help="Generate a random seed to initialize random generator",
         )
         parser.add_argument(
-            '--xvlog-args',
-            default='',
-            action='store',
-            help="Extra args for Xsim xvlog command"
-        )
-        parser.add_argument(
-            '--seed',
-            default='1',
-            action='store',
-            help="Seed to initialize random generator"
-        )
-        parser.add_argument(
-            '--random-seed',
-            action='store_true',
-            help="Generate a random seed to initialize random generator"
-        )
-        parser.add_argument(
-            '--timescale',
-            default='1ns/1ps',
-            action='store',
-            help="Set the simulator timescale for Xsim"
+            "--timescale",
+            default="1ns/1ps",
+            action="store",
+            help="Set the simulator timescale for Xsim",
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -92,28 +82,26 @@ class XsimFlow(SimulationFlow):
     def configure(self):
         super().configure()
         if self.cocotb.enabled:
-            os.environ['MODULE'] = self.cocotb.module()
+            os.environ["MODULE"] = self.cocotb.module()
             raise NotImplementedError("Xsim currently doesn't support cocotb")
 
     def get_globals(self) -> dict[str, Any]:
         globals = super().get_globals()
-        globals['xvlog_args'] = self.xvlog_args()
-        globals['xvhdl_args'] = self.xvhdl_args()
-        globals['xelab_args'] = self.xelab_args()
-        globals['xsim_args'] = self.xsim_args()
+        globals["xvlog_args"] = self.xvlog_args()
+        globals["xvhdl_args"] = self.xvhdl_args()
+        globals["xelab_args"] = self.xelab_args()
+        globals["xsim_args"] = self.xsim_args()
         return globals
 
     def get_project_templates(self, environment) -> list[Template]:
         return [
-            environment.get_template('Makefile.j2'),
-            environment.get_template('project.mk.j2')
+            environment.get_template("Makefile.j2"),
+            environment.get_template("project.mk.j2"),
         ]
 
     def get_cocotb_templates(self, environment):
         if self.cocotb.enabled:
-            return [
-                environment.get_template('cocotb.mk.j2')
-            ]
+            return [environment.get_template("cocotb.mk.j2")]
         else:
             return list()
 
@@ -135,13 +123,13 @@ class XsimFlow(SimulationFlow):
         for name, value in self.project.defines.items():
             args.add(f"-d {name}={escape(value)}")
         if self.is_uvm():
-            args.add('-L uvm')
-        return ' '.join(list(args) + [self.args.xvlog_args]).strip()
+            args.add("-L uvm")
+        return " ".join(list(args) + [self.args.xvlog_args]).strip()
 
     def xvhdl_args(self) -> str:
         args = set()
         args.add(f"-v {self.args.verbose if self.args.verbose < 2 else 2}")
-        return ' '.join(list(args) + [self.args.xvhdl_args])
+        return " ".join(list(args) + [self.args.xvhdl_args])
 
     def xelab_args(self) -> str:
         args = set()
@@ -154,8 +142,8 @@ class XsimFlow(SimulationFlow):
         for name, value in self.project.parameters.items():
             args.add(f"--generic_top {name}={escape(value)}")
         if self.args.wave or self.args.gui:
-            args.add('-debug all')
-        return ' '.join(list(args) + [self.args.xelab_args])
+            args.add("-debug all")
+        return " ".join(list(args) + [self.args.xelab_args])
 
     def xsim_args(self) -> str:
         args = set()
@@ -165,28 +153,28 @@ class XsimFlow(SimulationFlow):
             pass
         for name, value in self.project.plusargs.items():
             args.add(f"--testplusarg {name}={escape(value)}")
-        return ' '.join(list(args) + [self.args.xsim_args])
+        return " ".join(list(args) + [self.args.xsim_args])
 
     def execute(self, step: str) -> None:
-        self.run_hooks('pre')
-        sh(['make', 'compile'], cwd=self.builddir, output=True)
-        if step == 'compile':
+        self.run_hooks("pre")
+        sh(["make", "compile"], cwd=self.builddir, output=True)
+        if step == "compile":
             return
 
         if self.cocotb.enabled:
             for toplevel in [t for t in self.project.defaultDesign.toplevels if t != self.cocotb.module()]:
-                # TODO: what should happend in Vcs?
+                # TODO: what should happen in Vcs?
                 # self.hdl_language = get_hdl_language(toplevel, directory=self.builddir)
                 # os.environ['SIMPLHDL_LANGUAGE'] = self.hdl_language
                 pass
 
         if self.args.gui:
-            command = ['make', 'gui']
+            command = ["make", "gui"]
         else:
-            command = ['make', step]
+            command = ["make", step]
         sh(command, cwd=self.builddir, output=True)
-        if step == 'simulate':
-            self.run_hooks('post')
+        if step == "simulate":
+            self.run_hooks("post")
 
     def run_hooks(self, name):
         try:
@@ -198,9 +186,7 @@ class XsimFlow(SimulationFlow):
             pass
 
     def is_tool_setup(self) -> None:
-        if (shutil.which('xvlog') is None or
-                shutil.which('xvhdl') is None or
-                shutil.which('xsim') is None):
+        if shutil.which("xvlog") is None or shutil.which("xvhdl") is None or shutil.which("xsim") is None:
             raise Exception("Xsim is not setup correctly")
 
 
@@ -214,10 +200,10 @@ def get_hdl_language(name: str, directory: Path = Path.cwd()) -> str:
     Returns:
         str: Verilog or VHDL
     """
-    info = sh(['vdir', '-prop', 'top', name], cwd=directory)
-    if info.startswith('ENTITY'):
+    info = sh(["vdir", "-prop", "top", name], cwd=directory)
+    if info.startswith("ENTITY"):
         return "vhdl"
-    elif info.startswith('MODULE'):
+    elif info.startswith("MODULE"):
         return "verilog"
     else:
-        raise Exception(f"Unknow info: {info}")
+        raise Exception(f"Unknown info: {info}")
