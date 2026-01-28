@@ -45,7 +45,6 @@ def load_external_plugins() -> None:
     Loads external plugins.
     """
     for plugin in get_external_plugins("simplhdl.plugins"):
-
         try:
             # 1. Load the class/function explicitly
             PluginClass = plugin.load()
@@ -76,6 +75,6 @@ def load_plugins() -> None:
     """
     Loads all plugins, both builtin and external.
     """
-    FlowFactory.register('info', Info)
-    FlowFactory.register('run', Run)
+    FlowFactory.register("info", Info)
+    FlowFactory.register("run", Run)
     load_external_plugins()

@@ -21,21 +21,21 @@ logger = logging.getLogger(__name__)
 
 
 class Flake8Flow(FlowBase):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('flake8', help='Lint Flow for Python code')
+        parser = subparsers.add_parser("flake8", help="Lint Flow for Python code")
         parser.add_argument(
-            '--fix',
-            action='store_true',
-            help="Fix style formatting (Note: this modifies the source)"
+            "--fix",
+            action="store_true",
+            help="Fix style formatting (Note: this modifies the source)",
         )
         parser.add_argument(
-            '-f', '--files',
+            "-f",
+            "--files",
             type=lambda p: Path(p).absolute(),
-            nargs='+',
+            nargs="+",
             default=[],
-            help="Manually specify file list"
+            help="Manually specify file list",
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -45,28 +45,26 @@ class Flake8Flow(FlowBase):
     def setup(self):
         os.makedirs(self.builddir, exist_ok=True)
         if self.args.files:
-            self.files = [Path(f) for f in self.args.files if Path(f).suffix == '.py']
+            self.files = [Path(f) for f in self.args.files if Path(f).suffix == ".py"]
         else:
             self.files = [f.Path for f in self.project.defaultDesign.files(CocotbPythonFile)]
 
     def generate(self):
-        config = os.getenv('SIMPLHDL_FLAKE8_CONFIG')
+        config = os.getenv("SIMPLHDL_FLAKE8_CONFIG")
         if config:
-            shutil.copy(config, self.builddir.joinpath('setup.cfg'))
+            shutil.copy(config, self.builddir.joinpath("setup.cfg"))
         else:
             templatedir = resources_files(self.templates)
-            environment = Environment(
-                loader=FileSystemLoader(templatedir),
-                trim_blocks=True)
-            template = environment.get_template('setup.cfg.j2')
+            environment = Environment(loader=FileSystemLoader(templatedir), trim_blocks=True)
+            template = environment.get_template("setup.cfg.j2")
             generate_from_template(template, self.builddir)
 
     def execute(self):
         if self.args.fix:
             for file in self.files:
-                sh(['black', str(file.absolute())])
+                sh(["black", str(file.absolute())])
         else:
-            command = ['flake8'] + [str(f.absolute()) for f in self.files]
+            command = ["flake8"] + [str(f.absolute()) for f in self.files]
             try:
                 sh(command, cwd=self.builddir, output=True)
             except CalledShError as e:

@@ -29,36 +29,31 @@ logger = logging.getLogger(__name__)
 
 
 class QuartusExportFlow(ImplementationFlow):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('quartus-export', help='Export Quartus project')
+        parser = subparsers.add_parser("quartus-export", help="Export Quartus project")
+        parser.add_argument("--encrypt", action="store_true", help="Encrypt HDL source files")
         parser.add_argument(
-            '--encrypt',
-            action='store_true',
-            help="Encrypt HDL source files"
-        )
-        parser.add_argument(
-            '-o',
-            '--output',
-            action='store',
-            metavar='FILE',
-            dest='archivefile',
+            "-o",
+            "--output",
+            action="store",
+            metavar="FILE",
+            dest="archivefile",
             type=Path,
-            help="Output zip file"
+            help="Output zip file",
         )
         parser.add_argument(
-            '-s',
-            '--structure',
-            action='store',
-            choices=['flat', 'hierarchy'],
-            default='hierarchy',
-            help="Output zip file"
+            "-s",
+            "--structure",
+            action="store",
+            choices=["flat", "hierarchy"],
+            default="hierarchy",
+            help="Output zip file",
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
-        self.vendors = ['mentor', 'synopsys']
+        self.vendors = ["mentor", "synopsys"]
         self.templates = templates
         self.tools.add(FlowTools.QUARTUS)
         self.rootdir = self.directory_root()
@@ -80,9 +75,9 @@ class QuartusExportFlow(ImplementationFlow):
         files = [f for f in self.project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION)]
         for file in files:
             fileid = str(file.path.resolve())
-            dest = self.builddir.joinpath('src', file.path.relative_to(self.rootdir))
-            if self.args.structure == 'flat':
-                dest = self.builddir.joinpath('src', file.path.name)
+            dest = self.builddir.joinpath("src", file.path.relative_to(self.rootdir))
+            if self.args.structure == "flat":
+                dest = self.builddir.joinpath("src", file.path.name)
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
@@ -96,7 +91,12 @@ class QuartusExportFlow(ImplementationFlow):
             elif isinstance(file, (VerilogFile, VerilogIncludeFile, SystemVerilogFile, VhdlFile)):
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 if self.args.encrypt and file.encrypt:
-                    encrypt(file.path, dest, language=get_language(file), vendors=self.vendors)
+                    encrypt(
+                        file.path,
+                        dest,
+                        language=get_language(file),
+                        vendors=self.vendors,
+                    )
                 else:
                     shutil.copyfile(file.path, dest)
             else:
@@ -107,13 +107,13 @@ class QuartusExportFlow(ImplementationFlow):
             seen[fileid] = file
 
     def create_project(self) -> None:
-        args = Namespace(step='project', archive=False, gui=False)
-        quartus = QuartusFlow('quartus', args, self.project, self.builddir)
+        args = Namespace(step="project", archive=False, gui=False)
+        quartus = QuartusFlow("quartus", args, self.project, self.builddir)
         quartus.run()
         try:
-            shutil.rmtree(self.builddir.joinpath('dni'))
-            shutil.rmtree(self.builddir.joinpath('qdb'))
-            os.remove(self.builddir.joinpath('project.tcl'))
+            shutil.rmtree(self.builddir.joinpath("dni"))
+            shutil.rmtree(self.builddir.joinpath("qdb"))
+            os.remove(self.builddir.joinpath("project.tcl"))
         except FileNotFoundError:
             pass
 
@@ -122,13 +122,13 @@ class QuartusExportFlow(ImplementationFlow):
             tmp = self.builddir.parent.joinpath(self.args.archivefile.name)
             output = self.args.archivefile
         else:
-            tmp = self.builddir.parent.joinpath(f'{self.project.name}.zip')
+            tmp = self.builddir.parent.joinpath(f"{self.project.name}.zip")
             output = self.builddir.joinpath(tmp.name)
         archive(self.builddir, tmp)
         if tmp == output:
             return
         elif not output.parent.exists():
-            raise FileNotFoundError(f'Output directory {output.parent.resolve()} does not exist')
+            raise FileNotFoundError(f"Output directory {output.parent.resolve()} does not exist")
         elif output.exists():
             os.remove(output)
         shutil.move(tmp, output)
@@ -142,11 +142,11 @@ class QuartusExportFlow(ImplementationFlow):
 
     def is_tool_setup(self) -> None:
         exit: bool = False
-        if shutil.which('quartus_sh') is None:
-            logger.error('quartus_sh: not found in PATH')
+        if shutil.which("quartus_sh") is None:
+            logger.error("quartus_sh: not found in PATH")
             exit = True
-        if shutil.which('quartus') is None:
-            logger.error('quartus: not found in PATH')
+        if shutil.which("quartus") is None:
+            logger.error("quartus: not found in PATH")
             exit = True
         if exit:
             raise FileNotFoundError("Quartus is not setup correctly")
@@ -154,10 +154,10 @@ class QuartusExportFlow(ImplementationFlow):
 
 def get_language(file: File) -> str:
     fileMap = {
-        SystemVerilogFile: 'systemverilog',
-        VerilogFile: 'verilog',
-        VerilogIncludeFile: 'systemverilog',
-        VhdlFile: 'vhdl'
+        SystemVerilogFile: "systemverilog",
+        VerilogFile: "verilog",
+        VerilogIncludeFile: "systemverilog",
+        VhdlFile: "vhdl",
     }
     return fileMap[type(file)]
 
@@ -177,9 +177,9 @@ def archive(directory: Path, destination: Path) -> Path:
         Path: The path to the created zip archive.
     """
     top_folder = destination.stem  # top folder inside the archive
-    with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as zipf:
         # Walk through all files in the directory
-        for file in directory.rglob('*'):
+        for file in directory.rglob("*"):
             if file.is_file():
                 # Place each file under the top_folder
                 arcname = Path(top_folder) / file.relative_to(directory)

@@ -1,5 +1,4 @@
 class AluIf:
-
     def __init__(self, a, b, x, cmd, ready, valid, clock, reset):
         self.a = a
         self.b = b

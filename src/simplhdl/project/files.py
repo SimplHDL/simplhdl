@@ -27,7 +27,6 @@ class ConstraintOrder(float, Enum):
 
 
 class File:
-
     _cache = WeakValueDictionary()
     _default_usedin: list[str] = [UsedIn.SIMULATION, UsedIn.IMPLEMENTATION]
     _default_encrypt: bool = False
@@ -43,15 +42,15 @@ class File:
         return instance
 
     def __init__(self, file: Path | str, **attributes) -> None:
-        if hasattr(self, '_initialized'):
-            logger.debug(f'File {self._path} already initialized')
+        if hasattr(self, "_initialized"):
+            logger.debug(f"File {self._path} already initialized")
             return
 
         self._path: Path = Path(file) if isinstance(file, str) else file
         self._graph: nx.DiGraph[File] | None = None
         self._parent: Fileset | None = None
-        self._usedin: list[str] = attributes.get('usedin', self._default_usedin)
-        self._encrypt: bool = attributes.get('encrypt', self._default_encrypt)
+        self._usedin: list[str] = attributes.get("usedin", self._default_usedin)
+        self._encrypt: bool = attributes.get("encrypt", self._default_encrypt)
         self._initialized = True
 
     @classmethod
@@ -104,7 +103,7 @@ class File:
             parent_name = None
         else:
             parent_name = self._parent.name
-        return f'{self.__class__.__name__}(path={self._path}, parent={parent_name})'
+        return f"{self.__class__.__name__}(path={self._path}, parent={parent_name})"
 
 
 FileClass = Type[File]
@@ -140,7 +139,7 @@ def filter_files(
             if not hasattr(file, key):
                 all_filters_match = False
                 break
-            if key == 'usedin':  # Special case for membership check
+            if key == "usedin":  # Special case for membership check
                 if value not in getattr(file, key):
                     all_filters_match = False
                     break
@@ -153,7 +152,6 @@ def filter_files(
 
 
 class FileFactory:
-
     _registered_types: dict[str, type[File]] = {}
     _registered_extensions: dict[str, type[File]] = {}
 
@@ -194,7 +192,7 @@ class FileFactory:
     def create(cls, file: Path, type: str | None = None, **attributes) -> File:
         filename_lower = file.name.lower()
         if type is None:
-            type = ''
+            type = ""
         type_lower = type.lower()
 
         # If type is not None, we lookup registered type
@@ -216,8 +214,7 @@ class FileFactory:
 
 
 @FileFactory.register()
-class UnknownFile(File):
-    ...
+class UnknownFile(File): ...
 
 
 class HdlFile(File):
@@ -226,6 +223,7 @@ class HdlFile(File):
     This class serves as a base for specific HDL file types like Verilog or VHDL.
     It manages common attributes applicable to HDL source files.
     """
+
     _default_encrypt = True
 
     def __init__(self, file: Path, **attributes) -> None:
@@ -243,7 +241,7 @@ class HdlFile(File):
             library: The HDL library this file belongs to. Defaults to `None`.
         """
         super().__init__(file, **attributes)
-        self._library: Library = attributes.get('library', None)
+        self._library: Library = attributes.get("library", None)
 
     @property
     def library(self) -> Library:
@@ -252,41 +250,35 @@ class HdlFile(File):
         return self._library
 
 
-@FileFactory.register(extension='.sv')
-class SystemVerilogFile(HdlFile):
-    ...
+@FileFactory.register(extension=".sv")
+class SystemVerilogFile(HdlFile): ...
 
 
-@FileFactory.register(extension='.svp')
-class SystemVerilogEncryptedFile(HdlFile):
-    ...
+@FileFactory.register(extension=".svp")
+class SystemVerilogEncryptedFile(HdlFile): ...
 
 
-@FileFactory.register(extension='.v')
-class VerilogFile(HdlFile):
-    ...
+@FileFactory.register(extension=".v")
+class VerilogFile(HdlFile): ...
 
 
-@FileFactory.register(extension='.vp')
-class VerilogEncryptedFile(HdlFile):
-    ...
+@FileFactory.register(extension=".vp")
+class VerilogEncryptedFile(HdlFile): ...
 
 
-@FileFactory.register(extension=['.vh', '.svh'])
+@FileFactory.register(extension=[".vh", ".svh"])
 class VerilogIncludeFile(HdlFile):
     @property
     def includeDir(self) -> Path:
         return self.path.parent
 
 
-@FileFactory.register(extension=['.vhp', '.svhp'])
-class VerilogIncludeEncryptedFile(HdlFile):
-    ...
+@FileFactory.register(extension=[".vhp", ".svhp"])
+class VerilogIncludeEncryptedFile(HdlFile): ...
 
 
-@FileFactory.register(extension=['.vhd', '.vhdl'])
-class VhdlFile(HdlFile):
-    ...
+@FileFactory.register(extension=[".vhd", ".vhdl"])
+class VhdlFile(HdlFile): ...
 
 
 class ImplementationFile(File):
@@ -299,8 +291,8 @@ class ConstraintFile(ImplementationFile):
 
     def __init__(self, file: Path, **attributes) -> None:
         super().__init__(file, **attributes)
-        self._scope: str | None = attributes.get('scope', self._default_scope)
-        self._order: float = attributes.get('order', self._default_order)
+        self._scope: str | None = attributes.get("scope", self._default_scope)
+        self._order: float = attributes.get("order", self._default_order)
 
     @property
     def scope(self) -> str | None:
@@ -319,132 +311,106 @@ class SimulationFile(File):
     _default_usedin = [UsedIn.SIMULATION]
 
 
-class IPSpecificationFile(File):
-    ...
+class IPSpecificationFile(File): ...
 
 
-@FileFactory.register(extension='.sdc')
-class SdcFile(ConstraintFile):
-    ...
+@FileFactory.register(extension=".sdc")
+class SdcFile(ConstraintFile): ...
 
 
-@FileFactory.register(extension=['.edn', '.edif'])
-class EdifFile(ImplementationFile):
-    ...
+@FileFactory.register(extension=[".edn", ".edif"])
+class EdifFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension=['.c', '.s'])
-class CFile(File):
-    ...
+@FileFactory.register(extension=[".c", ".s"])
+class CFile(File): ...
 
 
-@FileFactory.register(extension='.h')
-class CHeaderFile(File):
-    ...
+@FileFactory.register(extension=".h")
+class CHeaderFile(File): ...
 
 
-class SystemCFile(File):
-    ...
+class SystemCFile(File): ...
 
 
-@FileFactory.register(extension='.cpp')
-class CppFile(File):
-    ...
+@FileFactory.register(extension=".cpp")
+class CppFile(File): ...
 
 
-@FileFactory.register(extension='.py')
-class CocotbPythonFile(SimulationFile):
-    ...
+@FileFactory.register(extension=".py")
+class CocotbPythonFile(SimulationFile): ...
 
 
-@FileFactory.register(extension='.qsf')
-class QuartusQsfFile(ImplementationFile):
-    ...
+@FileFactory.register(extension=".qsf")
+class QuartusQsfFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension='.qip')
-class QuartusQipFile(ImplementationFile):
-    ...
+@FileFactory.register(extension=".qip")
+class QuartusQipFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension='.qsys')
-class QuartusQsysFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".qsys")
+class QuartusQsysFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.qsys.zip')
-class QuartusQsysZipFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".qsys.zip")
+class QuartusQsysZipFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.ip')
-class QuartusIpFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".ip")
+class QuartusIpFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.ip.zip')
-class QuartusIpZipFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".ip.zip")
+class QuartusIpZipFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.ipx')
-class QuartusIpxFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".ipx")
+class QuartusIpxFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.source.tcl')
-class QuartusSourceTclFile(ImplementationFile):
-    ...
+@FileFactory.register(extension=".source.tcl")
+class QuartusSourceTclFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension='quartus.ini')
-class QuartusIniFile(ImplementationFile):
-    ...
+@FileFactory.register(extension="quartus.ini")
+class QuartusIniFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension='.stp')
-class QuartusStpFile(ImplementationFile):
-    ...
+@FileFactory.register(extension=".stp")
+class QuartusStpFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension='.xdc')
-class VivadoXdcFile(ConstraintFile):
-    ...
+@FileFactory.register(extension=".xdc")
+class VivadoXdcFile(ConstraintFile): ...
 
 
-@FileFactory.register(extension='.dcp')
-class VivadoDcpFile(ImplementationFile):
-    ...
+@FileFactory.register(extension=".dcp")
+class VivadoDcpFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension='.xci')
-class VivadoXciFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".xci")
+class VivadoXciFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.xcix')
-class VivadoXcixFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".xcix")
+class VivadoXcixFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.bd')
-class VivadoBdFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".bd")
+class VivadoBdFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.bd.tcl')
-class VivadoBdTclFile(IPSpecificationFile):
-    ...
+@FileFactory.register(extension=".bd.tcl")
+class VivadoBdTclFile(IPSpecificationFile): ...
 
 
-@FileFactory.register(extension='.steps.tcl')
-class VivadoStepFile(ImplementationFile):
-    ...
+@FileFactory.register(extension=".steps.tcl")
+class VivadoStepFile(ImplementationFile): ...
 
 
-@FileFactory.register(extension='.sbt')
-class ChiselBuildFile(File):
-    ...
+@FileFactory.register(extension=".sbt")
+class ChiselBuildFile(File): ...
 
 
 class HdlSearchPath(VerilogIncludeFile):
@@ -453,26 +419,21 @@ class HdlSearchPath(VerilogIncludeFile):
         return self.path
 
 
-@FileFactory.register(extension='.hex')
-class MemoryHexFile(File):
-    ...
+@FileFactory.register(extension=".hex")
+class MemoryHexFile(File): ...
 
 
-@FileFactory.register(extension='.mif')
-class MemoryInitFile(File):
-    ...
+@FileFactory.register(extension=".mif")
+class MemoryInitFile(File): ...
 
 
-@FileFactory.register(extension='modelsim.ini')
-class ModelsimIniFile(SimulationFile):
-    ...
+@FileFactory.register(extension="modelsim.ini")
+class ModelsimIniFile(SimulationFile): ...
 
 
-@FileFactory.register(extension='.rdl')
-class SystemRdlFile(File):
-    ...
+@FileFactory.register(extension=".rdl")
+class SystemRdlFile(File): ...
 
 
-@FileFactory.register(extension='.tcl')
-class TclFile(File):
-    ...
+@FileFactory.register(extension=".tcl")
+class TclFile(File): ...

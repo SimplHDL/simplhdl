@@ -20,36 +20,28 @@ logger = logging.getLogger(__name__)
 
 
 class VsgFlow(FlowBase):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('vhdl-style-guide', help='VHDL Style Guide Flow')
+        parser = subparsers.add_parser("vhdl-style-guide", help="VHDL Style Guide Flow")
         parser.add_argument(
-            '--output-format',
-            choices=[
-                'vsg',
-                'syntastic',
-                'summary'
-            ],
+            "--output-format",
+            choices=["vsg", "syntastic", "summary"],
             default=None,
-            help="Display output format"
+            help="Display output format",
         )
         parser.add_argument(
-            '--fix',
-            action='store_true',
-            help="Fix style formatting (Note: this modifies the source)"
+            "--fix",
+            action="store_true",
+            help="Fix style formatting (Note: this modifies the source)",
         )
+        parser.add_argument("-r", "--rules", action="store", help="Rule configuration file")
         parser.add_argument(
-            '-r', '--rules',
-            action='store',
-            help="Rule configuration file"
-        )
-        parser.add_argument(
-            '-f', '--files',
+            "-f",
+            "--files",
             type=lambda p: Path(p).absolute(),
-            nargs='+',
+            nargs="+",
             default=[],
-            help="Manually specify file list"
+            help="Manually specify file list",
         )
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
@@ -63,24 +55,20 @@ class VsgFlow(FlowBase):
 
     def generate(self):
         templatedir = resources_files(self.templates)
-        environment = Environment(
-            loader=FileSystemLoader(templatedir),
-            trim_blocks=True)
-        template = environment.get_template('files.json.j2')
-        generate_from_template(template, self.builddir,
-                               VHDLSourceFile=VhdlFile,
-                               project=self.project)
+        environment = Environment(loader=FileSystemLoader(templatedir), trim_blocks=True)
+        template = environment.get_template("files.json.j2")
+        generate_from_template(template, self.builddir, VHDLSourceFile=VhdlFile, project=self.project)
         if self.args.rules:
             self.rules = self.args.rules
-        elif os.getenv('SIMPLHDL_VSG_CONFIG'):
-            rules = os.getenv('SIMPLHDL_VSG_CONFIG')
+        elif os.getenv("SIMPLHDL_VSG_CONFIG"):
+            rules = os.getenv("SIMPLHDL_VSG_CONFIG")
             if not Path(rules).exists():
                 raise FlowError(f"Rules file {rules} does not exist")
             self.rules = rules
         else:
-            template = environment.get_template('rules.yml.j2')
+            template = environment.get_template("rules.yml.j2")
             generate_from_template(template, self.builddir)
-            self.rules = 'rules.yml'
+            self.rules = "rules.yml"
 
     def execute(self):
         command = ["vsg"]
@@ -103,7 +91,7 @@ class VsgFlow(FlowBase):
         if user_files:
             if self.rules:
                 command += f"-c {self.rules}".split()
-            command += ['-f'] + [str(f.absolute()) for f in self.args.files]
+            command += ["-f"] + [str(f.absolute()) for f in self.args.files]
         elif project_files:
             command += f"-c {self.rules} files.json".split()
         else:

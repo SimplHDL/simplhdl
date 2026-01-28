@@ -21,7 +21,7 @@ def main():
         load_plugins()
         args = parse_arguments()
         levels = [logging.INFO, logging.DEBUG, logging.NOTSET]
-        level = levels[min(args.verbose, len(levels)-1)]
+        level = levels[min(args.verbose, len(levels) - 1)]
         if level < logging.INFO:
             show_path = True
         else:
@@ -29,15 +29,18 @@ def main():
 
         FORMAT = "[simplhdl.%(module)s] - %(message)s"
         console = RichHandler(level=level, show_time=False, rich_tracebacks=True, show_path=show_path)
-        logging.basicConfig(
-            level=5,
-            format=FORMAT,
-            handlers=[console]
-        )
+        logging.basicConfig(level=5, format=FORMAT, handlers=[console])
         simpl = Simplhdl(args)
         simpl.run()
-    except (NotImplementedError, FileNotFoundError, CalledShError,
-            ParserError, FlowError, GeneratorError, ProjectError) as e:
+    except (
+        NotImplementedError,
+        FileNotFoundError,
+        CalledShError,
+        ParserError,
+        FlowError,
+        GeneratorError,
+        ProjectError,
+    ) as e:
         logger.debug(traceback.format_exc())
         logger.error(e)
         return 1
@@ -45,5 +48,5 @@ def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -5,10 +5,9 @@ __ALL__ = ["Driver"]
 
 
 class Driver(uvm_driver):
-
     def build_phase(self):
         super().build_phase()
-        self.vif = ConfigDB().get(None, '', 'alu_if')
+        self.vif = ConfigDB().get(None, "", "alu_if")
 
     def end_of_elaboration_phase(self):
         super().end_of_elaboration_phase()

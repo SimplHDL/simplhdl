@@ -1,0 +1,43 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.36.1
+    hooks:
+      - id: check-github-workflows
+        args: ["--verbose"]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        additional_dependencies: ["tomli>=2.4"]
+  - repo: https://github.com/tox-dev/tox-ini-fmt
+    rev: "1.7.1"
+    hooks:
+      - id: tox-ini-fmt
+        args: ["-p", "fix"]
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: "v2.11.1"
+    hooks:
+      - id: pyproject-fmt
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.14.14"
+    hooks:
+      - id: ruff-format
+        alias: ruff
+        args: ["--exit-non-zero-on-format"]
+      - id: ruff-check
+        alias: ruff
+        args: ["--exit-non-zero-on-fix"]
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: "v3.8.1"
+    hooks:
+      - id: prettier
+        args: ["--print-width=120", "--prose-wrap=always"]
+  - repo: meta
+    hooks:
+      - id: check-hooks-apply
+      - id: check-useless-excludes

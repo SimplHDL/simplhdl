@@ -7,7 +7,7 @@ proc get_version {} {
     # of Vivado (package present Vivado).
     # Instead, we parse the output of 'version -short' command. We extract the
     # version string up to the first underscore character, because installing
-    # pactches creates a version string like '2025.1_AR000036275' which
+    # patches creates a version string like '2025.1_AR000036275' which
     # is not compatible with version comparison operations.
     set version [lindex [split [version -short] "_"] 0]
 }

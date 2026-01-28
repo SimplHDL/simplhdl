@@ -1,15 +1,13 @@
 from cocotb.triggers import RisingEdge, FallingEdge
 from pyuvm import ConfigDB, uvm_monitor, uvm_analysis_port
-from .sequenceitem import SequenceItem
 
-__ALL__ = ['Monitor']
+__ALL__ = ["Monitor"]
 
 
 class Monitor(uvm_monitor):
-
     def build_phase(self):
         super().build_phase()
-        self.vif = ConfigDB().get(None, '', 'alu_if')
+        self.vif = ConfigDB().get(None, "", "alu_if")
         self.ap = uvm_analysis_port("ap", self)
 
     async def run_phase(self):
@@ -17,6 +15,8 @@ class Monitor(uvm_monitor):
         await RisingEdge(self.vif.clock)
         if self.vif.reset.value == 1:
             await FallingEdge(self.vif.reset)
+
+
 #        while True:
 #            await RisingEdge(self.vif.clock)
 #            tr = SequenceItem.create("tr")

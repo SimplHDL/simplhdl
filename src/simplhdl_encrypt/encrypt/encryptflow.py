@@ -22,39 +22,30 @@ VENDORS = ["cadence", "mentor", "synopsys", "spyglass", "dsim", "veloce", "dcfcf
 
 
 class EncryptFlow(ImplementationFlow):
-
     @classmethod
     def parse_args(self, subparsers) -> None:
-        parser = subparsers.add_parser('encrypt', help='Encrypt HDL source for diffent tool vendors')
+        parser = subparsers.add_parser("encrypt", help="Encrypt HDL source for different tool vendors")
         parser.add_argument(
-            '--inplace',
-            action='store_true',
-            help="Place the encrypted file next to the source file"
+            "--inplace",
+            action="store_true",
+            help="Place the encrypted file next to the source file",
         )
+        parser.add_argument("--no-encrypt", action="store_true", help="Disable encryption")
         parser.add_argument(
-            '--no-encrypt',
-            action='store_true',
-            help="Disable encryption"
-        )
-        parser.add_argument(
-            '--vendors',
-            action='store',
-            nargs='+',
+            "--vendors",
+            action="store",
+            nargs="+",
             choices=VENDORS,
-            help="Vendor list to support"
+            help="Vendor list to support",
         )
         parser.add_argument(
-            '--outputdir',
+            "--outputdir",
             type=Path,
-            dest='outdir',
-            action='store',
-            help='Output directory'
+            dest="outdir",
+            action="store",
+            help="Output directory",
         )
-        parser.add_argument(
-            '--info',
-            action='store_true',
-            help="Print project"
-        )
+        parser.add_argument("--info", action="store_true", help="Print project")
 
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
@@ -108,8 +99,8 @@ class EncryptFlow(ImplementationFlow):
 
     def is_tool_setup(self) -> None:
         exit: bool = False
-        if shutil.which('encrypt_1735') is None:
-            logger.error('encrypt_1735: not found in PATH')
+        if shutil.which("encrypt_1735") is None:
+            logger.error("encrypt_1735: not found in PATH")
             exit = True
         if exit:
             raise FileNotFoundError("Quartus is not setup correctly")
@@ -134,10 +125,13 @@ def encrypt(src: Path, dst: Path, language: str, vendors: List[str]) -> Path:
     """
     destFile = dst.joinpath(src.name) if dst.is_dir() else dst
     command = [
-        "encrypt_1735", str(src.resolve()),
-        "--language", language,
+        "encrypt_1735",
+        str(src.resolve()),
+        "--language",
+        language,
         "--quartus",
         f"--simulation={','.join(vendors)}",
-        "-of", f"{destFile.resolve()}"
+        "-of",
+        f"{destFile.resolve()}",
     ]
     sh(command, output=True)

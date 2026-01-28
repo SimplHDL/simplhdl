@@ -9,11 +9,12 @@ from argparse import Namespace
 from ..project.fileset import Fileset
 from ..project.project import Project
 
+__all__ = ["ParserBase", "ParserError"]
+
 logger = logging.getLogger(__name__)
 
 
 class ParserBase(metaclass=ABCMeta):
-
     def __init__(self):
         pass
 
@@ -30,11 +31,12 @@ class NoParser(ParserBase):
     """
     This parser always returns an empty fileset
     """
+
     def is_valid_format(self, filename: Path) -> bool:
         return True
 
     def parse(self, filename: Path, project: Project, args: Namespace) -> Fileset:
-        return Fileset('Empty')
+        return Fileset("Empty")
 
 
 class ParserFactory:

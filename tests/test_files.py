@@ -17,7 +17,7 @@ from simplhdl.project.files import (
     ConstraintFile,
     QuartusQsysFile,
     QuartusQsysZipFile,
-    VerilogIncludeFile
+    VerilogIncludeFile,
 )
 from simplhdl.project.fileset import Fileset
 from simplhdl.project.attributes import Library
@@ -81,7 +81,10 @@ def test_filter_files():
 
     # Filter by type
     assert list(filter_files(files, file_type=SystemVerilogFile)) == [f2]
-    assert list(filter_files(files, file_type=(SystemVerilogFile, VhdlFile))) == [f2, f3]
+    assert list(filter_files(files, file_type=(SystemVerilogFile, VhdlFile))) == [
+        f2,
+        f3,
+    ]
 
     # Filter by usedin
     assert list(filter_files(files, usedin=UsedIn.SIMULATION)) == [f1, f2, f4]

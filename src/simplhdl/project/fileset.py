@@ -14,18 +14,20 @@ if TYPE_CHECKING:
     from .attributes import Library
     from .files import File
 
+__all__ = ["Fileset", "FileOrder", "FilesetOrder"]
+
 logger = logging.getLogger(__name__)
 
 
 class FileOrder(Enum):
     COMPILE = auto()
-    HIERACHY = auto()
+    HIERARCHY = auto()
     STRATA = auto()
 
 
 class FilesetOrder(Enum):
     COMPILE = auto()
-    HIERACHY = auto()
+    HIERARCHY = auto()
     STRATA = auto()
 
 
@@ -41,13 +43,13 @@ class Fileset:
         return instance
 
     def __init__(self, name: str, **attributes) -> None:
-        if hasattr(self, '_initialized'):
-            logger.debug(f'Fileset {self.name} already initialized')
+        if hasattr(self, "_initialized"):
+            logger.debug(f"Fileset {self.name} already initialized")
             return
 
         self._name: str = name
         self._project: Project = Project()
-        self.library = attributes.get('library', None)
+        self.library = attributes.get("library", None)
         self._leafs: list = []
         self._roots: list = []
         self._initialized = True
@@ -80,7 +82,7 @@ class Fileset:
             file_collection = filter_files(all_files, file_type=type, **filters)
         if order == FileOrder.COMPILE:
             return list(reversed(list(file_collection)))
-        elif order == FileOrder.HIERACHY:
+        elif order == FileOrder.HIERARCHY:
             return list(file_collection)
         elif order == FileOrder.STRATA:
             raise NotImplementedError("FileOrder.STRATA not implemented yet")
@@ -138,8 +140,9 @@ class Fileset:
 
     def add_file(self, file: File) -> None:
         if file.parent not in [None, self]:
-            logger.warning(f"File '{file}' already belongs to the fileset"
-                           f"'{file.parent}' and will now be added to '{self}'")
+            logger.warning(
+                f"File '{file}' already belongs to the fileset'{file.parent}' and will now be added to '{self}'"
+            )
         # return if node is already added
         if self._files.has_node(file):
             return
@@ -156,7 +159,7 @@ class Fileset:
                 self._files.add_edge(file, r)
             file._parent = self
             self._roots = [file]
-        if hasattr(file, 'library') and file.library is not None:
+        if hasattr(file, "library") and file.library is not None:
             self._project.defaultDesign.add_library(file.library)
 
     def insert_file_after(self, file: File, new_file: File) -> None:
@@ -208,14 +211,10 @@ class Fileset:
         return str(self._name)
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(name={self._name}, library={self._library})'
+        return f"{self.__class__.__name__}(name={self._name}, library={self._library})"
 
     def __eq__(self, other):
-        return (
-            isinstance(other, Fileset) and
-            self.name == other.name and
-            self.library == other.library
-        )
+        return isinstance(other, Fileset) and self.name == other.name and self.library == other.library
 
     def __hash__(self):
         return hash(self.name)

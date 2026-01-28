@@ -35,17 +35,18 @@ from ..utils import (
 )
 from .flow import FlowBase, FlowCategory, FlowError
 
+__all__ = ["SimulationFlow"]
+
 logger = logging.getLogger(__name__)
 
 
 class SimulationFlow(FlowBase):
-
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.category = FlowCategory.SIMULATION
         self.hdl_language = None
         self.templates = None
-        self.hashfile = self.builddir.joinpath('filesets.hash')
+        self.hashfile = self.builddir.joinpath("filesets.hash")
         self.libraries = [lib for lib in self.project.defaultDesign.libraries if not lib.external]
         self.external_libraries = [lib for lib in self.project.defaultDesign.libraries if lib.external]
 
@@ -66,33 +67,32 @@ class SimulationFlow(FlowBase):
     def configure(self):
         os.makedirs(self.builddir, exist_ok=True)
         self.is_tool_setup()
-        os.environ['RANDOM_SEED'] = str(self.args.seed)
-        os.environ['COCOTB_RANDOM_SEED'] = str(self.args.seed)
+        os.environ["RANDOM_SEED"] = str(self.args.seed)
+        os.environ["COCOTB_RANDOM_SEED"] = str(self.args.seed)
 
     def get_globals(self) -> dict[str, Any]:
-        incdirs = self.project.defaultDesign.files(
-            type=(HdlSearchPath, VerilogIncludeFile), usedin=UsedIn.SIMULATION)
+        incdirs = self.project.defaultDesign.files(type=(HdlSearchPath, VerilogIncludeFile), usedin=UsedIn.SIMULATION)
         incdirpaths = {f.includeDir for f in incdirs}
         globals = dict()
-        globals['libraries'] = self.libraries
-        globals['external_libraries'] = self.external_libraries
-        globals['defaultlib'] = 'work'
-        globals['toplevels'] = ' '.join(self.cocotb.toplevels)
-        globals['pythonpath'] = self.cocotb.pythonpath
-        globals['cocotbtop'] = self.cocotb.top
-        globals['cocotbhdltype'] = self.cocotb.duttype
-        globals['cocotbdut'] = self.cocotb.dut
-        globals['has_verilog'] = self.cocotb.has_verilog
-        globals['has_vhdl'] = self.cocotb.has_vhdl
-        globals['incdirs'] = incdirpaths
-        globals['VerilogFile'] = VerilogFile
-        globals['SystemVerilogFile'] = SystemVerilogFile
-        globals['VhdlFile'] = VhdlFile
-        globals['uvm'] = self.is_uvm()
-        globals['isinstance'] = isinstance
-        globals['UsedIn'] = UsedIn
-        globals['FileOrder'] = FileOrder
-        globals['FilesetOrder'] = FilesetOrder
+        globals["libraries"] = self.libraries
+        globals["external_libraries"] = self.external_libraries
+        globals["defaultlib"] = "work"
+        globals["toplevels"] = " ".join(self.cocotb.toplevels)
+        globals["pythonpath"] = self.cocotb.pythonpath
+        globals["cocotbtop"] = self.cocotb.top
+        globals["cocotbhdltype"] = self.cocotb.duttype
+        globals["cocotbdut"] = self.cocotb.dut
+        globals["has_verilog"] = self.cocotb.has_verilog
+        globals["has_vhdl"] = self.cocotb.has_vhdl
+        globals["incdirs"] = incdirpaths
+        globals["VerilogFile"] = VerilogFile
+        globals["SystemVerilogFile"] = SystemVerilogFile
+        globals["VhdlFile"] = VhdlFile
+        globals["uvm"] = self.is_uvm()
+        globals["isinstance"] = isinstance
+        globals["UsedIn"] = UsedIn
+        globals["FileOrder"] = FileOrder
+        globals["FilesetOrder"] = FilesetOrder
         return globals
 
     def check_external_libraries(self):
@@ -108,9 +108,7 @@ class SimulationFlow(FlowBase):
         self.check_external_libraries()
         self.check_libraries()
         templatedir = resources_files(self.templates)
-        env = Environment(
-            loader=FileSystemLoader(templatedir),
-            trim_blocks=True)
+        env = Environment(loader=FileSystemLoader(templatedir), trim_blocks=True)
         for template in self.get_project_templates(env) + self.get_cocotb_templates(env):
             generate_from_template(template, self.builddir, self.get_globals())
         self.generate_make_rules(env)
@@ -120,10 +118,10 @@ class SimulationFlow(FlowBase):
     def generate_make_rules(self, environment):
         fileset_makefiles: list[str] = list()
         for fileset in self.project.defaultDesign.filesets(order=FilesetOrder.COMPILE):
-            for language in ['verilog', 'systemverilog', 'vhdl']:
+            for language in ["verilog", "systemverilog", "vhdl"]:
                 fileset_makefiles += self.generate_fileset_makefiles(environment, language, fileset)
         rules = self.generate_fileset_dependencies(fileset_makefiles)
-        template = environment.get_template('dependencies.mk.j2')
+        template = environment.get_template("dependencies.mk.j2")
         generate_from_template(template, self.builddir, rules=rules)
 
     def generate_fileset_dependencies(self, filelist: list[Path]):
@@ -137,44 +135,50 @@ class SimulationFlow(FlowBase):
             filelist (List[str]): List of generated makefile filesets.
         """
         rules: dict[str, list[str]] = dict()
-        for fileset in self.project.defaultDesign.filesets(order=FilesetOrder.HIERACHY):
+        for fileset in self.project.defaultDesign.filesets(order=FilesetOrder.HIERARCHY):
             name = md5sum(fileset.name)
             dependencies = []
             for language_fileset in [f for f in filelist if f.stem.startswith(name)]:
                 for child in fileset.filesets:
                     child_name = md5sum(child.name)
-                    dependencies += [append_suffix(f, '.com').name for f in filelist
-                                     if f.stem.startswith(child_name)]
+                    dependencies += [append_suffix(f, ".com").name for f in filelist if f.stem.startswith(child_name)]
                     if dependencies:
-                        rules[append_suffix(language_fileset, '.com').name] = dependencies
+                        rules[append_suffix(language_fileset, ".com").name] = dependencies
         return rules
 
     def generate_fileset_makefiles(self, environment: Environment, language: str, fileset: Fileset) -> list[Path]:
         table: dict[str, Tuple[list[File], Callable]] = {
-            'verilog': ((VerilogFile, VerilogIncludeFile), self.fileset_verilog_args(fileset)),
-            'systemverilog': ((SystemVerilogFile, VerilogIncludeFile), self.fileset_systemverilog_args(fileset)),
-            'vhdl': ((VhdlFile), self.fileset_vhdl_args(fileset)),
+            "verilog": (
+                (VerilogFile, VerilogIncludeFile),
+                self.fileset_verilog_args(fileset),
+            ),
+            "systemverilog": (
+                (SystemVerilogFile, VerilogIncludeFile),
+                self.fileset_systemverilog_args(fileset),
+            ),
+            "vhdl": ((VhdlFile), self.fileset_vhdl_args(fileset)),
         }
         filetypes, args = table[language]
         files = list(fileset.files(type=filetypes, usedin=UsedIn.SIMULATION))
         name = md5sum(fileset.name)
         base = self.builddir.joinpath(f"{name}-{language}")
         generated: list[str] = list()
-        template = environment.get_template('files.j2')
+        template = environment.get_template("files.j2")
         if not [f for f in files if not isinstance(f, VerilogIncludeFile)]:
             return generated
         generate_from_template(
             template,
-            base.with_suffix('.files'),
-            target=base.with_suffix('.fileset').name,
+            base.with_suffix(".files"),
+            target=base.with_suffix(".fileset").name,
             files=[f.path.absolute() for f in files],
-            hashfile=self.hashfile.name)
-        template = environment.get_template('fileset.j2')
-        output = base.with_suffix('.fileset')
-        if language == 'vhdl':
+            hashfile=self.hashfile.name,
+        )
+        template = environment.get_template("fileset.j2")
+        output = base.with_suffix(".fileset")
+        if language == "vhdl":
             includes = []
         else:
-            includes = self.get_globals()['incdirs']
+            includes = self.get_globals()["incdirs"]
         files = [f.path.absolute() for f in files if not isinstance(f, VerilogIncludeFile)]
         generate_from_template(template, output, args=args, includes=includes, files=files)
         generated.append(output)
@@ -185,8 +189,8 @@ class SimulationFlow(FlowBase):
             shutil.copy(file.path.absolute(), self.builddir.absolute())
 
     def is_uvm(self):
-        for plusarg in self.project .plusargs.keys():
-            if plusarg.startswith('UVM_'):
+        for plusarg in self.project.plusargs.keys():
+            if plusarg.startswith("UVM_"):
                 return True
         return False
 
@@ -217,7 +221,6 @@ class SimulationFlow(FlowBase):
 
 
 class FileSetWalker:
-
     def __init__(self):
         self.__visited: list = list()
 

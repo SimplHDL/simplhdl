@@ -86,7 +86,7 @@ def test_filesets_retrieval(design):
     assert filesets.index(fs1) > filesets.index(fs3)
 
     # Test reverse
-    rev_filesets = design.filesets(order=FilesetOrder.HIERACHY)
+    rev_filesets = design.filesets(order=FilesetOrder.HIERARCHY)
     assert rev_filesets.index(fs3) > rev_filesets.index(fs1)
 
 
@@ -120,7 +120,7 @@ def test_files_retrieval(design):
     assert file1 in all_files
     assert file2 in all_files
     assert all_files.index(file1) < all_files.index(file2)
-    all_files = design.files(order=FileOrder.HIERACHY)
+    all_files = design.files(order=FileOrder.HIERARCHY)
     assert len(all_files) == 2
     assert file1 in all_files
     assert file2 in all_files
@@ -181,8 +181,8 @@ def test_elaborate(design):
         fs1_root_file,
         fs2_leaf_file,
         fs2_root_file,
-        ]
-    assert design.files(order=FileOrder.HIERACHY) == [
+    ]
+    assert design.files(order=FileOrder.HIERARCHY) == [
         fs2_root_file,
         fs2_leaf_file,
         fs1_root_file,
@@ -211,8 +211,8 @@ def test_elaborate_with_empty_fileset(design):
         fs1_root_file,
         fs2_leaf_file,
         fs2_root_file,
-        ]
-    assert design.files(order=FileOrder.HIERACHY) == [
+    ]
+    assert design.files(order=FileOrder.HIERARCHY) == [
         fs2_root_file,
         fs2_leaf_file,
         fs1_root_file,

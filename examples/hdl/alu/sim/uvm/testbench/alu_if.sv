@@ -58,13 +58,13 @@ interface alu_if();
                 ((ready & valid & (cmd==1)) |-> (result == a - b)))
         else
             `uvm_error("ERR_SUB_RESULT",
-                       "Subraction Result is wrong");
+                       "Subtraction Result is wrong");
 
         assert_MartineCheck:assert property (disable iff(reset)
             ((valid ) |-> (result == a + b)))
         else
             `uvm_error("ERR_SUB_RESULT",
-                       "Subraction Result is wrong");
+                       "Subtraction Result is wrong");
 
         assert_Mart2:assert property (
             disable iff(reset)

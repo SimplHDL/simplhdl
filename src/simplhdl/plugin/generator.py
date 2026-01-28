@@ -6,20 +6,15 @@ from abc import ABCMeta, abstractmethod
 from ..project.project import Project
 from .flow import FlowCategory
 
+__all__ = ["GeneratorBase", "GeneratorError"]
+
 
 class GeneratorError(Exception):
     pass
 
 
 class GeneratorBase(metaclass=ABCMeta):
-
-    def __init__(
-        self,
-        name,
-        args: Namespace,
-        project: Project,
-        builddir: Path
-    ):
+    def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         self.name = name
         self.args = args
         self.project = project
@@ -44,23 +39,12 @@ class GeneratorFactory:
         cls.registry[name] = _class
 
     @classmethod
-    def get_generator(
-        cls,
-        name: str,
-        args: Namespace,
-        project: Project,
-        builddir: Path
-    ) -> 'GeneratorBase':
+    def get_generator(cls, name: str, args: Namespace, project: Project, builddir: Path) -> "GeneratorBase":
         if name in cls.registry:
             return cls.registry[name](name, args, project, builddir)
         raise Exception(f"Couldn't find Generator named {name}")
 
     @classmethod
-    def get_generators(
-        cls,
-        args: Namespace,
-        project: Project,
-        builddir: Path
-    ) -> Generator[GeneratorBase, None, None]:
+    def get_generators(cls, args: Namespace, project: Project, builddir: Path) -> Generator[GeneratorBase, None, None]:
         for name in cls.registry:
             yield cls.get_generator(name, args, project, builddir)
