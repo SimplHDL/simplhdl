@@ -61,16 +61,16 @@ TOOL_MAP = {
 class Spd:
     def __init__(self, filename: Path, flow: FlowBase, ip_path: Path | None = None) -> None:
         self._files = list()
-        self._filename = filename.absolute()
+        self._filename = filename.resolve()
         self.flow = flow
         self.libraries = dict()
         self.simulators = set()
         spdfile = filename.parent.joinpath(filename.stem, filename.name).with_suffix(".spd")
         if not spdfile.exists():
             if ip_path:
-                command = f"qsys-generate --simulation=VERILOG --search-path={ip_path},$ {filename.absolute()}".split()
+                command = f"qsys-generate --simulation=VERILOG --search-path={ip_path},$ {filename.resolve()}".split()
             else:
-                command = f"qsys-generate --simulation=VERILOG {filename.absolute()}".split()
+                command = f"qsys-generate --simulation=VERILOG {filename.resolve()}".split()
             logger.info(f"Generate simulation files for {filename}")
             sh(command, cwd=filename.parent)
             if not spdfile.exists():
@@ -106,9 +106,9 @@ class Spd:
             self.libraries[libraryname] = Library(libraryname)
         fileclass = FILETYPE_MAP.get(properties["type"], File)
         if issubclass(fileclass, (VhdlFile, VerilogFile, SystemVerilogFile)):
-            return fileclass(path=path, library=self.libraries[libraryname])
+            return fileclass(file=path, library=self.libraries[libraryname])
         else:
-            return fileclass(path=path)
+            return fileclass(file=path)
 
     def supported(self, flow: FlowBase, simulators: list) -> bool:
         self.simulators.update(simulators)
@@ -127,9 +127,12 @@ class Spd:
                 if isinstance(file, (VhdlFile, VerilogFile, SystemVerilogFile)):
                     if file.library == library:
                         fileset.add_file(file)
-                else:
-                    fileset.add_file(file)
             filesets.append(fileset)
+        othersfileset = Fileset(self._filename)
+        for file in self._files:
+            if not isinstance(file, (VhdlFile, VerilogFile, SystemVerilogFile)):
+                othersfileset.add_file(file)
+        filesets.append(othersfileset)
         return filesets
 
 

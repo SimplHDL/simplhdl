@@ -47,6 +47,18 @@ def test_add_library(design):
     assert design.defaultLibrary is lib1  # Should not change
 
 
+def test_add_library_from_file(design):
+    lib1 = Library("lib1")
+    lib2 = Library("lib2")
+    file1 = VerilogFile("test1.sv", library=lib1)
+    file2 = VerilogFile("test2.sv", library=lib2)
+    fs = Fileset("fs")
+    fs.add_file(file1)
+    fs.add_file(file2)
+    design.add_fileset(fs)
+    assert design.libraries == [lib1, lib2]
+
+
 def test_toplevels_setter(design):
     design.toplevels = "top_module"
     assert design.toplevels == ["top_module"]
