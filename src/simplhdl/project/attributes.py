@@ -31,7 +31,7 @@ class Library:
         return self._name
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(name={self._name}, path={self._path})"
+        return f"{self.__class__.__name__}(name={self._name}, path={self._path}, external={self._external})"
 
     def __eq__(self, other):
         return isinstance(other, Library) and self.name == other.name and self.path == other.path

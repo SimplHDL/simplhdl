@@ -249,6 +249,13 @@ class HdlFile(File):
             return self.parent.library
         return self._library
 
+    def __repr__(self) -> str:
+        if self._parent is None:
+            parent_name = None
+        else:
+            parent_name = self._parent.name
+        return f"{self.__class__.__name__}(path={self._path}, parent={parent_name}, library={self._library})"
+
 
 @FileFactory.register(extension=".sv")
 class SystemVerilogFile(HdlFile): ...

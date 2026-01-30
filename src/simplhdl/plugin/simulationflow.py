@@ -47,8 +47,6 @@ class SimulationFlow(FlowBase):
         self.hdl_language = None
         self.templates = None
         self.hashfile = self.builddir.joinpath("filesets.hash")
-        self.libraries = [lib for lib in self.project.defaultDesign.libraries if not lib.external]
-        self.external_libraries = [lib for lib in self.project.defaultDesign.libraries if lib.external]
 
     def run(self) -> None:
         self.cocotb = Cocotb(self.project, self.args.seed)
@@ -71,11 +69,13 @@ class SimulationFlow(FlowBase):
         os.environ["COCOTB_RANDOM_SEED"] = str(self.args.seed)
 
     def get_globals(self) -> dict[str, Any]:
+        libraries = [lib for lib in self.project.defaultDesign.libraries if not lib.external]
+        external_libraries = [lib for lib in self.project.defaultDesign.libraries if lib.external]
         incdirs = self.project.defaultDesign.files(type=(HdlSearchPath, VerilogIncludeFile), usedin=UsedIn.SIMULATION)
         incdirpaths = {f.includeDir for f in incdirs}
         globals = dict()
-        globals["libraries"] = self.libraries
-        globals["external_libraries"] = self.external_libraries
+        globals["libraries"] = libraries
+        globals["external_libraries"] = external_libraries
         globals["defaultlib"] = "work"
         globals["toplevels"] = " ".join(self.cocotb.toplevels)
         globals["pythonpath"] = self.cocotb.pythonpath
@@ -95,17 +95,13 @@ class SimulationFlow(FlowBase):
         globals["FilesetOrder"] = FilesetOrder
         return globals
 
-    def check_external_libraries(self):
-        for library in self.external_libraries:
-            if not library.path.exists():
-                raise FlowError(f"External library {library.name} doesn't exist at {library.path}")
-
     def check_libraries(self):
-        for library in self.libraries:
-            pass
+        for library in self.project.defaultDesign.libraries:
+            if library.external:
+                if not library.path.exists():
+                    raise FlowError(f"External library {library.name} doesn't exist at {library.path}")
 
     def generate(self):
-        self.check_external_libraries()
         self.check_libraries()
         templatedir = resources_files(self.templates)
         env = Environment(loader=FileSystemLoader(templatedir), trim_blocks=True)
