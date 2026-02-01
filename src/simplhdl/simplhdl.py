@@ -21,11 +21,10 @@ class Simplhdl:
 
     def create_project(self, builddir: Path) -> Project:
         filename = self.args.projectspec
-        project = Project("default")
-        project.buildDir = builddir
+        project = Project("default", builddir=builddir)
         design = Design("default")
+        design.defaultLibrary = Library("work")
         project.add_design(design)
-        project.defaultDesign.defaultLibrary = Library("work")
         parser = ParserFactory().get_parser(filename)
         fileset = parser.parse(filename, project, self.args)
         project.defaultDesign.add_fileset(fileset)

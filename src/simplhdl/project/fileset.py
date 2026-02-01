@@ -49,7 +49,7 @@ class Fileset:
 
         self._name: str = name
         self._project: Project = Project()
-        self.library = attributes.get("library", None)
+        self.library: Library | None = attributes.get("library", None)
         self._leafs: list = []
         self._roots: list = []
         self._initialized = True
@@ -97,7 +97,7 @@ class Fileset:
         return list(self._project.defaultDesign._filesets.successors(self))
 
     @property
-    def parents(self) -> list[Fileset] | None:
+    def parents(self) -> list[Fileset]:
         return list(self._project.defaultDesign._filesets.predecessors(self))
 
     @property
@@ -109,7 +109,7 @@ class Fileset:
         return nx.descendants(self._filesets, self)
 
     @property
-    def library(self) -> Library:
+    def library(self) -> Library | None:
         if not self._library and self._project.defaultDesign:
             return self._project.defaultDesign.defaultLibrary
         return self._library
@@ -177,7 +177,7 @@ class Fileset:
             self._leafs.remove(file)
             self._leafs.append(new_file)
 
-    def get_parents_leaf_files(self) -> list[File] | None:
+    def get_parents_leaf_files(self) -> list[File]:
         files = []
         for parent in self.parents:
             # if leafs extend list else move up to grand parent
@@ -187,7 +187,7 @@ class Fileset:
                 files.extend(parent.get_parents_leaf_files())
         return files
 
-    def get_parents_root_files(self) -> list[File] | None:
+    def get_parents_root_files(self) -> list[File]:
         files = []
         for parent in self.parents:
             # if roots extend list else move up to grand parent

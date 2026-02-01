@@ -47,14 +47,14 @@ class Cocotb:
             raise FileNotFoundError(f"{path}: not found")
         return path
 
-    def libpython(self) -> str:
+    def libpython(self) -> Path:
         output = sh(["cocotb-config", "--libpython"])
         path = Path(output)
         if not path.exists():
             raise FileNotFoundError(f"{path}: not found")
         return path
 
-    def pythonbin(self) -> str:
+    def pythonbin(self) -> Path:
         output = sh(["cocotb-config", "--python-bin"])
         path = Path(output)
         if not path.exists():

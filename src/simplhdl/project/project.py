@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
+from pathlib import Path
 
-from singleton_decorator import singleton
+from .decorator import singleton
 
 if TYPE_CHECKING:
-    from pathlib import Path
     from .attributes import Target
     from .design import Design
+
 
 __all__ = ["Project", "ProjectError"]
 
@@ -21,8 +22,13 @@ class ProjectError(Exception):
 
 @singleton
 class Project:
-    def __init__(self, name: str, **attributes) -> None:
-        self._name = name
+    def __init__(
+        self,
+        name: str | None = None,
+        builddir: Path = Path("."),
+        **attributes
+    ) -> None:
+        self._name: str = name or "default"
         self._designs: list[Design] = []
         self._part: str | None = None
         self._generics: dict[str, str] = {}
@@ -31,10 +37,10 @@ class Project:
         self._plusargs: dict[str, str] = {}
         self._hooks: dict[str, list[str]] = {}
         self._targets: dict[str, Target] = {}
-        self._builddir: Path | None = None
+        self._builddir: Path = builddir
 
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         return self._name
 
     @name.setter
@@ -42,19 +48,19 @@ class Project:
         self._name = name
 
     @property
-    def buildDir(self) -> Path | None:
+    def buildDir(self) -> Path:
         return self._builddir
 
     @buildDir.setter
-    def buildDir(self, path: Path):
+    def buildDir(self, path: Path) -> None:
         self._builddir = path
 
     @property
-    def defaultDesign(self) -> Design | None:
-        if self._designs:
+    def defaultDesign(self) -> Design:
+        try:
             return self._designs[0]
-        else:
-            return None
+        except IndexError:
+            raise ProjectError("No design defined")
 
     @property
     def part(self) -> str | None:

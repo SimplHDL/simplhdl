@@ -69,7 +69,7 @@ class File:
         return self._path.resolve()
 
     @property
-    def parent(self) -> Fileset:
+    def parent(self) -> Fileset | None:
         return self._parent
 
     @parent.setter
@@ -241,11 +241,11 @@ class HdlFile(File):
             library: The HDL library this file belongs to. Defaults to `None`.
         """
         super().__init__(file, **attributes)
-        self._library: Library = attributes.get("library", None)
+        self._library: Library | None = attributes.get("library", None)
 
     @property
-    def library(self) -> Library:
-        if not self._library:
+    def library(self) -> Library | None:
+        if not self._library and self.parent:
             return self.parent.library
         return self._library
 

@@ -133,7 +133,7 @@ class Design:
         for fileset in self.filesets(order=FilesetOrder.COMPILE):
             fileset.connect_files_to_parents()
 
-    def get_file(self, path: Path | str) -> File:
+    def get_file(self, path: Path | str) -> File | None:
         if isinstance(path, str):
             path = Path(path).resolve()
         for file in self._files.nodes():
