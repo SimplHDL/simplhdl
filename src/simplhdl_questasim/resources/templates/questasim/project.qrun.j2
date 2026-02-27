@@ -19,7 +19,7 @@
 {% endfor %}
 {% for fileset in filesets %}
 -makelib {{fileset.library.name}}:"{{fileset.library.name}}"
-{% for file in fileset.files(type=(SystemVerilogFile, VerilogFile, VhdlFile), usedin=UsedIn.SIMULATION) %}
+{% for file in fileset.files(type=(SystemVerilogFile, VerilogFile, VhdlFile, CFile, CppFile), usedin=UsedIn.SIMULATION) %}
 	"{{file.path}}"
 {% endfor %}
 -endlib
