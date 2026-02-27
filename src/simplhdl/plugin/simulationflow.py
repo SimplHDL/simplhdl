@@ -22,6 +22,8 @@ from ..project.files import (
     VerilogFile,
     VerilogIncludeFile,
     VhdlFile,
+    CFile,
+    CppFile,
     UsedIn,
 )
 from ..project.fileset import Fileset, FilesetOrder, FileOrder
@@ -88,6 +90,8 @@ class SimulationFlow(FlowBase):
         globals["VerilogFile"] = VerilogFile
         globals["SystemVerilogFile"] = SystemVerilogFile
         globals["VhdlFile"] = VhdlFile
+        globals["CppFile"] = CppFile
+        globals["CFile"] = CFile
         globals["uvm"] = self.is_uvm()
         globals["isinstance"] = isinstance
         globals["UsedIn"] = UsedIn
