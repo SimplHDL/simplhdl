@@ -9,7 +9,7 @@ from pathlib import Path
 from contextlib import contextmanager
 from time import sleep
 from jinja2 import Template
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 from hashlib import md5
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def sh(
         shell = True
 
     logger.debug(" ".join(command))
-    with Popen(command, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell, env=env) as p:
+    with Popen(command, stdout=PIPE, stderr=STDOUT, cwd=cwd, shell=shell, env=env) as p:
         if output:
             stdout: str = ""
             for line in p.stdout:
