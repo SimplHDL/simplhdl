@@ -29,6 +29,7 @@ class ConstraintOrder(float, Enum):
 class File:
     _cache = WeakValueDictionary()
     _default_usedin: list[str] = [UsedIn.SIMULATION, UsedIn.IMPLEMENTATION]
+    _default_order: ConstraintOrder = ConstraintOrder.NORMAL
     _default_encrypt: bool = False
     _path_relative_to: Path | None = None
 
@@ -50,6 +51,7 @@ class File:
         self._graph: nx.DiGraph[File] | None = None
         self._parent: Fileset | None = None
         self._usedin: list[str] = attributes.get("usedin", self._default_usedin)
+        self._order: float = attributes.get("order", self._default_order)
         self._encrypt: bool = attributes.get("encrypt", self._default_encrypt)
         self._initialized = True
 
@@ -94,6 +96,14 @@ class File:
     @encrypt.setter
     def encrypt(self, encrypt: bool) -> None:
         self._encrypt = encrypt
+
+    @property
+    def order(self) -> float:
+        return self._order
+
+    @order.setter
+    def order(self, order: float) -> None:
+        self._order = order
 
     def __str__(self) -> str:
         return str(self._path)
@@ -294,12 +304,10 @@ class ImplementationFile(File):
 
 class ConstraintFile(ImplementationFile):
     _default_scope: str | None = None
-    _default_order: ConstraintOrder = ConstraintOrder.NORMAL
 
     def __init__(self, file: Path, **attributes) -> None:
         super().__init__(file, **attributes)
         self._scope: str | None = attributes.get("scope", self._default_scope)
-        self._order: float = attributes.get("order", self._default_order)
 
     @property
     def scope(self) -> str | None:
@@ -308,10 +316,6 @@ class ConstraintFile(ImplementationFile):
     @scope.setter
     def scope(self, scope: str | None) -> None:
         self._scope = scope
-
-    @property
-    def order(self) -> float:
-        return self._order
 
 
 class SimulationFile(File):

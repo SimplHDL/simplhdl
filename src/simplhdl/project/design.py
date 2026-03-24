@@ -71,6 +71,8 @@ class Design:
         If no arguments are provided, all files are returned.
         """
         all_files = list(nx.topological_sort(self._files))
+        all_files.sort(key=lambda f: f.order)
+
         if type is None and not filters:
             file_collection = all_files
         else:
