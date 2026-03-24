@@ -2,25 +2,25 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from simplhdl.project.attributes import Library
 from simplhdl.project.files import (
+    ConstraintFile,
     File,
     FileFactory,
-    filter_files,
-    UsedIn,
-    ConstraintOrder,
-    SystemVerilogFile,
-    VerilogFile,
-    VhdlFile,
-    SdcFile,
-    UnknownFile,
+    FileOrder,
     HdlFile,
-    ConstraintFile,
     QuartusQsysFile,
     QuartusQsysZipFile,
+    SdcFile,
+    SystemVerilogFile,
+    UnknownFile,
+    UsedIn,
+    VerilogFile,
     VerilogIncludeFile,
+    VhdlFile,
+    filter_files,
 )
 from simplhdl.project.fileset import Fileset
-from simplhdl.project.attributes import Library
 
 
 def test_file_initialization():
@@ -143,10 +143,10 @@ def test_hdl_file_library(design):
 
 
 def test_constraint_file():
-    f = SdcFile("test.sdc", scope="scope1", order=ConstraintOrder.EARLY)
+    f = SdcFile("test.sdc", scope="scope1", order=FileOrder.EARLY)
     assert isinstance(f, ConstraintFile)
     assert f.scope == "scope1"
-    assert f.order == ConstraintOrder.EARLY
+    assert f.order == FileOrder.EARLY
 
     f.scope = "scope2"
     assert f.scope == "scope2"

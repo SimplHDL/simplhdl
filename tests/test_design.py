@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
 
-from simplhdl.project.project import ProjectError
-from simplhdl.project.fileset import Fileset, FileOrder, FilesetOrder
-from simplhdl.project.files import File, VerilogFile, VhdlFile
+import pytest
+
 from simplhdl.project.attributes import Library
+from simplhdl.project.files import File, VerilogFile, VhdlFile
+from simplhdl.project.fileset import FileOrder, Fileset, FilesetOrder
+from simplhdl.project.project import ProjectError
 
 
 def test_design_initialization(design):
@@ -151,6 +152,29 @@ def test_files_filtering(design):
     assert design.files(order=FileOrder.COMPILE) == [verilogfile, vhdlfile]
     assert design.files(type=VerilogFile) == [verilogfile]
     assert design.files(type=VhdlFile) == [vhdlfile]
+
+
+def test_files_retrieval_with_different_order_values(design):
+    fs = Fileset("fs")
+    design.add_fileset(fs)
+
+    low_order_file = File(Path("low_order_file.v"), order=10.0)
+    high_order_file = File(Path("high_order_file.v"), order=90.0)
+    mid_order_file = File(Path("mid_order_file.v"), order=50.0)
+    fs.add_file(low_order_file)
+    fs.add_file(high_order_file)
+    fs.add_file(mid_order_file)
+
+    assert design.files(order=FileOrder.COMPILE) == [
+        low_order_file,
+        mid_order_file,
+        high_order_file,
+    ]
+    assert design.files(order=FileOrder.HIERARCHY) == [
+        high_order_file,
+        mid_order_file,
+        low_order_file,
+    ]
 
 
 def test_validate_acyclic(design):
