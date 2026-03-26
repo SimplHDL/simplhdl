@@ -48,5 +48,6 @@ class Simplhdl:
                     raise GeneratorError(e)
             project.elaborate()
             flow.run()
+
         except nx.NetworkXUnfeasible:
             project.defaultDesign.validate()

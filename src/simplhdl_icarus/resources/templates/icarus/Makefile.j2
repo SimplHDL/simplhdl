@@ -1,0 +1,20 @@
+VVP := vvp
+IVERILOG := iverilog
+
+VVP_FILE := sim.vvp
+CMDS_FILE := cmds.f
+TOP := -s {{toplevels}} {{"-s simplhdl_iverilog_dump" if wavedump else ""}}
+
+IVERILOG_FLAGS := {{iverilog_args}}
+VVP_FLAGS := {{vvp_args}}
+
+-include cocotb.mk
+-include sources.mk
+
+$(VVP_FILE): $(SRCS)
+	$(IVERILOG) $(IVERILOG_FLAGS) -f $(CMDS_FILE) $(TOP) -o $(VVP_FILE)
+
+compile: $(VVP_FILE)
+
+simulate: compile
+	$(VVP) $(VVP_FLAGS) $(VVP_FILE) {{waves}}

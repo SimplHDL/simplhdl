@@ -1,0 +1,7 @@
+SRCS := \
+{% if wavedump %}
+  simplhdl_iverilog_dump.v \
+{% endif %}
+{% for file in files %}
+  {{file.path}} {{"\\" if not loop.last}}
+{% endfor %}
