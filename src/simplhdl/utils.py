@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+import logging
 import os
 import sys
-import logging
-
-from typing import Union, Generator
-from pathlib import Path
 from contextlib import contextmanager
-from time import sleep
-from jinja2 import Template
-from subprocess import Popen, PIPE, STDOUT
 from hashlib import md5
+from pathlib import Path
+from subprocess import PIPE, STDOUT, Popen
+from time import sleep
+from typing import Generator, Union
+
+from jinja2 import Template
 
 logger = logging.getLogger(__name__)
 
@@ -34,25 +34,26 @@ def sh(
     logger.debug(" ".join(command))
     with Popen(command, stdout=PIPE, stderr=STDOUT, cwd=cwd, shell=shell, env=env) as p:
         if output:
-            stdout: str = ""
+            stdout_text = ""
+            assert p.stdout is not None
             for line in p.stdout:
                 sys.stdout.buffer.write(b" " * indent + line)
                 sys.stdout.buffer.flush()
-                stdout += line.decode()
-            _, stderr = p.communicate()
+                stdout_text += line.decode()
+            p.wait()
         else:
-            stdout, stderr = p.communicate()
-            stdout = stdout.decode().strip()
+            stdout_bytes, _ = p.communicate()
+            stdout_text = stdout_bytes.decode().strip()
+
         if log:
             with log.open("a") as f:
-                f.write(stdout)
-                f.write(stderr.decode())
+                f.write(stdout_text)
 
     if p.returncode != 0:
         if not output:
-            logger.debug(stdout)
-        raise CalledShError(stderr.decode())
-    return stdout
+            logger.debug(stdout_text)
+        raise CalledShError(stdout_text)
+    return stdout_text
 
 
 def generate_from_template(template: Template, output: Path, *args, **kwargs) -> bool:
