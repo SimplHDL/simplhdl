@@ -84,6 +84,7 @@ entry-points."simplhdl.plugins".rivierapro = "simplhdl_rivierapro.rivierapro.riv
 entry-points."simplhdl.plugins".simplhdl_parser = "simplhdl_parser.simplhdlparser:SimplHdlParser"
 entry-points."simplhdl.plugins".vcs = "simplhdl_vcs.vcs.vcsflow:VcsFlow"
 entry-points."simplhdl.plugins".vivado = "simplhdl_vivado.vivadoflow:VivadoFlow"
+entry-points."simplhdl.plugins".vivado-export = "simplhdl_vivado.vivadoexport.vivadoexportflow:VivadoExportFlow"
 entry-points."simplhdl.plugins".vivado_generator = "simplhdl_vivado.ipxact:VivadoGenerator"
 entry-points."simplhdl.plugins".xsim = "simplhdl_vivado.xsim.xsimflow:XsimFlow"
 
