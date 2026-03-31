@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 try:
     from importlib.resources import files as resources_files
 except ImportError:
@@ -13,19 +15,19 @@ from jinja2 import Environment, FileSystemLoader
 from simplhdl import Project
 from simplhdl.plugin import FlowBase, FlowTools
 from simplhdl.project.files import (
-    VivadoXdcFile,
     EdifFile,
     SystemVerilogFile,
-    VerilogIncludeFile,
+    UsedIn,
     VerilogFile,
+    VerilogIncludeFile,
     VhdlFile,
+    VivadoBdFile,
     VivadoBdTclFile,
     VivadoDcpFile,
+    VivadoStepFile,
     VivadoXciFile,
     VivadoXcixFile,
-    VivadoBdFile,
-    VivadoStepFile,
-    UsedIn,
+    VivadoXdcFile,
 )
 from simplhdl.utils import dict2str, generate_from_template, sh
 
@@ -43,6 +45,7 @@ class VivadoFlow(FlowBase):
             action="store",
             choices=[
                 "lint",
+                "project",
                 "elaborate",
                 "synthesis",
                 "opt",
@@ -84,9 +87,9 @@ class VivadoFlow(FlowBase):
         elif self.args.archive == "project-include-settings":
             tclargs = "archive_include_settings"
         else:
-            raise Exception("Unknown value for argument --archive: {self.args.archive}")
-        command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {tclargs}".split()
-        sh(command, cwd=self.builddir, output=True)
+            raise ValueError(f"Unknown value for argument --archive: {self.args.archive}")
+        command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {tclargs}"
+        sh(command.split(), cwd=self.builddir, output=True)
         raise SystemExit
 
     def get_files(self):
@@ -129,8 +132,8 @@ class VivadoFlow(FlowBase):
         )
         template = environment.get_template("run.tcl.j2")
         generate_from_template(template, self.builddir, project=self.project)
-        command = "vivado -mode batch -notrace -source project.tcl".split()
-        sh(command, cwd=self.builddir, output=True)
+        command = "vivado -mode batch -notrace -source project.tcl"
+        sh(command.split(), cwd=self.builddir, output=True)
 
     def execute(self, step: str):
         name = self.project.name
@@ -150,4 +153,6 @@ class VivadoFlow(FlowBase):
 
         self.setup()
         self.generate()
+        if self.args.step == "project":
+            return
         self.execute(self.args.step)
