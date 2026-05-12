@@ -14,7 +14,19 @@ proc recompile {} {
 }
 
 proc reload {} {
-    echo "Not implemented"
+    # Get visualizer version and clean it up for comparison
+    set ver [lindex [split [version vis] "_"] 0]
+    # Check that the version is 2025.2 or older
+    if {[package vcompare 2025.2 $ver] >= 0} {
+        wave save wave.do;
+        do vsim.do
+        do wave.do
+    } else {
+        session save default;
+        wave save wave.do;
+        session load default.ses;
+        do wave.do;
+    }
 }
 
 
