@@ -1,18 +1,16 @@
-import networkx as nx
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-
+import os
 from argparse import Namespace
 from pathlib import Path
 
+import networkx as nx
 from rich.console import Console
 from rich.style import Style
 from rich.tree import Tree
 
 from ..plugin.flow import FlowBase
-from ..project.fileset import Fileset, FileOrder
-from ..project.project import Project
 from ..project.files import UsedIn
+from ..project.fileset import FileOrder, Fileset
+from ..project.project import Project
 
 
 class Info(FlowBase):
@@ -25,6 +23,16 @@ class Info(FlowBase):
             "sfile": Style(color="color(3)", reverse=False),
             "file": Style(color="default", reverse=False),
         }
+        self.import_matplotlib()
+
+    def import_matplotlib(self):
+        if "MPLCONFIGDIR" not in os.environ:
+            os.environ["MPLCONFIGDIR"] = self.builddir
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as cm
+
+        self.plt = plt
+        self.cm = cm
 
     @classmethod
     def parse_args(self, subparsers) -> None:
@@ -67,7 +75,7 @@ class Info(FlowBase):
             list(set(getattr(n, "parent", None) for n in G.nodes() if getattr(n, "parent", None))),
             key=lambda p: str(p),
         )
-        cmap = cm.get_cmap("tab20", len(unique_parents))
+        cmap = self.cm.get_cmap("tab20", len(unique_parents))
         parent_to_color = {p: cmap(i) for i, p in enumerate(unique_parents)}
         node_colors = [parent_to_color.get(getattr(n, "parent", None), (0.5, 0.5, 0.5, 1.0)) for n in G.nodes()]
 
@@ -81,7 +89,7 @@ class Info(FlowBase):
         pos = {n: (x * 4.0, y * 1.5) for n, (x, y) in pos.items()}
 
         # 5. Plot
-        plt.figure(figsize=(25, 15))
+        self.plt.figure(figsize=(25, 15))
         nx.draw_networkx(
             G,
             pos=pos,
@@ -92,9 +100,9 @@ class Info(FlowBase):
             font_size=9,
         )
 
-        plt.margins(0.15)
-        plt.savefig(self.builddir.joinpath("files.png"), format="PNG", bbox_inches="tight")
-        plt.close()
+        self.plt.margins(0.15)
+        self.plt.savefig(self.builddir.joinpath("files.png"), format="PNG", bbox_inches="tight")
+        self.plt.close()
 
     def graph_filesets(self) -> None:
         G = self.project.defaultDesign._filesets
@@ -109,11 +117,11 @@ class Info(FlowBase):
 
         # Compute the multipartite_layout using the "layer" node attribute
         pos = nx.multipartite_layout(G, subset_key="layer")
-        fig, ax = plt.subplots()
+        fig, ax = self.plt.subplots()
         nx.draw_networkx(G, pos=pos, ax=ax, labels=labels, with_labels=False)
         ax.set_title("DAG layout in topological order")
         fig.tight_layout()
-        plt.savefig(self.builddir.joinpath("filesets.png"), format="PNG")
+        self.plt.savefig(self.builddir.joinpath("filesets.png"), format="PNG")
 
     def print_files(self) -> None:
         for file in self.project.defaultDesign.files(order=FileOrder.COMPILE):
