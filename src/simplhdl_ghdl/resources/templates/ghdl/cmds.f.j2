@@ -1,0 +1,10 @@
++timescale+{{timescale}}
+{% for incdir in incdirs %}
++incdir+{{incdir}}
+{% endfor %}
+{% if wavedump %}
+simplhdl_iverilog_dump.v
+{% endif %}
+{% for file in files %}
+{{file.path}}
+{% endfor %}

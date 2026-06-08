@@ -1,0 +1,13 @@
+{% for library, filelist in files.items() %}
+SRCS_{{library.upper()}} := \
+    {% for file in filelist -%}
+    {{file}} {{ "\\" if not loop.last else "" }}
+    {% endfor %}
+
+$(SRCS_{{library.upper()}}): LIB = {{library}}
+{% endfor %}
+
+{% for library in files.keys() %}
+SRCS = \
+    $(SRCS_{{library.upper()}}) {{ "\\" if not loop.last else "" }}
+{% endfor %}

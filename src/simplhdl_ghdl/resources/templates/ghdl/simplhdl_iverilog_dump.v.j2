@@ -1,0 +1,6 @@
+module simplhdl_iverilog_dump();
+initial begin
+    $dumpfile("waves.{{wavedump}}");
+    $dumpvars(0, {{toplevels}});
+end
+endmodule

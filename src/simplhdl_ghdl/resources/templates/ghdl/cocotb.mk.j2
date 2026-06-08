@@ -1,0 +1,14 @@
+export PYTHONPYCACHEPREFIX = ./pycache
+ifndef PYTHONPATH
+  export PYTHONPATH := {{pythonpath}}
+else
+  export PYTHONPATH := {{pythonpath}}:$(PYTHONPATH)
+endif
+export LIBPYTHON_LOC := $(shell cocotb-config --libpython)
+export PYGPI_PYTHON_BIN := $(shell cocotb-config --python-bin)
+export COCOTB_TEST_MODULES := {{cocotbtop}}
+export COCOTB_TOPLEVEL := {{cocotbdut}}
+export MODULE := {{cocotbtop}}
+export TOPLEVEL := {{cocotbdut}}
+
+VPI = --vpi=$(shell cocotb-config --lib-name-path vpi ghdl)
