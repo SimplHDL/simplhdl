@@ -1,0 +1,9 @@
+#%SimplAPI=1.0
+
+top: test tb
+
+files:
+    - dff.vhd
+    - comp_pkg.vhd
+    - tb.vhd
+    - test.py
