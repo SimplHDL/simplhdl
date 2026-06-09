@@ -241,7 +241,7 @@ def get_list_of_ipfiles(filename: QuartusQsysFile) -> list[File]:
     """
     Search for IP files in a QSYS file and return a list of QuartusIPSpecificationFile objects.
     """
-    files = list()
+    files = set()
     with filename.path.open() as file:
         lines = file.readlines()
         for line in lines:
@@ -250,7 +250,7 @@ def get_list_of_ipfiles(filename: QuartusQsysFile) -> list[File]:
                 ipfile = filename.path.parent.joinpath(m.group(1))
                 if ipfile.exists():
                     logger.debug(f"Found {ipfile} in {filename.path}")
-                    files.append(QuartusIpFile(ipfile))
+                    files.add(QuartusIpFile(ipfile))
                 else:
                     logger.warning(f"File {ipfile} not found")
             m = re.search(r'<parameter name="logicalView">(.*\.ip)</parameter>', line)
@@ -258,10 +258,10 @@ def get_list_of_ipfiles(filename: QuartusQsysFile) -> list[File]:
                 ipfile = filename.path.parent.joinpath(m.group(1))
                 if ipfile.exists():
                     logger.debug(f"Found {ipfile} in {filename.path}")
-                    files.append(QuartusIpFile(ipfile))
+                    files.add(QuartusIpFile(ipfile))
                 else:
                     logger.warning(f"File {ipfile} not found")
-    return files
+    return list(files)
 
 
 def qsys_to_fileset(file: QuartusQsysFile, flow: FlowBase, library) -> Fileset:
