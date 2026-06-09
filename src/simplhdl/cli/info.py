@@ -27,7 +27,7 @@ class Info(FlowBase):
 
     def import_matplotlib(self):
         if "MPLCONFIGDIR" not in os.environ:
-            os.environ["MPLCONFIGDIR"] = self.builddir
+            os.environ["MPLCONFIGDIR"] = str(self.builddir.resolve())
         import matplotlib.pyplot as plt
         import matplotlib.cm as cm
 
