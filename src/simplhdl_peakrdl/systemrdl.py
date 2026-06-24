@@ -292,6 +292,7 @@ class PeakRdlGenerator(GeneratorBase):
             env.globals["hierachynodes"] = hierachynodes
             env.globals["is_leaf"] = is_leaf
             env.globals["mask"] = mask
+            env.globals["os"] = os
             template = env.find_template("registermap")
             for node in leafnodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
