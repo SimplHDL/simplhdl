@@ -10,6 +10,7 @@ from subprocess import PIPE, STDOUT, Popen
 from time import sleep
 from typing import Generator, Union
 
+import jinja2
 from jinja2 import Template
 
 logger = logging.getLogger(__name__)
@@ -165,3 +166,26 @@ def chdir(directory: Path) -> Generator[Path, None, None]:
         yield directory
     finally:
         os.chdir(old)
+
+
+def jinja2_copy(src: Path, dest: Path, **kwargs) -> None:
+    """
+    Copy a file or directory to a destination using Jinja2.
+    """
+    template_loader = jinja2.FileSystemLoader(searchpath=src.parent)
+    template_env = jinja2.Environment(loader=template_loader, undefined=jinja2.StrictUndefined)
+
+    if src.is_file():
+        template = template_env.get_template(src.name)
+        text = template.render(**kwargs)
+        with src.open("r") as f:
+            src_text = f.read()
+        if text != src_text:
+            logger.debug(f"Render {src} to {dest}")
+        else:
+            logger.debug(f"Copy {src} to {dest}")
+
+        with dest.open("w") as f:
+            f.write(text)
+    else:
+        raise ValueError(f"{src} is not a file")

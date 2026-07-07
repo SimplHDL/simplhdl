@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from pathlib import Path
 from shutil import copy, copytree, ignore_patterns, rmtree
@@ -28,11 +29,11 @@ from simplhdl.project.files import (
     QuartusQsysZipFile,
     SdcFile,
     SystemVerilogFile,
+    UsedIn,
     VerilogFile,
     VhdlFile,
-    UsedIn,
 )
-from simplhdl.utils import md5check, md5write, sh
+from simplhdl.utils import jinja2_copy, md5check, md5write, sh
 
 logger = logging.getLogger(__name__)
 
@@ -322,9 +323,9 @@ def copy_ipfile(file: QuartusIpFile, dest: Path) -> QuartusIpFile:
             md5write(file.path, srcdir, filename=md5file)
     else:
         if not md5file.exists() or not md5check(file.path, filename=md5file):
-            logger.debug(f"Copy {file.path} to {destfile}")
             rmtree(destdir, ignore_errors=True)
-            copy(str(file.path), str(destfile))
+            kwargs = {"os": os}
+            jinja2_copy(file.path, destfile, **kwargs)
             md5write(file.path, filename=md5file)
     file.__class__ = QuartusIpFile
     file._path = destfile.resolve()
