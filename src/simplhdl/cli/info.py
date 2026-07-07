@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from argparse import Namespace
 from pathlib import Path
@@ -28,11 +30,13 @@ class Info(FlowBase):
     def import_matplotlib(self):
         if "MPLCONFIGDIR" not in os.environ:
             os.environ["MPLCONFIGDIR"] = str(self.builddir.resolve())
+        import matplotlib
         import matplotlib.pyplot as plt
-        import matplotlib.cm as cm
+        from matplotlib import cm
 
         self.plt = plt
         self.cm = cm
+        self.colormaps = matplotlib.colormaps
 
     @classmethod
     def parse_args(self, subparsers) -> None:
@@ -75,7 +79,7 @@ class Info(FlowBase):
             list(set(getattr(n, "parent", None) for n in G.nodes() if getattr(n, "parent", None))),
             key=lambda p: str(p),
         )
-        cmap = self.cm.get_cmap("tab20", len(unique_parents))
+        cmap = self.colormaps["tab20"].resampled(len(unique_parents))
         parent_to_color = {p: cmap(i) for i, p in enumerate(unique_parents)}
         node_colors = [parent_to_color.get(getattr(n, "parent", None), (0.5, 0.5, 0.5, 1.0)) for n in G.nodes()]
 
