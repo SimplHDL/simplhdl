@@ -73,6 +73,7 @@ entry-points."simplhdl.plugins".chisel_generator = "simplhdl_chisel.chisel:Chise
 entry-points."simplhdl.plugins".encrypt = "simplhdl_encrypt.encrypt.encryptflow:EncryptFlow"
 entry-points."simplhdl.plugins".fusersoc_parser = "simplhdl_fusesocparser.fusesocparser:FuseSocParser"
 entry-points."simplhdl.plugins".icarus = "simplhdl_icarus.icarusflow:IcarusFlow"
+entry-points."simplhdl.plugins".jinja2 = "simplhdl_jinja2.jinja2:Jinja2Generator"
 entry-points."simplhdl.plugins".lint = "simplhdl_lint.lint.lintflow:LintFlow"
 entry-points."simplhdl.plugins".modelsim = "simplhdl_modelsim.modelsim.modelsimflow:ModelSimFlow"
 entry-points."simplhdl.plugins".peakrdl_generator = "simplhdl_peakrdl.systemrdl:PeakRdlGenerator"
@@ -108,6 +109,7 @@ lint.isort = { known-first-party = [
   "simplhdl_encrypt",
   "simplhdl_fusesocparser",
   "simplhdl_icarus",
+  "simplhdl_jinja2",
   "simplhdl_lint",
   "simplhdl_modelsim",
   "simplhdl_parser",

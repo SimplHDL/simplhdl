@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from enum import Enum
 import logging
+from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Type, Iterable, Generator
+from typing import TYPE_CHECKING, Callable, Generator, Iterable, Type
 from weakref import WeakValueDictionary
 
 if TYPE_CHECKING:
@@ -448,3 +448,7 @@ class SystemRdlFile(File): ...
 
 @FileFactory.register(extension=".tcl")
 class TclFile(File): ...
+
+
+@FileFactory.register(extension=".j2")
+class Jinja2File(File): ...
