@@ -59,19 +59,28 @@ class VivadoExportFlow(ImplementationFlow):
     def directory_root(self):
         files = []
         for file in [f for f in self.project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION)]:
-            if isinstance(file, (ConstraintFile)):
-                pass
-            files.append(file.path.resolve())
-        return Path(os.path.commonpath(files))
+            resolved = file.path.resolve()
+            # Ignore files generated inside builddir when determining source root
+            if not resolved.is_relative_to(self.builddir.resolve()):
+                files.append(resolved)
+        return Path(os.path.commonpath(files)) if files else self.builddir
 
     def copy_files(self):
         seen = {}
         files = [f for f in self.project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION)]
         for file in files:
             fileid = str(file.path.resolve())
-            dest = self.builddir.joinpath("src", file.path.relative_to(self.rootdir))
+            resolved_path = file.path.resolve()
+
+            # Determine destination based on structure or relative path existence
             if self.args.structure == "flat":
                 dest = self.builddir.joinpath("src", file.path.name)
+            elif resolved_path.is_relative_to(self.rootdir):
+                dest = self.builddir.joinpath("src", resolved_path.relative_to(self.rootdir))
+            else:
+                # Fallback for builddir/generated files outside rootdir
+                dest = self.builddir.joinpath("src", file.path.name)
+
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
@@ -93,6 +102,7 @@ class VivadoExportFlow(ImplementationFlow):
             else:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(file.path, dest)
+
             # Convert to relative path
             file._path = dest
             seen[fileid] = file

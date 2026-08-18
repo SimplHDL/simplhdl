@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import shutil
@@ -15,10 +17,10 @@ from simplhdl.project.files import (
     QuartusQipFile,
     QuartusQsfFile,
     SystemVerilogFile,
-    VerilogIncludeFile,
-    VerilogFile,
-    VhdlFile,
     UsedIn,
+    VerilogFile,
+    VerilogIncludeFile,
+    VhdlFile,
 )
 from simplhdl_encrypt.encrypt.encryptflow import encrypt
 
@@ -59,25 +61,36 @@ class QuartusExportFlow(ImplementationFlow):
         self.rootdir = self.directory_root()
 
     def directory_root(self):
-        files = list()
+        files = []
         for file in [f for f in self.project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION)]:
+            resolved = file.path.resolve()
             if isinstance(file, QuartusQsfFile):
                 continue
             elif isinstance(file, (ConstraintFile, QuartusQipFile)):
                 pass
             elif isinstance(file, (HdlSearchPath, QuartusIpFile)):
                 continue
-            files.append(file.path.resolve())
+            # Ignore files generated inside builddir when determining source root
+            if not resolved.is_relative_to(self.builddir.resolve()):
+                files.append(resolved)
         return Path(os.path.commonpath(files))
 
     def copy_files(self):
-        seen = dict()
+        seen = {}
         files = [f for f in self.project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION)]
         for file in files:
             fileid = str(file.path.resolve())
-            dest = self.builddir.joinpath("src", file.path.relative_to(self.rootdir))
+            resolved_path = file.path.resolve()
+
+            # Determine destination based on structure or relative path existence
             if self.args.structure == "flat":
                 dest = self.builddir.joinpath("src", file.path.name)
+            elif resolved_path.is_relative_to(self.rootdir):
+                dest = self.builddir.joinpath("src", resolved_path.relative_to(self.rootdir))
+            else:
+                # Fallback for builddir/generated files outside rootdir
+                dest = self.builddir.joinpath("src", file.path.name)
+
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
