@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "0.13.1"
+__version__ = "0.13.2"
 
 from .__main__ import parse_arguments
 from .project.design import *
