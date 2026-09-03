@@ -54,6 +54,10 @@ class Cocotb:
             raise FileNotFoundError(f"{path}: not found")
         return path
 
+    def pygpi_entry_point(self) -> str:
+        output = sh(["cocotb-config", "--pygpi-entry-point"])
+        return output.strip()
+
     def pythonbin(self) -> str:
         output = sh(["cocotb-config", "--python-bin"])
         path = Path(output)
@@ -167,16 +171,23 @@ class Cocotb:
     def env(self) -> dict[str, str]:
         cocotb_version = Version(version("cocotb"))
         e = os.environ.copy()
-        if cocotb_version >= Version("2.0.0"):
+        if cocotb_version >= Version("2.1.0"):
             e["COCOTB_TEST_MODULES"] = self.top
             e["COCOTB_TOPLEVEL"] = self.dut
             e["PYGPI_PYTHON_BIN"] = self.pythonbin()
             e["COCOTB_RANDOM_SEED"] = str(self.seed)
+            e["GPI_USERS"] = f"{self.libpython()};{self.pygpi_entry_point()}"
+        elif cocotb_version >= Version("2.0.0"):
+            e["COCOTB_TEST_MODULES"] = self.top
+            e["COCOTB_TOPLEVEL"] = self.dut
+            e["PYGPI_PYTHON_BIN"] = self.pythonbin()
+            e["COCOTB_RANDOM_SEED"] = str(self.seed)
+            e["LIBPYTHON_LOC"] = self.libpython()
         else:
             e["MODULE"] = self.top
             e["TOPLEVEL"] = self.dut
+            e["LIBPYTHON_LOC"] = self.libpython()
         e["PYTHONPYCACHEPREFIX"] = "./pycache"
-        e["LIBPYTHON_LOC"] = self.libpython()
         e["GPI_EXTRA"] = ""
         if self.has_verilog and self.has_vhdl:
             if self.duttype == VhdlFile:
