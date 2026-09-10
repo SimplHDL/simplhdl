@@ -16,6 +16,7 @@ from simplhdl.project.files import (
     QuartusIpFile,
     QuartusQipFile,
     QuartusQsfFile,
+    QuartusQsysFile,
     SystemVerilogFile,
     UsedIn,
     VerilogFile,
@@ -68,7 +69,7 @@ class QuartusExportFlow(ImplementationFlow):
                 continue
             elif isinstance(file, (ConstraintFile, QuartusQipFile)):
                 pass
-            elif isinstance(file, (HdlSearchPath, QuartusIpFile)):
+            elif isinstance(file, (HdlSearchPath, QuartusIpFile, QuartusQsysFile)):
                 continue
             # Ignore files generated inside builddir when determining source root
             if not resolved.is_relative_to(self.builddir.resolve()):
@@ -99,7 +100,7 @@ class QuartusExportFlow(ImplementationFlow):
             elif isinstance(file, (ConstraintFile, QuartusQipFile)):
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(file.path, dest)
-            elif isinstance(file, (HdlSearchPath, QuartusIpFile)):
+            elif isinstance(file, (HdlSearchPath, QuartusIpFile, QuartusQsysFile)):
                 dest = file.path
             elif isinstance(file, (VerilogFile, VerilogIncludeFile, SystemVerilogFile, VhdlFile)):
                 dest.parent.mkdir(parents=True, exist_ok=True)
