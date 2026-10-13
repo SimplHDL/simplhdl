@@ -236,6 +236,7 @@ class PeakRdlGenerator(GeneratorBase):
         pearkdl_config = config.get("peakrdl", {})
         html_config = pearkdl_config.get("html", {})
         regblock_config = pearkdl_config.get("regblock", {})
+        pyuvm_config = pearkdl_config.get("pyuvm", {})
 
         if not rdlfiles:
             return
@@ -271,6 +272,7 @@ class PeakRdlGenerator(GeneratorBase):
             env.globals["hierachynodes"] = hierachynodes
             env.globals["is_leaf"] = is_leaf
             env.globals["mask"] = mask
+            env.globals["os"] = os
             template = env.find_template("registermap")
             for node in leafnodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
@@ -279,17 +281,24 @@ class PeakRdlGenerator(GeneratorBase):
             for node in hierachynodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
 
-        # NOTE: generate PeakRDL Register Block
-        logger.info("Generate PeakRDL Register Block")
-        for node in leafnodetypes:
-            self.peakrdl_regblock(
-                node=node,
-                outputdir=output_dir.joinpath("peakrdl-regblock"),
-                config=regblock_config,
-            )
+        # NOTE: generate PeakRDL Register Block (AXI4-Lite). Designs that emit
+        # their own register file from a template (SIMPLHDL_SYSTEMRDL_TEMPLATES)
+        # can disable it with [peakrdl.regblock] enable = false in SIMPLHDL_CONFIG.
+        if regblock_config.get("enable", True):
+            logger.info("Generate PeakRDL Register Block")
+            for node in leafnodetypes:
+                self.peakrdl_regblock(
+                    node=node,
+                    outputdir=output_dir.joinpath("peakrdl-regblock"),
+                    config=regblock_config,
+                )
 
         # NOTE: generate PeakRDL PyUVM Register Model if simulation and Cocotb is present, i.e. has cocotb files
-        if flow.category == FlowCategory.SIMULATION and list(self.project.defaultDesign.files(CocotbPythonFile)):
+        if (
+            pyuvm_config.get("enable", True)
+            and flow.category == FlowCategory.SIMULATION
+            and list(self.project.defaultDesign.files(CocotbPythonFile))
+        ):
             logger.info("Generate PeakRDL PyUVM Register Model")
             output = output_dir.joinpath("peakrdl-pyuvm", "ralmodel.py")
             output.parent.mkdir(parents=True, exist_ok=True)
@@ -297,9 +306,10 @@ class PeakRdlGenerator(GeneratorBase):
             fileset = rdlfiles[-1].parent
             fileset.insert_file_after(rdlfile, CocotbPythonFile(output))
 
-        logger.info("Generate HTML Documentation")
-        HTMLExporter().export(
-            root,
-            output_dir.joinpath("peakrdl-docs"),
-            skip_not_present=html_config.get("skip_not_present", False),
-        )
+        if html_config.get("enable", True):
+            logger.info("Generate HTML Documentation")
+            HTMLExporter().export(
+                root,
+                output_dir.joinpath("peakrdl-docs"),
+                skip_not_present=html_config.get("skip_not_present", False),
+            )
