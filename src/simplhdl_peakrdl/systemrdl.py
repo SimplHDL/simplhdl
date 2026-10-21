@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 
@@ -9,7 +11,6 @@ except ImportError:
     import tomli as tomllib
 
 from pathlib import Path
-from typing import List
 
 from peakrdl_html import HTMLExporter
 from peakrdl_pyuvm.exporter import PyUVMExporter
@@ -32,12 +33,12 @@ from simplhdl.project.files import (
 
 logger = logging.getLogger(__name__)
 
-seennodetypes: List[AddrmapNode] = []
-leafnodetypes: List[AddrmapNode] = []
-hierachynodetypes: List[AddrmapNode] = []
-leafnodes: List[AddrmapNode] = []
-hierachynodes: List[AddrmapNode] = []
-nodes: List[AddrmapNode] = []
+seennodetypes: list[AddrmapNode] = []
+leafnodetypes: list[AddrmapNode] = []
+hierachynodetypes: list[AddrmapNode] = []
+leafnodes: list[AddrmapNode] = []
+hierachynodes: list[AddrmapNode] = []
+nodes: list[AddrmapNode] = []
 
 
 class Environment(jinja2.Environment):
@@ -66,7 +67,7 @@ class Listener(RDLListener):
                 hierachynodetypes.append(node)
 
 
-def get_template_dirs() -> List[Path]:
+def get_template_dirs() -> list[Path]:
     string = os.getenv("SIMPLHDL_SYSTEMRDL_TEMPLATES")
     if string:
         templates = {Path(p).resolve() for p in string.split(":")}
@@ -171,11 +172,7 @@ def is_leaf(node):
     """
     Check if node is leaf, meaning it has no children address maps
     """
-    if AddrmapNode not in [type(c) for c in node.children()]:
-        return True
-    else:
-        return False
-
+    return AddrmapNode not in [type(c) for c in node.children()]
 
 def mask(node):
     m = ~(node.size - 1) & 0xFFFFFFFF
@@ -222,7 +219,7 @@ class PeakRdlGenerator(GeneratorBase):
     def run(self, flow: FlowBase):  # noqa: C901
         rdlfiles = self.project.defaultDesign.files(type=SystemRdlFile, order=FileOrder.COMPILE)
         output_dir = self.builddir.joinpath("systemrdl")
-        config = dict()
+        config: dict = {}
         if os.getenv("SIMPLHDL_CONFIG"):
             tomlfile = Path(os.getenv("SIMPLHDL_CONFIG"))
             try:
