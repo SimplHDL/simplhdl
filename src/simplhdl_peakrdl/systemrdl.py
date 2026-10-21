@@ -14,7 +14,12 @@ from pathlib import Path
 
 from peakrdl_html import HTMLExporter
 from peakrdl_pyuvm.exporter import PyUVMExporter
-from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif_flattened
+from peakrdl_regblock.cpuif.apb3 import APB3_Cpuif, APB3_Cpuif_flattened
+from peakrdl_regblock.cpuif.apb4 import APB4_Cpuif, APB4_Cpuif_flattened
+from peakrdl_regblock.cpuif.avalon import Avalon_Cpuif, Avalon_Cpuif_flattened
+from peakrdl_regblock.cpuif.axi4lite import AXI4Lite_Cpuif, AXI4Lite_Cpuif_flattened
+from peakrdl_regblock.cpuif.obi import OBI_Cpuif, OBI_Cpuif_flattened
+from peakrdl_regblock.cpuif.passthrough import PassthroughCpuif
 from peakrdl_regblock.exporter import RegblockExporter
 from peakrdl_regblock.udps import ALL_UDPS
 from systemrdl import RDLCompileError, RDLCompiler, RDLListener, RDLWalker
@@ -75,10 +80,10 @@ def get_template_dirs() -> list[Path]:
             if not t.is_dir():
                 logger.error(f"Directory {t} does not exist")
                 raise SystemError
+        return list(templates)
     else:
-        logger.error("SIMPLHDL_SYSTEMRDL_TEMPLATES is not set, no templates found")
-        raise SystemError
-    return list(templates)
+        logger.debug("SIMPLHDL_SYSTEMRDL_TEMPLATES is not set, no templates found")
+        return []
 
 
 def get_reg_access(reg) -> str:
@@ -174,6 +179,7 @@ def is_leaf(node):
     """
     return AddrmapNode not in [type(c) for c in node.children()]
 
+
 def mask(node):
     m = ~(node.size - 1) & 0xFFFFFFFF
     return m
@@ -198,10 +204,27 @@ class PeakRdlGenerator(GeneratorBase):
             fileset.insert_file_after(rdlfile, VhdlFile(outputfile))
 
     def peakrdl_regblock(self, node, outputdir, config) -> None:
+        cpuif_dict = {
+            "passthrough": PassthroughCpuif,
+            "apb3": APB3_Cpuif,
+            "apb3-flat": APB3_Cpuif_flattened,
+            "apb4": APB4_Cpuif,
+            "apb4-flat": APB4_Cpuif_flattened,
+            "axi4-lite": AXI4Lite_Cpuif,
+            "axi4-lite-flat": AXI4Lite_Cpuif_flattened,
+            "avalon-mm": Avalon_Cpuif,
+            "avalon-mm-flat": Avalon_Cpuif_flattened,
+            "obi": OBI_Cpuif,
+            "obi-flat": OBI_Cpuif_flattened,
+        }
+        cpuif_name = config.get("cpuif", "apb3")
+        if cpuif_name not in cpuif_dict:
+            raise ValueError(f"Unsupported CPU interface: {cpuif_name}, must be one of {list(cpuif_dict.keys())}")
+
         RegblockExporter().export(
             node=node,
             output_dir=str(outputdir.resolve()),
-            cpuif_cls=AXI4Lite_Cpuif_flattened,
+            cpuif_cls=cpuif_dict.get(cpuif_name),
             module_name=config.get("module_name", f"{node.type_name}_addrmap"),
             package_name=config.get("package_name", f"{node.type_name}_pkg"),
             address_width=config.get("address_width", 32),
