@@ -27,6 +27,50 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_lib_name_path(interface: str, simulator: str) -> Path:
+    output = sh(["cocotb-config", "--lib-name-path", interface, simulator]).strip()
+    path = Path(output)
+    if not path.exists():
+        raise FileNotFoundError(f"{path}: not found")
+    return path
+
+
+def get_lib_entry(interface: str, simulator: str) -> str:
+    output = sh(["cocotb-config", "--lib-entry", interface, simulator]).strip()
+    return output
+
+
+def get_libpython() -> str:
+    output = sh(["cocotb-config", "--libpython"]).strip()
+    path = Path(output)
+    if not path.exists():
+        raise FileNotFoundError(f"{path}: not found")
+    return path
+
+
+def get_pygpi_entry_point() -> str:
+    if Version(version("cocotb")) >= Version("2.1.0"):
+        output = sh(["cocotb-config", "--pygpi-entry-point"]).strip()
+        return output
+    return ""
+
+
+def get_pythonbin() -> str:
+    output = sh(["cocotb-config", "--python-bin"]).strip()
+    path = Path(output)
+    if not path.exists():
+        raise FileNotFoundError(f"{path}: not found")
+    return path
+
+
+def get_gpi_users() -> str:
+    return f"{get_libpython()};{get_pygpi_entry_point()}"
+
+
+def get_gpi_extra(interface: str, simulator: str) -> str:
+    return f"{get_lib_name_path(interface, simulator)}:cocotb{interface}_entry_point"
+
+
 class Cocotb:
     def __init__(self, project: Project, seed: int) -> None:
         self.project = project
@@ -41,29 +85,16 @@ class Cocotb:
         self.has_vhdl = project.defaultDesign.files(type=VhdlFile, usedin=UsedIn.SIMULATION) != []
 
     def lib_name_path(self, simulator: str, interface: str) -> Path:
-        output = sh(["cocotb-config", "--lib-name-path", interface, simulator])
-        path = Path(output)
-        if not path.exists():
-            raise FileNotFoundError(f"{path}: not found")
-        return path
+        return get_lib_name_path(interface, simulator)
 
     def libpython(self) -> str:
-        output = sh(["cocotb-config", "--libpython"])
-        path = Path(output)
-        if not path.exists():
-            raise FileNotFoundError(f"{path}: not found")
-        return path
+        return get_libpython()
 
     def pygpi_entry_point(self) -> str:
-        output = sh(["cocotb-config", "--pygpi-entry-point"])
-        return output.strip()
+        return get_pygpi_entry_point()
 
     def pythonbin(self) -> str:
-        output = sh(["cocotb-config", "--python-bin"])
-        path = Path(output)
-        if not path.exists():
-            raise FileNotFoundError(f"{path}: not found")
-        return path
+        return get_pythonbin()
 
     def module(self) -> str | None:
         if not self.enabled:
@@ -174,28 +205,27 @@ class Cocotb:
         if cocotb_version >= Version("2.1.0"):
             e["COCOTB_TEST_MODULES"] = self.top
             e["COCOTB_TOPLEVEL"] = self.dut
-            e["PYGPI_PYTHON_BIN"] = self.pythonbin()
+            e["PYGPI_PYTHON_BIN"] = get_pythonbin()
             e["COCOTB_RANDOM_SEED"] = str(self.seed)
-            e["GPI_USERS"] = f"{self.libpython()};{self.pygpi_entry_point()}"
+            e["GPI_USERS"] = get_gpi_users()
         elif cocotb_version >= Version("2.0.0"):
             e["COCOTB_TEST_MODULES"] = self.top
             e["COCOTB_TOPLEVEL"] = self.dut
-            e["PYGPI_PYTHON_BIN"] = self.pythonbin()
+            e["PYGPI_PYTHON_BIN"] = get_pythonbin()
             e["COCOTB_RANDOM_SEED"] = str(self.seed)
-            e["LIBPYTHON_LOC"] = self.libpython()
+            e["LIBPYTHON_LOC"] = get_libpython()
         else:
             e["MODULE"] = self.top
             e["TOPLEVEL"] = self.dut
-            e["LIBPYTHON_LOC"] = self.libpython()
+            e["LIBPYTHON_LOC"] = get_libpython()
         e["PYTHONPYCACHEPREFIX"] = "./pycache"
         e["GPI_EXTRA"] = ""
         if self.has_verilog and self.has_vhdl:
             if self.duttype == VhdlFile:
-                lib_name_path = self.lib_name_path("questa", "vpi")
-                e["GPI_EXTRA"] = f"{lib_name_path}:cocotbvpi_entry_point"
+                interface = "vpi"
             elif self.duttype == VerilogFile:
-                lib_name_path = self.lib_name_path("questa", "fli")
-                e["GPI_EXTRA"] = f"{lib_name_path}:cocotbfli_entry_point"
+                interface = "fli"
+            e["GPI_EXTRA"] = get_gpi_extra(interface, "questa")
         if "PYTHONPATH" in e:
             e["PYTHONPATH"] = self.pythonpath + os.pathsep + e.get("PYTHONPATH")
         else:

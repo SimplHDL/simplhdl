@@ -13,20 +13,29 @@ from typing import Any, Callable, Generator, Tuple
 
 from jinja2 import Environment, FileSystemLoader
 
-from ..cocotb import Cocotb
+from ..cocotb import (
+    Cocotb,
+    get_gpi_extra,
+    get_gpi_users,
+    get_lib_entry,
+    get_lib_name_path,
+    get_libpython,
+    get_pygpi_entry_point,
+    get_pythonbin,
+)
 from ..project.files import (
+    CFile,
+    CppFile,
     File,
     HdlSearchPath,
     MemoryHexFile,
     SystemVerilogFile,
+    UsedIn,
     VerilogFile,
     VerilogIncludeFile,
     VhdlFile,
-    CFile,
-    CppFile,
-    UsedIn,
 )
-from ..project.fileset import Fileset, FilesetOrder, FileOrder
+from ..project.fileset import FileOrder, Fileset, FilesetOrder
 from ..project.project import Project
 from ..utils import (
     append_suffix,
@@ -81,6 +90,13 @@ class SimulationFlow(FlowBase):
         globals["defaultlib"] = "work"
         globals["toplevels"] = " ".join(self.cocotb.toplevels)
         globals["pythonpath"] = self.cocotb.pythonpath
+        globals["get_gpi_users"] = get_gpi_users
+        globals["get_gpi_extra"] = get_gpi_extra
+        globals["get_lib_entry"] = get_lib_entry
+        globals["get_lib_name_path"] = get_lib_name_path
+        globals["get_libpython"] = get_libpython
+        globals["get_pythonbin"] = get_pythonbin
+        globals["get_pygpi_entry_point"] = get_pygpi_entry_point
         globals["cocotbtop"] = self.cocotb.top
         globals["cocotbhdltype"] = self.cocotb.duttype
         globals["cocotbdut"] = self.cocotb.dut
