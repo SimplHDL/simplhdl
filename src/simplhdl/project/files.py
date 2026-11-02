@@ -325,6 +325,9 @@ class SimulationFile(File):
 class IPSpecificationFile(File): ...
 
 
+class MemoryFile(File): ...
+
+
 @FileFactory.register(extension=".sdc")
 class SdcFile(ConstraintFile): ...
 
@@ -431,11 +434,11 @@ class HdlSearchPath(VerilogIncludeFile):
 
 
 @FileFactory.register(extension=".hex")
-class MemoryHexFile(File): ...
+class MemoryHexFile(MemoryFile): ...
 
 
 @FileFactory.register(extension=".mif")
-class MemoryInitFile(File): ...
+class MemoryInitFile(MemoryFile): ...
 
 
 @FileFactory.register(extension="modelsim.ini")

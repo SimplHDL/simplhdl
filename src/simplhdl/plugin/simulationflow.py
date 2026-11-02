@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-try:
-    from importlib.resources import files as resources_files
-except ImportError:
-    from importlib_resources import files as resources_files
 import logging
 import os
 import shutil
@@ -13,6 +9,7 @@ from typing import Any, Callable, Generator, Tuple
 
 from jinja2 import Environment, FileSystemLoader
 
+from .._compat import resources_files
 from ..cocotb import (
     Cocotb,
     get_gpi_extra,
@@ -28,7 +25,7 @@ from ..project.files import (
     CppFile,
     File,
     HdlSearchPath,
-    MemoryHexFile,
+    MemoryFile,
     SystemVerilogFile,
     UsedIn,
     VerilogFile,
@@ -201,7 +198,7 @@ class SimulationFlow(FlowBase):
         return generated
 
     def copy_memory_files(self):
-        for file in self.project.defaultDesign.files(MemoryHexFile):
+        for file in self.project.defaultDesign.files(MemoryFile):
             shutil.copy(file.path.absolute(), self.builddir.absolute())
 
     def is_uvm(self):
