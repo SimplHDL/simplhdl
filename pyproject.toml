@@ -43,7 +43,7 @@ dependencies = [
   "matplotlib",
   "networkx",
   "peakrdl-html",
-  "peakrdl-pyuvm",
+  "peakrdl-pyuvm>=0.9.0",
   "peakrdl-regblock>=1.2",
   "pyyaml",
   "rich",

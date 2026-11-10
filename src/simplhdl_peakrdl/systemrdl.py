@@ -221,23 +221,86 @@ class PeakRdlGenerator(GeneratorBase):
         if cpuif_name not in cpuif_dict:
             raise ValueError(f"Unsupported CPU interface: {cpuif_name}, must be one of {list(cpuif_dict.keys())}")
 
+        default_reset = config.get("default_reset", "rst")
+
+        if default_reset == "rst":
+            default_reset_activelow = False
+            default_reset_async = False
+        elif default_reset == "rst_n":
+            default_reset_activelow = True
+            default_reset_async = False
+        elif default_reset == "arst":
+            default_reset_activelow = False
+            default_reset_async = True
+        elif default_reset == "arst_n":
+            default_reset_activelow = True
+            default_reset_async = True
+        else:
+            raise ValueError(f"Unsupported default reset: {default_reset}")
+
+        module_name = config.get("module_name", f"{node.type_name}").replace("%", node.type_name)
+        package_name = config.get("package_name", f"{node.type_name}_pkg").replace("%", node.type_name)
+
+        type_style = config.get("type_style", "lexical")
+        if type_style == "lexical":
+            reuse_hwif_typedefs = True
+        elif type_style == "hier":
+            reuse_hwif_typedefs = False
+        else:
+            raise ValueError(f"Unsupported type style: {type_style}")
+
+        retime_external = config.get("retime_external", [])
+        valid_items = ["reg", "regfile", "mem", "addrmap", "all"]
+        retime_external_reg = False
+        retime_external_regfile = False
+        retime_external_mem = False
+        retime_external_addrmap = False
+        if isinstance(retime_external, list):
+            for item in retime_external:
+                if item not in valid_items:
+                    raise ValueError(f"Unsupported retime_external item: {item}, must be one of {valid_items}")
+                if item == "all":
+                    retime_external_reg = True
+                    retime_external_regfile = True
+                    retime_external_mem = True
+                    retime_external_addrmap = True
+                elif item == "reg":
+                    retime_external_reg = True
+                elif item == "regfile":
+                    retime_external_regfile = True
+                elif item == "mem":
+                    retime_external_mem = True
+                elif item == "addrmap":
+                    retime_external_addrmap = True
+        else:
+            raise TypeError(f"retime_external must be an array {valid_items}")
+
         RegblockExporter().export(
             node=node,
             output_dir=str(outputdir.resolve()),
             cpuif_cls=cpuif_dict.get(cpuif_name),
-            module_name=config.get("module_name", f"{node.type_name}_addrmap"),
-            package_name=config.get("package_name", f"{node.type_name}_pkg"),
-            address_width=config.get("address_width", 32),
-            default_reset_activelow=config.get("default_reset_activelow", True),
+            module_name=module_name,
+            package_name=package_name,
+            reuse_hwif_typedefs=reuse_hwif_typedefs,
+            retime_read_fanin=config.get("retime_read_fanin", False),
+            retime_read_response=config.get("retime_read_response", False),
+            retime_external_reg=retime_external_reg,
+            retime_external_regfile=retime_external_regfile,
+            retime_external_mem=retime_external_mem,
+            retime_external_addrmap=retime_external_addrmap,
+            generate_hwif_report=config.get("generate_hwif_report", False),
+            address_width=config.get("address_width", None),
+            default_reset_activelow=default_reset_activelow,
+            default_reset_async=default_reset_async,
             err_if_bad_addr=config.get("err_if_bad_addr", False),
             err_if_bad_rw=config.get("err_if_bad_rw", False),
         )
-        modulefile: Path = outputdir.joinpath(f"{node.type_name}_pkg.sv").resolve()
-        packetfile: Path = outputdir.joinpath(f"{node.type_name}_addrmap.sv").resolve()
+        modulefile: Path = outputdir.joinpath(f"{module_name}.sv").resolve()
+        packetfile: Path = outputdir.joinpath(f"{package_name}.sv").resolve()
         rdlfile = self.project.defaultDesign.get_file(node.inst.def_src_ref.path)
         fileset = rdlfile.parent
-        fileset.insert_file_after(rdlfile, SystemVerilogFile(modulefile))
         fileset.insert_file_after(rdlfile, SystemVerilogFile(packetfile))
+        fileset.insert_file_after(rdlfile, SystemVerilogFile(modulefile))
 
     def run(self, flow: FlowBase):  # noqa: C901
         rdlfiles = self.project.defaultDesign.files(type=SystemRdlFile, order=FileOrder.COMPILE)
@@ -256,6 +319,7 @@ class PeakRdlGenerator(GeneratorBase):
         pearkdl_config = config.get("peakrdl", {})
         html_config = pearkdl_config.get("html", {})
         regblock_config = pearkdl_config.get("regblock", {})
+        pyuvm_config = pearkdl_config.get("pyuvm", {})
 
         if not rdlfiles:
             return
@@ -299,27 +363,44 @@ class PeakRdlGenerator(GeneratorBase):
             for node in hierachynodetypes:
                 self.render_template(template=template, node=node, outputdir=sub_dir)
 
-        # NOTE: generate PeakRDL Register Block
-        logger.info("Generate PeakRDL Register Block")
-        for node in leafnodetypes:
-            self.peakrdl_regblock(
-                node=node,
-                outputdir=output_dir.joinpath("peakrdl-regblock"),
-                config=regblock_config,
+        if regblock_config.get("enable", True):
+            # NOTE: generate PeakRDL Register Block
+            logger.info("Generate PeakRDL Register Block")
+            for node in leafnodetypes:
+                self.peakrdl_regblock(
+                    node=node,
+                    outputdir=output_dir.joinpath("peakrdl-regblock"),
+                    config=regblock_config,
+                )
+
+        if pyuvm_config.get("enable", True):
+            # NOTE: generate PeakRDL PyUVM Register Model if simulation and Cocotb is present, i.e. has cocotb files
+            if flow.category == FlowCategory.SIMULATION and list(self.project.defaultDesign.files(CocotbPythonFile)):
+                logger.info("Generate PeakRDL PyUVM Register Model")
+                output = output_dir.joinpath("peakrdl-pyuvm", "ralmodel.py")
+                output.parent.mkdir(parents=True, exist_ok=True)
+                type_style = pyuvm_config.get("type_style", "lexical")
+                if type_style == "lexical":
+                    reuse_class_definitions = True
+                elif type_style == "hier":
+                    reuse_class_definitions = False
+                else:
+                    raise ValueError(f"Unsupported type style: {type_style}")
+
+                PyUVMExporter().export(
+                    node=root,
+                    path=str(output),
+                    export_as_package=pyuvm_config.get("export_as_package", True),
+                    reuse_class_definitions=reuse_class_definitions,
+                    use_uvm_factory=pyuvm_config.get("use_uvm_factory", False),
+                )
+                fileset = rdlfiles[-1].parent
+                fileset.insert_file_after(rdlfile, CocotbPythonFile(output))
+
+        if html_config.get("enable", True):
+            logger.info("Generate HTML Documentation")
+            HTMLExporter().export(
+                root,
+                output_dir.joinpath("peakrdl-docs"),
+                skip_not_present=html_config.get("skip_not_present", False),
             )
-
-        # NOTE: generate PeakRDL PyUVM Register Model if simulation and Cocotb is present, i.e. has cocotb files
-        if flow.category == FlowCategory.SIMULATION and list(self.project.defaultDesign.files(CocotbPythonFile)):
-            logger.info("Generate PeakRDL PyUVM Register Model")
-            output = output_dir.joinpath("peakrdl-pyuvm", "ralmodel.py")
-            output.parent.mkdir(parents=True, exist_ok=True)
-            PyUVMExporter().export(root, str(output))
-            fileset = rdlfiles[-1].parent
-            fileset.insert_file_after(rdlfile, CocotbPythonFile(output))
-
-        logger.info("Generate HTML Documentation")
-        HTMLExporter().export(
-            root,
-            output_dir.joinpath("peakrdl-docs"),
-            skip_not_present=html_config.get("skip_not_present", False),
-        )
