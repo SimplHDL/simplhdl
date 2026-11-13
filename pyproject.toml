@@ -16,14 +16,13 @@ maintainers = [
 authors = [
   { name = "Rasmus Grøndahl Olsen", email = "simplhdl@gmail.com" },
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -38,17 +37,17 @@ dependencies = [
   "black",
   "flake8",
   "gitpython",
-  "importlib-resources; python_version<'3.9'",
   "jinja2",
   "matplotlib",
   "networkx",
   "peakrdl-html",
-  "peakrdl-pyuvm>=0.9.0",
+  "peakrdl-pyuvm>=0.9",
   "peakrdl-regblock>=1.2",
   "pyyaml",
   "rich",
   "singleton-decorator",
   "systemrdl-compiler",
+  "tomli; python_version<'3.11'",
   "types-pyyaml",
   "vsg",
 ]

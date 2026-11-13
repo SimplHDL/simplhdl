@@ -22,8 +22,8 @@ from peakrdl_regblock.cpuif.obi import OBI_Cpuif, OBI_Cpuif_flattened
 from peakrdl_regblock.cpuif.passthrough import PassthroughCpuif
 from peakrdl_regblock.exporter import RegblockExporter
 from peakrdl_regblock.udps import ALL_UDPS
-from systemrdl import RDLCompileError, RDLCompiler, RDLListener, RDLWalker
-from systemrdl.node import AddrmapNode
+from systemrdl import RDLCompileError, RDLListener, RDLWalker
+from systemrdl.node import AddrmapNode, RootNode
 from systemrdl.rdltypes import AccessType, OnReadType, OnWriteType
 
 from simplhdl import FileOrder
@@ -36,40 +36,90 @@ from simplhdl.project.files import (
     VhdlFile,
 )
 
+from .compiler import SimplHDLRDLCompiler
+
 logger = logging.getLogger(__name__)
 
-seennodetypes: list[AddrmapNode] = []
-leafnodetypes: list[AddrmapNode] = []
-hierachynodetypes: list[AddrmapNode] = []
-leafnodes: list[AddrmapNode] = []
-hierachynodes: list[AddrmapNode] = []
-nodes: list[AddrmapNode] = []
+CPU_INTERFACES = {
+    "passthrough": PassthroughCpuif,
+    "apb3": APB3_Cpuif,
+    "apb3-flat": APB3_Cpuif_flattened,
+    "apb4": APB4_Cpuif,
+    "apb4-flat": APB4_Cpuif_flattened,
+    "axi4-lite": AXI4Lite_Cpuif,
+    "axi4-lite-flat": AXI4Lite_Cpuif_flattened,
+    "avalon-mm": Avalon_Cpuif,
+    "avalon-mm-flat": Avalon_Cpuif_flattened,
+    "obi": OBI_Cpuif,
+    "obi-flat": OBI_Cpuif_flattened,
+}
+RETIME_EXTERNAL_TYPES = ("reg", "regfile", "mem", "addrmap")
+DEFAULT_RESET_SETTINGS = {
+    "rst": (False, False),
+    "rst_n": (True, False),
+    "arst": (False, True),
+    "arst_n": (True, True),
+}
+
+
+def _get_default_reset_settings(reset: str) -> tuple[bool, bool]:
+    try:
+        return DEFAULT_RESET_SETTINGS[reset]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported default reset: {reset}") from exc
+
+
+def _get_retime_external_settings(items: object) -> dict[str, bool]:
+    if not isinstance(items, list):
+        raise TypeError(f"retime_external must be an array {[*RETIME_EXTERNAL_TYPES, 'all']}")
+
+    valid_items = (*RETIME_EXTERNAL_TYPES, "all")
+    settings = {f"retime_external_{item}": False for item in RETIME_EXTERNAL_TYPES}
+    for item in items:
+        if item not in valid_items:
+            raise ValueError(f"Unsupported retime_external item: {item}, must be one of {list(valid_items)}")
+        if item == "all":
+            for setting in settings:
+                settings[setting] = True
+        else:
+            settings[f"retime_external_{item}"] = True
+    return settings
+
+
+def unique_nodes_by_type(nodes: list[AddrmapNode]) -> list[AddrmapNode]:
+    """Return nodes de-duplicated by type_name while preserving first-seen order."""
+    seen: set[str] = set()
+    unique: list[AddrmapNode] = []
+    for node in nodes:
+        if node.type_name in seen:
+            continue
+        seen.add(node.type_name)
+        unique.append(node)
+    return unique
 
 
 class Environment(jinja2.Environment):
     def find_template(self, name):
-        list = [i for i in self.list_templates() if i.startswith(name)]
-        if len(list) == 0:
+        matches = [template_name for template_name in self.list_templates() if template_name.startswith(name)]
+        if not matches:
             raise jinja2.TemplateNotFound(name)
-        if len(list) > 1:
-            logger.warning(f"Multiple templates found ({list}) for {name}")
-        return self.get_template(list[0])
+        if len(matches) > 1:
+            logger.warning(f"Multiple templates found ({matches}) for {name}")
+        return self.get_template(matches[0])
 
 
-class Listener(RDLListener):
+class AddrmapCollector(RDLListener):
+    def __init__(self) -> None:
+        self.nodes: list[AddrmapNode] = []
+        self.leafnodes: list[AddrmapNode] = []
+        self.hierachynodes: list[AddrmapNode] = []
+
     def exit_Addrmap(self, node: AddrmapNode):
-        nodes.append(node)
+        self.nodes.append(node)
         if is_leaf(node):
-            leafnodes.append(node)
+            self.leafnodes.append(node)
         else:
-            hierachynodes.append(node)
-        seen = [n for n in seennodetypes if n.type_name == node.type_name]
-        if not seen:
-            seennodetypes.append(node)
-            if is_leaf(node):
-                leafnodetypes.append(node)
-            else:
-                hierachynodetypes.append(node)
+            self.hierachynodes.append(node)
 
 
 def get_template_dirs() -> list[Path]:
@@ -97,7 +147,7 @@ def get_reg_access(reg) -> str:
         return "RW"
 
 
-def get_field_access(field) -> str:  # noqa: C901
+def get_field_access(field) -> str:
     """
     Get field's UVM access string
     """
@@ -177,7 +227,7 @@ def is_leaf(node):
     """
     Check if node is leaf, meaning it has no children address maps
     """
-    return AddrmapNode not in [type(c) for c in node.children()]
+    return not any(isinstance(child, AddrmapNode) for child in node.children())
 
 
 def mask(node):
@@ -186,9 +236,9 @@ def mask(node):
 
 
 class PeakRdlGenerator(GeneratorBase):
-    def render_template(self, template: jinja2.Template, node, outputdir) -> Path:
+    def render_template(self, template: jinja2.Template, node: AddrmapNode, outputdir: Path) -> Path | None:
         if not template.filename.endswith(".j2"):
-            return
+            return None
         context = template.render(node=node)
         outputdir.mkdir(parents=True, exist_ok=True)
         outputfile: Path = outputdir.joinpath(f"{node.type_name}__{Path(template.filename).name[:-3]}").resolve()
@@ -202,41 +252,16 @@ class PeakRdlGenerator(GeneratorBase):
             fileset.insert_file_after(rdlfile, VerilogFile(outputfile))
         if outputfile.suffix == ".vhd":
             fileset.insert_file_after(rdlfile, VhdlFile(outputfile))
+        return outputfile
 
     def peakrdl_regblock(self, node, outputdir, config) -> None:
-        cpuif_dict = {
-            "passthrough": PassthroughCpuif,
-            "apb3": APB3_Cpuif,
-            "apb3-flat": APB3_Cpuif_flattened,
-            "apb4": APB4_Cpuif,
-            "apb4-flat": APB4_Cpuif_flattened,
-            "axi4-lite": AXI4Lite_Cpuif,
-            "axi4-lite-flat": AXI4Lite_Cpuif_flattened,
-            "avalon-mm": Avalon_Cpuif,
-            "avalon-mm-flat": Avalon_Cpuif_flattened,
-            "obi": OBI_Cpuif,
-            "obi-flat": OBI_Cpuif_flattened,
-        }
         cpuif_name = config.get("cpuif", "apb3")
-        if cpuif_name not in cpuif_dict:
-            raise ValueError(f"Unsupported CPU interface: {cpuif_name}, must be one of {list(cpuif_dict.keys())}")
+        try:
+            cpuif_cls = CPU_INTERFACES[cpuif_name]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported CPU interface: {cpuif_name}, must be one of {list(CPU_INTERFACES)}") from exc
 
-        default_reset = config.get("default_reset", "rst")
-
-        if default_reset == "rst":
-            default_reset_activelow = False
-            default_reset_async = False
-        elif default_reset == "rst_n":
-            default_reset_activelow = True
-            default_reset_async = False
-        elif default_reset == "arst":
-            default_reset_activelow = False
-            default_reset_async = True
-        elif default_reset == "arst_n":
-            default_reset_activelow = True
-            default_reset_async = True
-        else:
-            raise ValueError(f"Unsupported default reset: {default_reset}")
+        default_reset_activelow, default_reset_async = _get_default_reset_settings(config.get("default_reset", "rst"))
 
         module_name = config.get("module_name", f"{node.type_name}").replace("%", node.type_name)
         package_name = config.get("package_name", f"{node.type_name}_pkg").replace("%", node.type_name)
@@ -249,45 +274,18 @@ class PeakRdlGenerator(GeneratorBase):
         else:
             raise ValueError(f"Unsupported type style: {type_style}")
 
-        retime_external = config.get("retime_external", [])
-        valid_items = ["reg", "regfile", "mem", "addrmap", "all"]
-        retime_external_reg = False
-        retime_external_regfile = False
-        retime_external_mem = False
-        retime_external_addrmap = False
-        if isinstance(retime_external, list):
-            for item in retime_external:
-                if item not in valid_items:
-                    raise ValueError(f"Unsupported retime_external item: {item}, must be one of {valid_items}")
-                if item == "all":
-                    retime_external_reg = True
-                    retime_external_regfile = True
-                    retime_external_mem = True
-                    retime_external_addrmap = True
-                elif item == "reg":
-                    retime_external_reg = True
-                elif item == "regfile":
-                    retime_external_regfile = True
-                elif item == "mem":
-                    retime_external_mem = True
-                elif item == "addrmap":
-                    retime_external_addrmap = True
-        else:
-            raise TypeError(f"retime_external must be an array {valid_items}")
+        retime_external_settings = _get_retime_external_settings(config.get("retime_external", []))
 
         RegblockExporter().export(
             node=node,
             output_dir=str(outputdir.resolve()),
-            cpuif_cls=cpuif_dict.get(cpuif_name),
+            cpuif_cls=cpuif_cls,
             module_name=module_name,
             package_name=package_name,
             reuse_hwif_typedefs=reuse_hwif_typedefs,
             retime_read_fanin=config.get("retime_read_fanin", False),
             retime_read_response=config.get("retime_read_response", False),
-            retime_external_reg=retime_external_reg,
-            retime_external_regfile=retime_external_regfile,
-            retime_external_mem=retime_external_mem,
-            retime_external_addrmap=retime_external_addrmap,
+            **retime_external_settings,
             generate_hwif_report=config.get("generate_hwif_report", False),
             address_width=config.get("address_width", None),
             default_reset_activelow=default_reset_activelow,
@@ -302,12 +300,11 @@ class PeakRdlGenerator(GeneratorBase):
         fileset.insert_file_after(rdlfile, SystemVerilogFile(packetfile))
         fileset.insert_file_after(rdlfile, SystemVerilogFile(modulefile))
 
-    def run(self, flow: FlowBase):  # noqa: C901
-        rdlfiles = self.project.defaultDesign.files(type=SystemRdlFile, order=FileOrder.COMPILE)
-        output_dir = self.builddir.joinpath("systemrdl")
+    def _load_config(self) -> dict:
         config: dict = {}
-        if os.getenv("SIMPLHDL_CONFIG"):
-            tomlfile = Path(os.getenv("SIMPLHDL_CONFIG"))
+        config_path = os.getenv("SIMPLHDL_CONFIG")
+        if config_path:
+            tomlfile = Path(config_path)
             try:
                 with tomlfile.open("rb") as f:
                     config = tomllib.load(f)
@@ -315,92 +312,131 @@ class PeakRdlGenerator(GeneratorBase):
                 raise FileNotFoundError(
                     f"SimplHDL config file set by environment 'SIMPLHDL_CONFIG={tomlfile}' does not exist"
                 )
+        return config
 
-        pearkdl_config = config.get("peakrdl", {})
-        html_config = pearkdl_config.get("html", {})
-        regblock_config = pearkdl_config.get("regblock", {})
-        pyuvm_config = pearkdl_config.get("pyuvm", {})
-
-        if not rdlfiles:
-            return
-
-        rdlc = RDLCompiler()
-
+    def _compile_roots(self, rdlfiles) -> list[RootNode]:
+        rdlc = SimplHDLRDLCompiler()
         for udp in ALL_UDPS:
             rdlc.register_udp(udp)
-
         try:
             for rdlfile in rdlfiles:
                 rdlc.compile_file(rdlfile.path, defines=self.project.defines)
-                root = rdlc.elaborate()
+                roots = rdlc.elaborate_root_maps()
         except RDLCompileError as e:
             logger.error(str(e))
             raise SystemError
+        return roots
 
+    def _collect_root_nodes(
+        self, roots: list[RootNode]
+    ) -> tuple[list[tuple[RootNode, AddrmapCollector]], list[AddrmapNode]]:
+        root_collectors: list[tuple[RootNode, AddrmapCollector]] = []
         walker = RDLWalker()
-        walker.walk(root, Listener())
+        for root in roots:
+            collector = AddrmapCollector()
+            walker.walk(root, collector)
+            root_collectors.append((root, collector))
 
-        templatedirs = get_template_dirs()
-        for templatedir in templatedirs:
-            logger.info(f"Generate from template {templatedir}")
-            sub_dir = output_dir.joinpath(templatedir.name)
+        unique_leaf_nodes = unique_nodes_by_type(
+            [node for _, collector in root_collectors for node in collector.leafnodes]
+        )
+        return root_collectors, unique_leaf_nodes
 
-            env = Environment(loader=jinja2.FileSystemLoader(templatedir), trim_blocks=True)
+    def _generate_hierarchy_templates(
+        self,
+        root_collectors: list[tuple[RootNode, AddrmapCollector]],
+        output_dir: Path,
+    ) -> None:
+        for template_dir in get_template_dirs():
+            logger.info(f"Generate from template {template_dir}")
+            sub_dir = output_dir.joinpath(template_dir.name)
+
+            env = Environment(loader=jinja2.FileSystemLoader(template_dir), trim_blocks=True)
             env.globals["hex"] = hex
             env.globals["len"] = len
             env.globals["get_field_access"] = get_field_access
             env.globals["get_reg_access"] = get_reg_access
-            env.globals["nodes"] = nodes
-            env.globals["leafnodes"] = leafnodes
-            env.globals["hierachynodes"] = hierachynodes
             env.globals["is_leaf"] = is_leaf
             env.globals["mask"] = mask
-            template = env.find_template("registermap")
-            for node in leafnodetypes:
-                self.render_template(template=template, node=node, outputdir=sub_dir)
 
             template = env.find_template("hierachymap")
-            for node in hierachynodetypes:
-                self.render_template(template=template, node=node, outputdir=sub_dir)
+            for root, collector in root_collectors:
+                env.globals["nodes"] = collector.nodes
+                env.globals["leafnodes"] = collector.leafnodes
+                env.globals["hierachynodes"] = collector.hierachynodes
+                self.render_template(template=template, node=root.top, outputdir=sub_dir)
 
-        if regblock_config.get("enable", True):
-            # NOTE: generate PeakRDL Register Block
-            logger.info("Generate PeakRDL Register Block")
-            for node in leafnodetypes:
-                self.peakrdl_regblock(
-                    node=node,
-                    outputdir=output_dir.joinpath("peakrdl-regblock"),
-                    config=regblock_config,
-                )
+    def _generate_regblocks(self, leaf_nodes: list[AddrmapNode], output_dir: Path, config: dict) -> None:
+        if not config.get("enable", True):
+            return
 
-        if pyuvm_config.get("enable", True):
-            # NOTE: generate PeakRDL PyUVM Register Model if simulation and Cocotb is present, i.e. has cocotb files
-            if flow.category == FlowCategory.SIMULATION and list(self.project.defaultDesign.files(CocotbPythonFile)):
-                logger.info("Generate PeakRDL PyUVM Register Model")
-                output = output_dir.joinpath("peakrdl-pyuvm", "ralmodel.py")
-                output.parent.mkdir(parents=True, exist_ok=True)
-                type_style = pyuvm_config.get("type_style", "lexical")
-                if type_style == "lexical":
-                    reuse_class_definitions = True
-                elif type_style == "hier":
-                    reuse_class_definitions = False
-                else:
-                    raise ValueError(f"Unsupported type style: {type_style}")
-
-                PyUVMExporter().export(
-                    node=root,
-                    path=str(output),
-                    export_as_package=pyuvm_config.get("export_as_package", True),
-                    reuse_class_definitions=reuse_class_definitions,
-                    use_uvm_factory=pyuvm_config.get("use_uvm_factory", False),
-                )
-                fileset = rdlfiles[-1].parent
-                fileset.insert_file_after(rdlfile, CocotbPythonFile(output))
-
-        if html_config.get("enable", True):
-            logger.info("Generate HTML Documentation")
-            HTMLExporter().export(
-                root,
-                output_dir.joinpath("peakrdl-docs"),
-                skip_not_present=html_config.get("skip_not_present", False),
+        logger.info("Generate PeakRDL Register Block")
+        for node in leaf_nodes:
+            self.peakrdl_regblock(
+                node=node,
+                outputdir=output_dir.joinpath("peakrdl-regblock"),
+                config=config,
             )
+
+    def _generate_pyuvm(
+        self,
+        flow: FlowBase,
+        roots: list[RootNode],
+        rdlfiles,
+        output_dir: Path,
+        config: dict,
+    ) -> None:
+        if not config.get("enable", True) or flow.category != FlowCategory.SIMULATION:
+            return
+        if not list(self.project.defaultDesign.files(CocotbPythonFile)):
+            return
+
+        logger.info("Generate PeakRDL PyUVM Register Model")
+        output = output_dir.joinpath("peakrdl-pyuvm", "ralmodel.py")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        type_style = config.get("type_style", "lexical")
+        if type_style == "lexical":
+            reuse_class_definitions = True
+        elif type_style == "hier":
+            reuse_class_definitions = False
+        else:
+            raise ValueError(f"Unsupported type style: {type_style}")
+
+        rdlfile = rdlfiles[-1]
+        fileset = rdlfile.parent
+        for root in roots:
+            PyUVMExporter().export(
+                node=root,
+                path=str(output),
+                export_as_package=config.get("export_as_package", True),
+                reuse_class_definitions=reuse_class_definitions,
+                use_uvm_factory=config.get("use_uvm_factory", False),
+            )
+            fileset.insert_file_after(rdlfile, CocotbPythonFile(output))
+
+    def _generate_html(self, roots: list[RootNode], output_dir: Path, config: dict) -> None:
+        if not config.get("enable", True):
+            return
+
+        logger.info("Generate HTML Documentation")
+        HTMLExporter().export(
+            roots,
+            output_dir.joinpath("peakrdl-docs"),
+            skip_not_present=config.get("skip_not_present", False),
+        )
+
+    def run(self, flow: FlowBase):
+        rdlfiles = self.project.defaultDesign.files(type=SystemRdlFile, order=FileOrder.COMPILE)
+        output_dir = self.builddir.joinpath("systemrdl")
+        config = self._load_config()
+
+        peakrdl_config = config.get("peakrdl", {})
+        if not rdlfiles:
+            return
+
+        roots = self._compile_roots(rdlfiles)
+        root_collectors, leaf_nodes = self._collect_root_nodes(roots)
+        self._generate_hierarchy_templates(root_collectors, output_dir)
+        self._generate_regblocks(leaf_nodes, output_dir, peakrdl_config.get("regblock", {}))
+        self._generate_pyuvm(flow, roots, rdlfiles, output_dir, peakrdl_config.get("pyuvm", {}))
+        self._generate_html(roots, output_dir, peakrdl_config.get("html", {}))
