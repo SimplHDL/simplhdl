@@ -23,7 +23,7 @@ from peakrdl_regblock.cpuif.passthrough import PassthroughCpuif
 from peakrdl_regblock.exporter import RegblockExporter
 from peakrdl_regblock.udps import ALL_UDPS
 from systemrdl import RDLCompileError, RDLListener, RDLWalker
-from systemrdl.node import AddrmapNode, RootNode
+from systemrdl.node import AddrmapNode, MemNode, RegNode, RootNode
 from systemrdl.rdltypes import AccessType, OnReadType, OnWriteType
 
 from simplhdl import FileOrder
@@ -122,6 +122,21 @@ class AddrmapCollector(RDLListener):
             self.hierachynodes.append(node)
 
 
+class AccessWidthExtractor(RDLListener):
+    def __init__(self):
+        self.bus_datawidth = 0
+
+    def enter_Reg(self, node: RegNode):
+        # 'accesswidth' reflects the actual bus transfer width
+        # (automatically defaults to 'regwidth' if not specified in RDL)
+        accesswidth = node.get_property("accesswidth")
+        self.bus_datawidth = max(self.bus_datawidth, accesswidth)
+
+    def enter_Mem(self, node: MemNode):
+        memwidth = node.get_property("memwidth")
+        self.bus_datawidth = max(self.bus_datawidth, memwidth)
+
+
 def get_template_dirs() -> list[Path]:
     string = os.getenv("SIMPLHDL_SYSTEMRDL_TEMPLATES")
     if string:
@@ -134,6 +149,16 @@ def get_template_dirs() -> list[Path]:
     else:
         logger.debug("SIMPLHDL_SYSTEMRDL_TEMPLATES is not set, no templates found")
         return []
+
+
+def get_max_access_width(node: AddrmapNode) -> int:
+    extractor = AccessWidthExtractor()
+    RDLWalker(unroll=True).walk(node, extractor)
+    return extractor.bus_datawidth
+
+
+def get_max_addr_width(node: AddrmapNode) -> int:
+    return max(1, (node.size - 1).bit_length())
 
 
 def get_reg_access(reg) -> str:
@@ -346,6 +371,7 @@ class PeakRdlGenerator(GeneratorBase):
         self,
         root_collectors: list[tuple[RootNode, AddrmapCollector]],
         output_dir: Path,
+        config: dict,
     ) -> None:
         for template_dir in get_template_dirs():
             logger.info(f"Generate from template {template_dir}")
@@ -364,6 +390,8 @@ class PeakRdlGenerator(GeneratorBase):
                 env.globals["nodes"] = collector.nodes
                 env.globals["leafnodes"] = collector.leafnodes
                 env.globals["hierachynodes"] = collector.hierachynodes
+                env.globals["max_access_width"] = get_max_access_width(root.top)
+                env.globals["max_addr_width"] = max(get_max_addr_width(root.top), config.get("address_width", 1))
                 self.render_template(template=template, node=root.top, outputdir=sub_dir)
 
     def _generate_regblocks(self, leaf_nodes: list[AddrmapNode], output_dir: Path, config: dict) -> None:
@@ -436,7 +464,7 @@ class PeakRdlGenerator(GeneratorBase):
 
         roots = self._compile_roots(rdlfiles)
         root_collectors, leaf_nodes = self._collect_root_nodes(roots)
-        self._generate_hierarchy_templates(root_collectors, output_dir)
+        self._generate_hierarchy_templates(root_collectors, output_dir, peakrdl_config.get("regblock", {}))
         self._generate_regblocks(leaf_nodes, output_dir, peakrdl_config.get("regblock", {}))
         self._generate_pyuvm(flow, roots, rdlfiles, output_dir, peakrdl_config.get("pyuvm", {}))
         self._generate_html(roots, output_dir, peakrdl_config.get("html", {}))
