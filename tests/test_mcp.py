@@ -15,17 +15,24 @@ from simplhdl.plugin.generator import GeneratorFactory
 from simplhdl.plugin.parser import ParserFactory
 from simplhdl.project.files import File, FileFactory, SystemVerilogFile
 from simplhdl.project.fileset import Fileset
-from simplhdl_mcp.context import build_flow_cli_args, load_project, reset_project_state
+from simplhdl_mcp.context import (
+    build_flow_cli_args,
+    build_server_instructions,
+    load_project,
+    reset_project_state,
+)
 from simplhdl_mcp.server import (
     create_server,
     get_fileset_tree,
     get_project_info,
+    get_skill,
     list_files,
     list_flows,
     list_plugins,
     list_targets,
     main,
     parse_mcp_args,
+    project_spec_skill_resource,
     read_flow_log,
     run_flow,
 )
@@ -131,12 +138,63 @@ def test_list_flows_and_plugins():
     assert "bitstream" in (flow_by_name["vivado"]["steps"] or [])
 
     plugins = list_plugins()
-    parser_names = {p["name"] for p in plugins["parsers"]}
+    parser_names = [p["name"] for p in plugins["parsers"]]
     generator_names = {g["name"] for g in plugins["generators"]}
     file_types = {ft["class"] for ft in plugins["file_types"]}
     assert "simplhdl_parser" in parser_names
+    assert "fusersoc_parser" not in parser_names  # WIP parser (priority=0) is ignored
     assert "peakrdl_generator" in generator_names
     assert "SystemVerilogFile" in file_types
+
+
+def test_simplapi_skill_and_parser_priority_overrides(tmp_path, monkeypatch):
+    monkeypatch.delenv("SIMPLHDL_PARSER", raising=False)
+    monkeypatch.delenv("SIMPLHDL_CONFIG", raising=False)
+
+    # 1. Default without third-party parser: simplhdl_parser (#%SimplAPI=1.0) is active
+    skill = get_skill("project-spec")
+    assert skill["active_parser"] == "simplhdl_parser"
+    assert skill["format_id"] == "#%SimplAPI=1.0"
+    assert "#%SimplAPI=1.0" in skill["content"]
+    assert "dependencies" in skill["content"]
+    assert project_spec_skill_resource() == skill["content"]
+    assert "simplhdl_parser" in build_server_instructions()
+
+    # 2. Register a third-party parser (default priority=50 > simplhdl_parser priority=10)
+    class CustomThirdPartyParser(ParserBase):
+        _format_id = "#%Custom3P=1.0"
+        format_guide = "# Custom 3P Format Guide\nUse custom.3p files."
+
+        def is_valid_format(self, filename: Path | None) -> bool:
+            return True
+
+        def parse(self, filename, project, args):
+            return Fileset("custom_fs")
+
+    monkeypatch.setitem(ParserFactory.registry, "custom3p_parser", CustomThirdPartyParser)
+
+    skill_3p = get_skill("project-spec")
+    assert skill_3p["active_parser"] == "custom3p_parser"
+    assert skill_3p["priority"] == 50
+    assert "Custom 3P Format Guide" in skill_3p["content"]
+    assert "custom3p_parser" in build_server_instructions()
+
+    # 3. Override priority via SIMPLHDL_CONFIG TOML [parser] priority list
+    config_toml = tmp_path / "simplhdl.toml"
+    config_toml.write_text('[parser]\npriority = ["simplhdl_parser", "custom3p_parser"]\n')
+    monkeypatch.setenv("SIMPLHDL_CONFIG", str(config_toml))
+
+    skill_cfg = get_skill("project-spec")
+    assert skill_cfg["active_parser"] == "simplhdl_parser"
+    assert "#%SimplAPI=1.0" in skill_cfg["content"]
+
+    # 4. Override priority via SIMPLHDL_PARSER environment variable
+    monkeypatch.setenv("SIMPLHDL_PARSER", "custom3p_parser")
+    skill_env = get_skill("project-spec")
+    assert skill_env["active_parser"] == "custom3p_parser"
+
+    with pytest.raises(ValueError, match="Unknown skill"):
+        get_skill("unknown-skill")
 
 
 def test_third_party_plugins_and_custom_file_subclass(tmp_path, monkeypatch):
@@ -243,9 +301,7 @@ def test_load_project_with_generators_and_no_logger_leak(tmp_path):
     handlers_before = list(root_logger.handlers)
 
     (tmp_path / "top.sv").write_text("module top; endmodule\n")
-    (tmp_path / "project.yml").write_text(
-        "#%SimplAPI=1.0\n" "project: gen_test\n" "top: top\n" "files:\n" "  - top.sv\n"
-    )
+    (tmp_path / "project.yml").write_text("#%SimplAPI=1.0\nproject: gen_test\ntop: top\nfiles:\n  - top.sv\n")
 
     project = load_project(
         project_dir=tmp_path,
@@ -258,7 +314,7 @@ def test_load_project_with_generators_and_no_logger_leak(tmp_path):
 
 def test_run_flow_and_read_flow_log(tmp_path):
     (tmp_path / "top.sv").write_text("module top; endmodule\n")
-    (tmp_path / "project.yml").write_text("#%SimplAPI=1.0\n" "project: log_test\n" "top: top\n" "files:\n" "  - top.sv\n")
+    (tmp_path / "project.yml").write_text("#%SimplAPI=1.0\nproject: log_test\ntop: top\nfiles:\n  - top.sv\n")
 
     result = asyncio.run(
         run_flow(
@@ -282,15 +338,24 @@ def test_mcp_server_creation_and_third_party_extensions(monkeypatch):
     assert args.transport == "sse"
 
     registered_tools: list[str] = []
+    registered_resources: list[str] = []
 
     class FakeFastMCP:
-        def __init__(self, name: str):
+        def __init__(self, name: str, instructions: str | None = None):
             self.name = name
+            self.instructions = instructions
             self.ran_transport: str | None = None
 
         def tool(self):
             def decorator(fn):
                 registered_tools.append(fn.__name__)
+                return fn
+
+            return decorator
+
+        def resource(self, uri: str):
+            def decorator(fn):
+                registered_resources.append(uri)
                 return fn
 
             return decorator
@@ -338,6 +403,9 @@ def test_mcp_server_creation_and_third_party_extensions(monkeypatch):
 
     server = create_server()
     assert server.name == "simplhdl"
+    assert server.instructions is not None
+    assert "simplhdl://skills/project-spec" in server.instructions
+    assert registered_resources == ["simplhdl://skills/project-spec"]
     assert set(registered_tools) == {
         "get_project_info",
         "list_files",
@@ -345,6 +413,7 @@ def test_mcp_server_creation_and_third_party_extensions(monkeypatch):
         "list_targets",
         "list_flows",
         "list_plugins",
+        "get_skill",
         "run_flow",
         "run_target",
         "run_lint",

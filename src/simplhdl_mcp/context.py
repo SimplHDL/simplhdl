@@ -14,7 +14,7 @@ from simplhdl.plugin.flow import FlowBase, FlowFactory
 from simplhdl.plugin.generator import GeneratorBase, GeneratorError, GeneratorFactory
 from simplhdl.plugin.implementationflow import ImplementationFlow
 from simplhdl.plugin.loader import get_external_plugins, load_plugins
-from simplhdl.plugin.parser import ParserBase, ParserFactory
+from simplhdl.plugin.parser import ParserFactory
 from simplhdl.plugin.simulationflow import SimulationFlow
 from simplhdl.project.files import File, FileFactory
 from simplhdl.project.fileset import FileOrder, Fileset, FilesetOrder
@@ -401,15 +401,16 @@ def serialize_plugins() -> dict[str, Any]:
     """
     ensure_plugins_loaded()
 
-    parsers_map = cast(dict[str, type[ParserBase]], ParserFactory.registry)
     parsers: list[dict[str, Any]] = []
-    for name, parser_cls in sorted(parsers_map.items()):
+    for name, parser_cls, eff_prio in ParserFactory.get_ordered_parsers(include_wip=False):
         parsers.append(
             {
                 "name": name,
                 "class": parser_cls.__name__,
                 "module": parser_cls.__module__,
+                "priority": eff_prio,
                 "format_id": getattr(parser_cls, "_format_id", None),
+                "has_format_guide": bool(getattr(parser_cls, "format_guide", None)),
             }
         )
 
@@ -445,6 +446,93 @@ def serialize_plugins() -> dict[str, Any]:
         "flows": serialize_flows(),
         "file_types": file_types,
     }
+
+
+def get_active_parser_info() -> dict[str, Any]:
+    """
+    Return metadata and format guide for the highest-priority registered parser
+    (ignoring work-in-progress parsers with `priority <= 0`).
+    """
+    ensure_plugins_loaded()
+    ordered = ParserFactory.get_ordered_parsers(include_wip=False)
+    if not ordered:
+        return {
+            "name": "none",
+            "class": None,
+            "module": None,
+            "priority": 0,
+            "format_id": None,
+            "format_guide": "No active SimplHDL parser registered.",
+        }
+
+    top_name, top_cls, top_prio = ordered[0]
+    guide = getattr(top_cls, "format_guide", None)
+
+    if not guide:
+        # Fallback: include SimplHdlParser's guide if a 3rd-party parser did not define format_guide
+        fallback_guide = ""
+        for _, cls, _ in ordered:
+            candidate = getattr(cls, "format_guide", None)
+            if candidate:
+                fallback_guide = candidate
+                break
+        format_id_note = (
+            f" (header/format ID: `{getattr(top_cls, '_format_id')}`)" if getattr(top_cls, "_format_id", None) else ""
+        )
+        guide = (
+            f"# Active Project Parser: `{top_name}` (`{top_cls.__module__}.{top_cls.__name__}`){format_id_note}\n\n"
+            f"Note: Third-party parser `{top_name}` (priority {top_prio}) has precedence over `#%SimplAPI=1.0`, "
+            f"but does not bundle a custom `format_guide`.\n\n"
+            f"---\n\n{fallback_guide}".strip()
+        )
+
+    return {
+        "name": top_name,
+        "class": top_cls.__name__,
+        "module": top_cls.__module__,
+        "priority": top_prio,
+        "format_id": getattr(top_cls, "_format_id", None),
+        "format_guide": guide,
+    }
+
+
+def get_skill_data(name: str = "project-spec") -> dict[str, Any]:
+    """
+    Return a SimplHDL skill/guide by name.
+
+    Currently supported skills:
+    - `project-spec`: Documentation for the highest-priority active project specification format
+      (defaults to `#%SimplAPI=1.0` unless overridden by a third-party parser or `SIMPLHDL_CONFIG` / `SIMPLHDL_PARSER`).
+    """
+    normalized = name.strip().lower()
+    if normalized in {"project-spec", "simplapi", "parser"}:
+        active = get_active_parser_info()
+        return {
+            "skill": "project-spec",
+            "uri": "simplhdl://skills/project-spec",
+            "active_parser": active["name"],
+            "parser_class": active["class"],
+            "priority": active["priority"],
+            "format_id": active["format_id"],
+            "content": active["format_guide"],
+        }
+
+    raise ValueError(f"Unknown skill '{name}'. Available skills: ['project-spec']")
+
+
+def build_server_instructions() -> str:
+    """Build concise MCP server instructions injected during client initialization."""
+    active = get_active_parser_info()
+    fmt = f" (format ID: `{active['format_id']}`)" if active["format_id"] else ""
+    return (
+        "SimplHDL MCP Server instructions:\n"
+        f"- Active project specification parser: `{active['name']}` (`{active['class']}`, priority {active['priority']}){fmt}.\n"
+        "- Before creating or editing project specification files, read resource `simplhdl://skills/project-spec` "
+        "or call `get_skill('project-spec')`.\n"
+        "- Before running a simulation or build flow, call `list_targets` or `get_project_info` to check for defined targets.\n"
+        "- Prefer `step='compile'` or `step='elaborate'` via `run_flow` for fast verification before full simulation or synthesis.\n"
+        "- On flow failure, inspect logs with `read_flow_log`."
+    )
 
 
 def register_external_mcp_extensions(mcp: Any) -> list[str]:

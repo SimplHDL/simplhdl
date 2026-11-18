@@ -9,6 +9,8 @@ from simplhdl import __version__
 
 from .context import (
     build_flow_cli_args,
+    build_server_instructions,
+    get_skill_data,
     load_project,
     read_log_file,
     register_external_mcp_extensions,
@@ -110,9 +112,21 @@ def list_flows() -> list[dict[str, Any]]:
 def list_plugins() -> dict[str, Any]:
     """
     List all registered SimplHDL plugins (built-in and third-party):
-    parsers, generators, flows, and registered file types/extensions.
+    parsers (ordered by priority), generators, flows, and registered file types/extensions.
     """
     return serialize_plugins()
+
+
+def get_skill(name: str = "project-spec") -> dict[str, Any]:
+    """
+    Fetch a SimplHDL skill/guide (such as 'project-spec' for the active project specification format).
+    """
+    return get_skill_data(name=name)
+
+
+def project_spec_skill_resource() -> str:
+    """Return the active project specification skill markdown for `simplhdl://skills/project-spec`."""
+    return str(get_skill_data("project-spec")["content"])
 
 
 async def run_flow(
@@ -209,23 +223,32 @@ def read_flow_log(
 
 
 def create_server() -> Any:
-    """Create and configure the SimplHDL FastMCP server instance, including third-party extensions."""
+    """Create and configure the SimplHDL FastMCP server instance, including skills and third-party extensions."""
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError as exc:
         raise ImportError('MCP SDK is not installed. Install it with: pip install "simplhdl[mcp]"') from exc
 
-    mcp = FastMCP("simplhdl")
+    instructions = build_server_instructions()
+    try:
+        mcp = FastMCP("simplhdl", instructions=instructions)
+    except TypeError:
+        mcp = FastMCP("simplhdl")
+
     mcp.tool()(get_project_info)
     mcp.tool()(list_files)
     mcp.tool()(get_fileset_tree)
     mcp.tool()(list_targets)
     mcp.tool()(list_flows)
     mcp.tool()(list_plugins)
+    mcp.tool()(get_skill)
     mcp.tool()(run_flow)
     mcp.tool()(run_target)
     mcp.tool()(run_lint)
     mcp.tool()(read_flow_log)
+
+    if hasattr(mcp, "resource"):
+        mcp.resource("simplhdl://skills/project-spec")(project_spec_skill_resource)
 
     register_external_mcp_extensions(mcp)
     return mcp
