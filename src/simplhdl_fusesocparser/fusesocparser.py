@@ -10,6 +10,7 @@ from simplhdl.plugin import ParserBase
 
 
 class FuseSocParser(ParserBase):
+    priority: int = 0
     _format_id: str = "CAPI=2:"
 
     def __init__(self):
