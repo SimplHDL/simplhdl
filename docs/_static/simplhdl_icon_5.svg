@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" fill="none">
+  <style>
+    .bar-top { fill: #0284C7; }
+    .bar-mid { fill: #0EA5E9; }
+    .bar-bot { fill: #4F46E5; }
+    @media (prefers-color-scheme: dark) {
+      .bar-top { fill: #22D3EE; }
+      .bar-mid { fill: #38BDF8; }
+      .bar-bot { fill: #6366F1; }
+    }
+    [data-md-color-scheme="slate"] .bar-top { fill: #22D3EE; }
+    [data-md-color-scheme="slate"] .bar-mid { fill: #38BDF8; }
+    [data-md-color-scheme="slate"] .bar-bot { fill: #6366F1; }
+    [data-md-color-scheme="default"] .bar-top { fill: #0284C7; }
+    [data-md-color-scheme="default"] .bar-mid { fill: #0EA5E9; }
+    [data-md-color-scheme="default"] .bar-bot { fill: #4F46E5; }
+  </style>
+  <!-- Top Bar (SI - Simulation) -->
+  <rect class="bar-top" x="92" y="40" width="136" height="40" rx="20" transform="skewX(-18)"/>
+  <!-- Middle Bar (Elaboration Bridge) -->
+  <rect class="bar-mid" x="96" y="108" width="148" height="40" rx="20" transform="skewX(-18)"/>
+  <!-- Bottom Bar (IMPL - Implementation) -->
+  <rect class="bar-bot" x="112" y="176" width="136" height="40" rx="20" transform="skewX(-18)"/>
+</svg>

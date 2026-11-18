@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 200" width="820" height="200" fill="none">
+  <style>
+    .bar-top { fill: #0284C7; }
+    .bar-mid { fill: #0EA5E9; }
+    .bar-bot { fill: #4F46E5; }
+    .si-text { fill: #0284C7; }
+    .mpl-text { fill: #4F46E5; }
+    .hdl-text { fill: #0F172A; }
+    .slogan-text { fill: #475569; }
+    @media (prefers-color-scheme: dark) {
+      .bar-top { fill: #22D3EE; }
+      .bar-mid { fill: #38BDF8; }
+      .bar-bot { fill: #6366F1; }
+      .si-text { fill: #22D3EE; }
+      .mpl-text { fill: #818CF8; }
+      .hdl-text { fill: #F8FAFC; }
+      .slogan-text { fill: #94A3B8; }
+    }
+    [data-md-color-scheme="slate"] .bar-top { fill: #22D3EE; }
+    [data-md-color-scheme="slate"] .bar-mid { fill: #38BDF8; }
+    [data-md-color-scheme="slate"] .bar-bot { fill: #6366F1; }
+    [data-md-color-scheme="slate"] .si-text { fill: #22D3EE; }
+    [data-md-color-scheme="slate"] .mpl-text { fill: #818CF8; }
+    [data-md-color-scheme="slate"] .hdl-text { fill: #F8FAFC; }
+    [data-md-color-scheme="slate"] .slogan-text { fill: #94A3B8; }
+    [data-md-color-scheme="default"] .bar-top { fill: #0284C7; }
+    [data-md-color-scheme="default"] .bar-mid { fill: #0EA5E9; }
+    [data-md-color-scheme="default"] .bar-bot { fill: #4F46E5; }
+    [data-md-color-scheme="default"] .si-text { fill: #0284C7; }
+    [data-md-color-scheme="default"] .mpl-text { fill: #4F46E5; }
+    [data-md-color-scheme="default"] .hdl-text { fill: #0F172A; }
+    [data-md-color-scheme="default"] .slogan-text { fill: #475569; }
+    .brand {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+      font-size: 92px;
+      font-weight: 800;
+      letter-spacing: -2px;
+    }
+    .slogan {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 3px;
+    }
+  </style>
+
+  <!-- Standalone Icon (Three-Stage Pipeline) nested in 20..180 box -->
+  <svg x="20" y="20" width="160" height="160" viewBox="0 0 256 256">
+    <rect class="bar-top" x="92" y="40" width="136" height="40" rx="20" transform="skewX(-18)"/>
+    <rect class="bar-mid" x="96" y="108" width="148" height="40" rx="20" transform="skewX(-18)"/>
+    <rect class="bar-bot" x="112" y="176" width="136" height="40" rx="20" transform="skewX(-18)"/>
+  </svg>
+
+  <!-- Wordmark + Slogan -->
+  <text x="208" y="114" class="brand"><tspan class="si-text">Si</tspan><tspan class="mpl-text">mpl</tspan><tspan class="hdl-text">HDL</tspan></text>
+  <text x="212" y="156" class="slogan slogan-text">HARDWARE DESIGN MADE EASY</text>
+</svg>
