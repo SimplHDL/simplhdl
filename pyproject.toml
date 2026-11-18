@@ -59,9 +59,8 @@ optional-dependencies.dev = [
   "tox",
 ]
 optional-dependencies.docs = [
-  "furo",
-  "sphinx",
-  "sphinx-pyproject",
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
 ]
 optional-dependencies.mcp = [
   "mcp>=2,<3; python_version>='3.10'",

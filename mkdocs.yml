@@ -1,0 +1,72 @@
+site_name: ""
+site_description: A plugin-based framework for simulating and implementing HDL designs
+site_url: https://simplhdl.readthedocs.io/en/latest/
+repo_url: https://github.com/SimplHDL/simplhdl
+repo_name: SimplHDL/simplhdl
+edit_uri: edit/main/docs/
+
+extra_css:
+  - stylesheets/extra.css
+
+theme:
+  name: material
+  logo: _static/simplhdl_logo_1.svg
+  favicon: _static/simplhdl_icon_1.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Project Specification: project-spec.md
+  - Code Generators:
+      - SystemRDL & PeakRDL: generators/systemrdl.md
+      - Jinja2 & Chisel: generators/jinja2-chisel.md
+  - Flows:
+      - Overview: flows/index.md
+      - QuestaSim: flows/questasim.md
+      - ModelSim: flows/modelsim.md
+      - Synopsys VCS: flows/vcs.md
+      - Aldec Riviera-PRO: flows/rivierapro.md
+      - AMD / Xilinx Xsim: flows/xsim.md
+      - Icarus Verilog: flows/icarus.md
+      - AMD / Xilinx Vivado: flows/vivado.md
+      - Intel Quartus: flows/quartus.md
+      - Lint & Encrypt: flows/lint-encrypt.md
+  - Extending SimplHDL:
+      - Plugins: plugins.md
+      - MCP Server (simpl-mcp): mcp.md
