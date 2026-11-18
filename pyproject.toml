@@ -54,6 +54,7 @@ dependencies = [
 
 optional-dependencies.dev = [
   "flake8",
+  "mcp>=1; python_version>='3.10'",
   "mypy",
   "robotframework",
   "tox",
@@ -63,11 +64,15 @@ optional-dependencies.docs = [
   "sphinx",
   "sphinx-pyproject",
 ]
+optional-dependencies.mcp = [
+  "mcp>=1; python_version>='3.10'",
+]
 urls.Documentation = "https://simplhdl.readthedocs.io/en/latest/"
 urls.Homepage = "https://github.com/SimplHDL"
 urls.Issues = "https://github.com/SimplHDL/simplhdl/issues"
 urls.Repository = "https://github.com/SimplHDL/simplhdl.git"
 scripts.simpl = "simplhdl.__main__:main"
+scripts.simpl-mcp = "simplhdl_mcp.server:main"
 entry-points."simplhdl.plugins".chisel_generator = "simplhdl_chisel.chisel:ChiselGenerator"
 entry-points."simplhdl.plugins".encrypt = "simplhdl_encrypt.encrypt.encryptflow:EncryptFlow"
 entry-points."simplhdl.plugins".fusersoc_parser = "simplhdl_fusesocparser.fusesocparser:FuseSocParser"
@@ -110,6 +115,7 @@ lint.isort = { known-first-party = [
   "simplhdl_icarus",
   "simplhdl_jinja2",
   "simplhdl_lint",
+  "simplhdl_mcp",
   "simplhdl_modelsim",
   "simplhdl_parser",
   "simplhdl_peakrdl",
@@ -129,4 +135,8 @@ ignore-words-list = "synopsys, edn"
 
 [[tool.mypy.overrides]]
 module = "networkx.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "mcp.*"
 ignore_missing_imports = true
