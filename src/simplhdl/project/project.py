@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from singleton_decorator import singleton
-
 if TYPE_CHECKING:
     from pathlib import Path
     from .attributes import Target
@@ -19,8 +17,18 @@ class ProjectError(Exception):
     pass
 
 
-@singleton
-class Project:
+class _ProjectSingleton(type):
+    """Keep one project instance until its state is explicitly reset."""
+
+    def __call__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__call__(*args, **kwargs)
+        return cls._instance
+
+
+class Project(metaclass=_ProjectSingleton):
+    _instance: Project | None = None
+
     def __init__(self, name: str, **attributes) -> None:
         self._name = name
         self._designs: list[Design] = []
