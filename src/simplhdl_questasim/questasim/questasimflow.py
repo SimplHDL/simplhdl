@@ -62,6 +62,12 @@ class QuestaSimFlow(SimulationFlow):
             const=os.getenv("SIMPLHDL_QUESTASIM_GUI", "vsim"),
             choices=["vsim", "visualizer"],
             help="Open project in QuestaSim GUI using vsim or visualizer",
+        ),
+        parser.add_argument(
+            "--wavefile",
+            metavar="WAVEFILE",
+            action="store",
+            help="A wave.do file to load before starting the simulation",
         )
         parser.add_argument(
             "--qrun-args",
@@ -261,6 +267,12 @@ class QuestaSimFlow(SimulationFlow):
                 command.append("-optimize")
                 return command
             command.append(f"-{step}")
+
+        if self.args.wavefile and self.args.gui:
+            if Path(self.args.wavefile).exists():
+                command += ["-do", str(Path(self.args.wavefile).absolute())]
+            else:
+                command += ["-do", self.args.wavefile]
 
         if self.args.do:
             if Path(self.args.do).exists():
