@@ -83,19 +83,28 @@ simpl-mcp --version
 
 ## Provided MCP Tools
 
-| Tool               | Description                                                                                                                                      |
-| :----------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_project_info` | Returns project metadata (`name`, `part`, `toplevels`, `defines`, `parameters`, `generics`, `plusargs`, `hooks`, `libraries`, and `targets`).    |
-| `list_files`       | Lists project files in `compile` or `hierarchy` order with filters (`usedin`, `file_type`, `library`, `fileset`, and `run_generators_for_flow`). |
-| `get_fileset_tree` | Validates the project DAG and returns the fileset dependency hierarchy and file memberships.                                                     |
-| `list_targets`     | Lists all targets defined in the project specification and identifies the default target.                                                        |
-| `list_flows`       | Introspects all registered flows, categories, steps, and CLI options.                                                                            |
-| `list_plugins`     | Lists all registered parsers (ordered by priority), generators, flows, and file extensions.                                                      |
-| `get_skill`        | Returns the project specification guide for the highest-priority registered parser.                                                              |
-| `run_flow`         | Runs any flow in an isolated async subprocess (blocks `--gui` by default unless `allow_gui=True`).                                               |
-| `run_target`       | Runs `simpl run` for a named or default target.                                                                                                  |
-| `run_lint`         | Runs `simpl lint` (Verible, VSG, Flake8) with optional `files` and `fix` arguments.                                                              |
-| `read_flow_log`    | Reads the tail of `<outputdir>/<flow>/simplhdl.log` and tool-specific logs.                                                                      |
+| Tool               | Description                                                                                                                                   |
+| :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_project_info` | Returns project metadata (`name`, `part`, `toplevels`, `defines`, `parameters`, `generics`, `plusargs`, `hooks`, `libraries`, and `targets`). |
+| `list_files`       | Lists files in compile or hierarchy order, with filters and optional `flow` and `generate` arguments.                                         |
+| `get_fileset_tree` | Validates the project DAG and returns fileset memberships, optionally for a flow or after generation.                                         |
+| `list_targets`     | Lists all targets defined in the project specification and identifies the default target.                                                     |
+| `list_flows`       | Introspects all registered flows, categories, steps, and CLI options.                                                                         |
+| `list_plugins`     | Lists all registered parsers (ordered by priority), generators, flows, and file extensions.                                                   |
+| `get_skill`        | Returns the project specification guide for the highest-priority registered parser.                                                           |
+| `run_flow`         | Runs any flow in an isolated async subprocess (blocks `--gui` by default unless `allow_gui=True`).                                            |
+| `run_target`       | Runs `simpl run` for a named or default target.                                                                                               |
+| `run_lint`         | Runs `simpl lint` (Verible, VSG, Flake8) with optional `files` and `fix` arguments.                                                           |
+| `read_flow_log`    | Reads the tail of `<outputdir>/<flow>/simplhdl.log` and tool-specific logs.                                                                   |
+
+For `list_files` and `get_fileset_tree`, set `flow` to inspect that flow's modeled inputs. Before generation, the view
+also includes declared generator inputs. Set `generate=true` with a flow to run generators first; this may write files
+and invoke external tools. Generated files include `generated` and `parent_file` in `list_files`. The older
+`run_generators_for_flow` argument to `list_files` remains supported and, without `flow`, retains its unfiltered view.
+
+`selection_declared` is false when a flow or generator has not declared its selection contract. In that case the view is
+a fallback, not an exact list of tool inputs. Even for declared plugins, vendor tools or scripts can introduce
+additional files outside the SimplHDL project model.
 
 ## Provided MCP Resources & Server Instructions
 

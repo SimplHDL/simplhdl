@@ -60,6 +60,7 @@ def test_hierarchy_templates_use_top_maps_and_regblocks_use_unique_leaves(tmp_pa
         project=SimpleNamespace(defaultDesign=design, defines={}),
         builddir=tmp_path / "build",
         peakrdl_regblock=Mock(),
+        get_files=lambda flow: [rdlfile],
     )
     for method_name in (
         "_load_config",

@@ -165,6 +165,8 @@ class Fileset:
     def insert_file_after(self, file: File, new_file: File) -> None:
         if file is new_file:
             return
+        new_file.generated = True
+        new_file.parent_file = file
         children = list(self._files.successors(file))
         self._files.add_edge(file, new_file)
         new_file._parent = self
@@ -176,6 +178,36 @@ class Fileset:
         if file in self._leafs:
             self._leafs.remove(file)
             self._leafs.append(new_file)
+
+    def replace_file(self, file: File, new_file: File) -> None:
+        """Replace a file while preserving its graph edges and common attributes."""
+        if file is new_file:
+            return
+        if file.parent is not self or file not in self._files:
+            raise ValueError(f"File '{file}' does not belong to fileset '{self}'")
+        if new_file in self._files:
+            raise ValueError(f"Replacement file '{new_file}' is already in the project")
+        graph = self._files
+        incoming = list(graph.in_edges(file, data=True))
+        outgoing = list(graph.out_edges(file, data=True))
+        graph.add_node(new_file, **dict(graph.nodes[file]))
+        for parent, _, data in incoming:
+            graph.add_edge(parent, new_file, **dict(data))
+        for _, child, data in outgoing:
+            graph.add_edge(new_file, child, **dict(data))
+        graph.remove_node(file)
+        self._roots = [new_file if item is file else item for item in self._roots]
+        self._leafs = [new_file if item is file else item for item in self._leafs]
+        new_file._parent = self
+        new_file.usedin = list(file.usedin)
+        new_file.order = file.order
+        new_file.encrypt = file.encrypt
+        if hasattr(file, "_library") and hasattr(new_file, "_library"):
+            new_file._library = file._library
+        if hasattr(file, "scope") and hasattr(new_file, "scope"):
+            new_file.scope = file.scope
+        new_file.generated = True
+        new_file.parent_file = file
 
     def get_parents_leaf_files(self) -> list[File] | None:
         files = []

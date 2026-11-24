@@ -120,16 +120,34 @@ Generators inspect files in `self.project.defaultDesign` and can use
 from __future__ import annotations
 
 from simplhdl.plugin import FlowBase, GeneratorBase
-from simplhdl.project.files import SystemVerilogFile
+from simplhdl.project.files import SystemRdlFile
 
 
 class MyGenerator(GeneratorBase):
+    supported_file_types = (SystemRdlFile,)
+
     def run(self, flow: FlowBase) -> None:
-        ...
+        for source in self.get_files(flow):
+            ...
 ```
 
-Generators run in registration order. There is currently no generator-priority setting; the file ordering values below
-apply to files, not generator execution.
+Declare `supported_file_types` to expose generator inputs to inspection and allow the runner to skip the generator when
+no inputs match. `get_files(flow)` also respects `usedin` and the target flow's category. Override `accepts_file()` for
+additional tool- or flow-specific conditions. Existing plugins that do not declare their inputs still run normally;
+their generator inputs cannot be identified reliably in an inspection view.
+
+Generators run in descending `priority` order; equal priorities retain registration order. The default is `50`, and the
+built-in Jinja2 generator uses `100` so templates are rendered before other generators. Override priorities by setting
+`SIMPLHDL_GENERATORS` to a comma- or colon-separated list, or using the TOML file named by `SIMPLHDL_CONFIG`:
+
+```toml
+[generator]
+priority = ["jinja2", "peakrdl_generator"]
+# Alternatively: priority = { jinja2 = 100, peakrdl_generator = 50 }
+```
+
+`SIMPLHDL_GENERATORS` overrides configured values for its named generators. Generator priority is distinct from the
+file-ordering values below.
 
 ## File attributes and ordering
 
@@ -158,6 +176,10 @@ from simplhdl.project.files import FileFactory, FileOrder
 constraint = FileFactory.create(Path("timing.xdc"), order=FileOrder.EARLY, scope="top")
 ```
 
+Generated files expose `generated` and `parent_file` provenance. `Fileset.insert_file_after()` marks an inserted file as
+generated from the source file; `Fileset.replace_file()` also preserves graph edges and common file attributes. Existing
+third-party generators must use these APIs or set provenance themselves for it to appear in inspection output.
+
 ## Flow Plugins (`FlowBase`)
 
 Flows define CLI subparser arguments in `@classmethod def parse_args(cls, subparsers)` and implement
@@ -166,6 +188,11 @@ Flows define CLI subparser arguments in `@classmethod def parse_args(cls, subpar
 - Subclass `SimulationFlow` for HDL simulators (provides Makefile/dependency generation, Cocotb integration, plusarg and
   seed handling).
 - Subclass `ImplementationFlow` (or `FlowBase`) for synthesis/FPGA implementation or utility flows.
+
+Flows can declare `usedin` and `supported_file_types`, and use `get_files(fileset)` or override `accepts_file()` for
+their tool-specific selection. Their templates and build commands should consume the same selected files so inspection
+and execution agree. A flow that has not declared a selection contract remains usable, but its inspection view is a
+conservative fallback and may not reflect all plugin behavior.
 
 ## MCP extensions
 

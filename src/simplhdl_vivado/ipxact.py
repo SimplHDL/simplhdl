@@ -23,7 +23,6 @@ from simplhdl.project.files import (
     VhdlFile,
     VivadoXciFile,
     UnknownFile,
-    UsedIn,
 )
 from simplhdl.utils import md5check, md5write
 
@@ -164,6 +163,11 @@ class Component:
 
 
 class VivadoGenerator(GeneratorBase):
+    supported_file_types = (VivadoXciFile, VivadoXcixFile)
+
+    def accepts_file(self, file, flow=None):
+        return flow is not None and flow.category == FlowCategory.SIMULATION and super().accepts_file(file, flow)
+
     def unpack_ip(self, filename: VivadoXciFile | VivadoXcixFile) -> Path:
         ipdir = self.builddir.joinpath("ips")
         dest = ipdir.joinpath(filename.path.stem)
@@ -181,12 +185,10 @@ class VivadoGenerator(GeneratorBase):
         elif filename.path.suffix == ".xci":
             return filename.path.with_suffix(".xml")
         else:
-            # Unknown IP file
-            return filename
-        filename._path = dest.joinpath(filename.path.name).with_suffix(".xml").resolve()
-        return filename
+            raise ValueError(f"Unsupported Vivado IP file: {filename.path}")
+        return dest.joinpath(filename.path.name).with_suffix(".xml").resolve()
 
-    def get_files(self, filename: Path) -> dict[str, str]:
+    def get_component_files(self, filename: Path) -> dict[str, str]:
         component = Component()
         component.load(filename)
         files = list()
@@ -199,7 +201,7 @@ class VivadoGenerator(GeneratorBase):
                 # Get the .xml file next to the .xci file
                 file = component.filepath(file_element).with_suffix(".xml")
                 if file.exists():
-                    files += self.get_files(file)
+                    files += self.get_component_files(file)
         for view in component.views(".*(verilog|vhdl)simulation.*"):
             filesets = component.filesets(view)
             for fileset in filesets:
@@ -209,16 +211,17 @@ class VivadoGenerator(GeneratorBase):
     def run(self, flow: FlowBase):
         if flow.category == FlowCategory.SIMULATION:
             os.makedirs(self.builddir, exist_ok=True)
-            ipfiles = list(self.project.defaultDesign.files(type=(VivadoXciFile, VivadoXcixFile)))
-            ipfiles = [f for f in ipfiles if UsedIn.SIMULATION in f.usedin]
+            ipfiles = self.get_files(flow)
 
             for ipfile in ipfiles:
                 newipfile = self.unpack_ip(ipfile)
-                files = self.get_files(newipfile.path)
+                files = self.get_component_files(newipfile)
                 last_lib = ""
                 i = 0
                 filesets = list()
                 for file in files:
+                    file.generated = True
+                    file.parent_file = ipfile
                     if isinstance(
                         file,
                         (VerilogFile, VerilogIncludeFile, SystemVerilogFile, VhdlFile),

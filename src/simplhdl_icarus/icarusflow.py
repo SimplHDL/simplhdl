@@ -11,7 +11,7 @@ from jinja2 import Environment, FileSystemLoader, Template
 from simplhdl import FileOrder
 from simplhdl._compat import resources_files
 from simplhdl.plugin import FlowError, FlowTools, SimulationFlow
-from simplhdl.project.files import SystemVerilogFile, UsedIn, VerilogFile
+from simplhdl.project.files import CocotbPythonFile, HdlSearchPath, SystemVerilogFile, VerilogFile, VerilogIncludeFile
 from simplhdl.utils import escape, generate_from_template, sh
 
 from .resources.templates import icarus as icarustemplates
@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 class IcarusFlow(SimulationFlow):
     """Icarus Verilog simulation flow."""
+
+    supported_file_types = (VerilogFile, SystemVerilogFile, VerilogIncludeFile, HdlSearchPath, CocotbPythonFile)
 
     @classmethod
     def parse_args(self, subparsers) -> None:
@@ -97,9 +99,9 @@ class IcarusFlow(SimulationFlow):
         globals = super().get_globals()
         globals["timescale"] = self.args.timescale
         globals["wavedump"] = self.args.wavedump
-        globals["files"] = self.project.defaultDesign.files(
-            order=FileOrder.COMPILE, type=(VerilogFile, SystemVerilogFile), usedin=UsedIn.SIMULATION
-        )
+        globals["files"] = [
+            f for f in self.get_files(order=FileOrder.COMPILE) if isinstance(f, (VerilogFile, SystemVerilogFile))
+        ]
         globals["iverilog_args"] = self.iverilog_args()
         globals["vvp_args"] = self.vvp_args()
         globals["defines"] = [f"+define+{k}={escape(v)}" for k, v in self.project.defines.items()]

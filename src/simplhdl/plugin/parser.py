@@ -20,11 +20,8 @@ __all__ = ["ParserBase", "ParserError"]
 logger = logging.getLogger(__name__)
 
 
-def _load_parser_priority_overrides() -> dict[str, int]:
-    """
-    Load parser priority overrides from `SIMPLHDL_CONFIG` (TOML `[parser] priority`)
-    and `SIMPLHDL_PARSER` (environment variable).
-    """
+def _load_priority_overrides(section: str, env_name: str) -> dict[str, int]:
+    """Load named priority overrides from the TOML configuration and environment."""
     overrides: dict[str, int] = {}
 
     config_path = os.getenv("SIMPLHDL_CONFIG")
@@ -34,7 +31,7 @@ def _load_parser_priority_overrides() -> dict[str, int]:
             try:
                 with tomlfile.open("rb") as f:
                     config = tomllib.load(f)
-                parser_cfg = config.get("parser", {})
+                parser_cfg = config.get(section, {})
                 priority_cfg = parser_cfg.get("priority")
                 if isinstance(priority_cfg, str):
                     overrides[priority_cfg.strip()] = 500
@@ -48,9 +45,9 @@ def _load_parser_priority_overrides() -> dict[str, int]:
                         if isinstance(name, str) and isinstance(val, int):
                             overrides[name.strip()] = val
             except Exception as exc:
-                logger.warning(f"Failed to read [parser] priority from SIMPLHDL_CONFIG='{tomlfile}': {exc}")
+                logger.warning(f"Failed to read [{section}] priority from SIMPLHDL_CONFIG='{tomlfile}': {exc}")
 
-    env_parser = os.getenv("SIMPLHDL_PARSER")
+    env_parser = os.getenv(env_name)
     if env_parser:
         names = [n.strip() for n in re.split(r"[,:]", env_parser) if n.strip()]
         base = 1000 + len(names) * 10
@@ -58,6 +55,10 @@ def _load_parser_priority_overrides() -> dict[str, int]:
             overrides[name] = base - idx * 10
 
     return overrides
+
+
+def _load_parser_priority_overrides() -> dict[str, int]:
+    return _load_priority_overrides("parser", "SIMPLHDL_PARSER")
 
 
 class ParserBase(metaclass=ABCMeta):

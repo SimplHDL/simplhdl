@@ -23,6 +23,7 @@ from ..cocotb import (
 from ..project.files import (
     CFile,
     CppFile,
+    CocotbPythonFile,
     File,
     HdlSearchPath,
     MemoryFile,
@@ -49,6 +50,19 @@ logger = logging.getLogger(__name__)
 
 
 class SimulationFlow(FlowBase):
+    usedin = UsedIn.SIMULATION
+    supported_file_types = (
+        VerilogFile,
+        SystemVerilogFile,
+        VhdlFile,
+        VerilogIncludeFile,
+        HdlSearchPath,
+        CFile,
+        CppFile,
+        CocotbPythonFile,
+        MemoryFile,
+    )
+
     def __init__(self, name, args: Namespace, project: Project, builddir: Path):
         super().__init__(name, args, project, builddir)
         self.category = FlowCategory.SIMULATION
@@ -79,7 +93,7 @@ class SimulationFlow(FlowBase):
     def get_globals(self) -> dict[str, Any]:
         libraries = [lib for lib in self.project.defaultDesign.libraries if not lib.external]
         external_libraries = [lib for lib in self.project.defaultDesign.libraries if lib.external]
-        incdirs = self.project.defaultDesign.files(type=(HdlSearchPath, VerilogIncludeFile), usedin=UsedIn.SIMULATION)
+        incdirs = [f for f in self.get_files() if isinstance(f, (HdlSearchPath, VerilogIncludeFile))]
         incdirpaths = {f.includeDir for f in incdirs}
         globals = dict()
         globals["libraries"] = libraries
@@ -172,7 +186,7 @@ class SimulationFlow(FlowBase):
             "vhdl": ((VhdlFile), self.fileset_vhdl_args(fileset)),
         }
         filetypes, args = table[language]
-        files = list(fileset.files(type=filetypes, usedin=UsedIn.SIMULATION))
+        files = [file for file in self.get_files(fileset) if isinstance(file, filetypes)]
         name = md5sum(fileset.name)
         base = self.builddir.joinpath(f"{name}-{language}")
         generated: list[str] = list()
@@ -198,7 +212,9 @@ class SimulationFlow(FlowBase):
         return generated
 
     def copy_memory_files(self):
-        for file in self.project.defaultDesign.files(MemoryFile):
+        for file in self.get_files():
+            if not isinstance(file, MemoryFile):
+                continue
             shutil.copy(file.path.absolute(), self.builddir.absolute())
 
     def is_uvm(self):

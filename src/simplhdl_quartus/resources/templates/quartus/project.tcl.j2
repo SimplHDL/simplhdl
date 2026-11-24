@@ -12,7 +12,7 @@ set_parameter -name {{generic}} {{value}}
 {% for define, value in project.defines.items() %}
 set_global_assignment -name VERILOG_MACRO "{{define}}={{value}}"
 {% endfor %}
-{% for file in project.defaultDesign.files(usedin=UsedIn.IMPLEMENTATION) %}
+{% for file in files %}
 {% if isinstance(file, HdlSearchPath) %}
 set_global_assignment -name SEARCH_PATH "{{file.path}}"
 {% elif isinstance(file, VerilogIncludeFile) %}
@@ -58,7 +58,7 @@ set_global_assignment -name SEARCH_PATH "{{file.path.parent}}"
 {% endif %}
 {% endfor %}
 
-{% for file in project.defaultDesign.files(type=QuartusStpFile) %}
+{% for file in files if isinstance(file, QuartusStpFile) %}
 set_global_assignment -name SIGNALTAP_FILE "{{file.path}}"
 {% if loop.last %}
 set_global_assignment -name ENABLE_SIGNALTAP ON

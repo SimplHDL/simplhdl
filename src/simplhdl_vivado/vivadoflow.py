@@ -13,10 +13,14 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from simplhdl import Project
-from simplhdl.plugin import FlowBase, FlowTools
+from simplhdl.plugin import FlowTools, ImplementationFlow
 from simplhdl.project.files import (
     EdifFile,
+    HdlSearchPath,
+    MemoryFile,
     SystemVerilogFile,
+    TclFile,
+    UnknownFile,
     UsedIn,
     VerilogFile,
     VerilogIncludeFile,
@@ -36,7 +40,26 @@ from .resources.templates import vivado as templates
 logger = logging.getLogger(__name__)
 
 
-class VivadoFlow(FlowBase):
+class VivadoFlow(ImplementationFlow):
+    supported_file_types = (
+        VerilogFile,
+        SystemVerilogFile,
+        VerilogIncludeFile,
+        VhdlFile,
+        HdlSearchPath,
+        VivadoXdcFile,
+        VivadoXciFile,
+        VivadoXcixFile,
+        VivadoBdFile,
+        VivadoBdTclFile,
+        VivadoDcpFile,
+        VivadoStepFile,
+        EdifFile,
+        TclFile,
+        MemoryFile,
+        UnknownFile,
+    )
+
     @classmethod
     def parse_args(self, subparsers) -> None:
         parser = subparsers.add_parser("vivado", help="Vivado FPGA Build Flow")
@@ -91,15 +114,6 @@ class VivadoFlow(FlowBase):
         command = f"vivado {name}.xpr -mode batch -notrace -source run.tcl -tclargs {tclargs}"
         sh(command.split(), cwd=self.builddir, output=True)
         raise SystemExit
-
-    def get_files(self):
-        files = []
-        seen = []
-        for f in self.project.defaultDesign.files():
-            if UsedIn.IMPLEMENTATION in f.usedin and f.path not in seen:
-                seen.append(f.path)
-                files.append(f)
-        return files
 
     def setup(self):
         self.is_tool_setup()

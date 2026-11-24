@@ -138,6 +138,15 @@ class Spd:
 
 
 class QuartusGenerator(GeneratorBase):
+    supported_file_types = (QuartusIpFile, QuartusIpZipFile, QuartusQsysFile, QuartusQsysZipFile)
+
+    def accepts_file(self, file, flow=None):
+        if flow is None or flow.category == FlowCategory.DEFAULT:
+            return False
+        if flow.category == FlowCategory.IMPLEMENTATION and FlowTools.QUARTUS not in getattr(flow, "tools", set()):
+            return False
+        return super().accepts_file(file, flow)
+
     def unpack_ip(self, filename: File) -> QuartusIpFile:  # noqa: C901
         ipdir = self.builddir.joinpath("ips")
         dest = ipdir.joinpath(filename.Path.name).with_suffix("")
@@ -199,22 +208,7 @@ class QuartusGenerator(GeneratorBase):
         self.flow = flow
         ip_dir = self.builddir.joinpath("ips")
         qsys_dir = self.builddir.joinpath("qsys")
-        quartusip_types = (
-            QuartusIpFile,
-            QuartusIpZipFile,
-            QuartusQsysFile,
-            QuartusQsysZipFile,
-        )
-        all_files = self.project.defaultDesign.files(type=quartusip_types)
-
-        if flow.category == FlowCategory.SIMULATION:
-            files = [f for f in all_files if UsedIn.SIMULATION in f.usedin]
-        elif flow.category == FlowCategory.IMPLEMENTATION:
-            files = [f for f in all_files if UsedIn.IMPLEMENTATION in f.usedin]
-        elif flow.category == FlowCategory.DEFAULT:
-            return
-        else:
-            files = all_files
+        files = self.get_files(flow)
 
         for file in files:
             # The second time we see a file it is already processed and we just
@@ -223,6 +217,8 @@ class QuartusGenerator(GeneratorBase):
             if fileid in seen:
                 file._path = seen.get(fileid)._path
                 continue
+            source = object.__new__(type(file))
+            source.__dict__ = file.__dict__.copy()
             if isinstance(file, QuartusQipFile):
                 continue
             elif isinstance(file, QuartusIpZipFile):
@@ -233,6 +229,8 @@ class QuartusGenerator(GeneratorBase):
                 file = unpack_qsysfile(file, qsys_dir)
             elif isinstance(file, QuartusQsysFile):
                 file = copy_qsysfile(file, qsys_dir)
+            file.generated = True
+            file.parent_file = source
             parse_file(file, flow, self.project.defaultDesign.defaultLibrary)
             # register the file as seen
             seen[fileid] = file
@@ -275,6 +273,9 @@ def qsys_to_fileset(file: QuartusQsysFile, flow: FlowBase, library) -> Fileset:
         for ipfile in [file] + ipfiles:
             spd = Spd(ipfile.path, flow, file.path.parent.resolve())
             for fileset in reversed(spd.filesets):
+                for generated in fileset.files():
+                    generated.generated = True
+                    generated.parent_file = file
                 # Add fileset to parent, then set parent to fileset to make a chain
                 parent.add_fileset(fileset)
                 parent = fileset
@@ -296,6 +297,9 @@ def parse_file(file: File, flow: FlowBase, library) -> Fileset:
             spd = Spd(file.path, flow)
             parent = file.parent
             for fileset in reversed(spd.filesets):
+                for generated in fileset.files():
+                    generated.generated = True
+                    generated.parent_file = file
                 # Add fileset to parent, then set parent to fileset to make a chain
                 parent.add_fileset(fileset)
                 parent = fileset

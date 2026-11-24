@@ -9,9 +9,9 @@ from rich.console import Console
 from rich.style import Style
 from rich.tree import Tree
 
-from ..plugin.flow import FlowBase
+from ..plugin.flow import FlowBase, inspection_files
 from ..project.files import UsedIn
-from ..project.fileset import FileOrder, Fileset
+from ..project.fileset import Fileset
 from ..project.project import Project
 
 
@@ -46,6 +46,16 @@ class Info(FlowBase):
         parser.add_argument("--libraries", action="store_true", help="List libraries in project")
         parser.add_argument("--hooks", action="store_true", help="List hooks in project")
         parser.add_argument("--flow", dest="infoflow", help="List project based on flow")
+        parser.add_argument("-g", "--generate", action="store_true", help="Run generators before listing files")
+
+    def selected_files(self, fileset=None):
+        return inspection_files(
+            self.project,
+            flow=getattr(self, "view_flow", None),
+            generators=getattr(self, "generators", []),
+            fileset=fileset,
+            include_generator_inputs=not getattr(self.args, "generate", False),
+        )
 
     def run(self) -> None:
         self.project.validate()
@@ -61,7 +71,7 @@ class Info(FlowBase):
             self.print_info()
 
     def graph_files(self) -> None:
-        G = self.project.defaultDesign._files
+        G = self.project.defaultDesign._files.subgraph(self.selected_files()).copy()
 
         # 1. Assign layers and labels
         labels = {}
@@ -128,8 +138,9 @@ class Info(FlowBase):
         self.plt.savefig(self.builddir.joinpath("filesets.png"), format="PNG")
 
     def print_files(self) -> None:
-        for file in self.project.defaultDesign.files(order=FileOrder.COMPILE):
-            self.console.print(f"{file.path}")
+        for file in self.selected_files():
+            suffix = " (generated)" if file.generated else ""
+            self.console.print(f"{file.path}{suffix}")
         self.project.validate()
         self.graph_files()
 
@@ -139,7 +150,7 @@ class Info(FlowBase):
             f"[bold]{fileset.name}[/bold] ({fileset.library})",
             style=self.style["fileset"],
         )
-        for file in fileset.files():
+        for file in self.selected_files(fileset):
             if UsedIn.IMPLEMENTATION in file.usedin and UsedIn.SIMULATION not in file.usedin:
                 style = self.style["ifile"]
             elif UsedIn.SIMULATION in file.usedin and UsedIn.IMPLEMENTATION not in file.usedin:
@@ -147,7 +158,8 @@ class Info(FlowBase):
             else:
                 style = self.style["file"]
 
-            tree.add(f"{file.path}", style=style)
+            suffix = " (generated)" if file.generated else ""
+            tree.add(f"{file.path}{suffix}", style=style)
         for child_filset in fileset.children:
             self.print_fileset(child_filset, tree)
 
@@ -155,7 +167,6 @@ class Info(FlowBase):
         tree = Tree("FILESETS:")
         for fileset in self.project.defaultDesign.roots:
             self.print_fileset(fileset, tree)
-            break
         self.console.print(tree)
         self.graph_files()
         self.graph_filesets()

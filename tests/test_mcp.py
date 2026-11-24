@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -20,6 +21,7 @@ from simplhdl_mcp.context import (
     build_server_instructions,
     load_project,
     reset_project_state,
+    serialize_files,
 )
 from simplhdl_mcp.server import (
     create_server,
@@ -94,6 +96,55 @@ def test_list_files_orders_and_filters():
     assert len(work_sv_files) == 4
 
 
+def test_flow_specific_generated_files(tmp_path, monkeypatch):
+    monkeypatch.delenv("SIMPLHDL_CONFIG", raising=False)
+    monkeypatch.delenv("SIMPLHDL_GENERATORS", raising=False)
+    (tmp_path / "project.yml").write_text(
+        "#%SimplAPI=1.0\nproject: example\ntop: top\nfiles:\n  - top.sv.j2\n  - timing.xdc\n  - quartus.qsf\n"
+    )
+    (tmp_path / "top.sv.j2").write_text("module top; endmodule\n")
+    (tmp_path / "timing.xdc").write_text("")
+    (tmp_path / "quartus.qsf").write_text("")
+    existing_log = tmp_path / "_build" / "icarus" / "simplhdl.log"
+    existing_log.parent.mkdir(parents=True)
+    existing_log.write_text("previous flow log")
+
+    source = list_files(project_dir=str(tmp_path), flow="icarus")
+    assert [Path(f["path"]).name for f in source] == ["top.sv.j2"]
+    assert existing_log.read_text() == "previous flow log"
+    generated = list_files(project_dir=str(tmp_path), flow="icarus", generate=True)
+    assert [Path(f["path"]).name for f in generated] == ["top.sv"]
+    assert generated[0]["type"] == "SystemVerilogFile"
+    assert generated[0]["generated"] is True
+    assert generated[0]["parent_file"] == str(tmp_path / "top.sv.j2")
+    tree = get_fileset_tree(project_dir=str(tmp_path), flow="icarus", generate=True)
+    assert Path(tree["filesets"][0]["files"][0]).name == "top.sv"
+    assert {Path(f["path"]).name for f in list_files(project_dir=str(tmp_path), flow="vivado")} == {
+        "top.sv.j2",
+        "timing.xdc",
+    }
+    assert {Path(f["path"]).name for f in list_files(project_dir=str(tmp_path), flow="quartus")} == {
+        "top.sv.j2",
+        "quartus.qsf",
+    }
+    legacy = list_files(project_dir=str(tmp_path), run_generators_for_flow="icarus")
+    assert {Path(file["path"]).name for file in legacy} == {"top.sv", "timing.xdc", "quartus.qsf"}
+
+
+@pytest.mark.parametrize("flow", ["quartus", "vivado"])
+@pytest.mark.parametrize("generate", [False, True])
+def test_flow_inspection_lists_unknown_file(tmp_path, monkeypatch, flow, generate):
+    monkeypatch.delenv("SIMPLHDL_CONFIG", raising=False)
+    monkeypatch.delenv("SIMPLHDL_GENERATORS", raising=False)
+    (tmp_path / "project.yml").write_text("#%SimplAPI=1.0\nfiles:\n  - config.pfg\n")
+    (tmp_path / "config.pfg").write_text("")
+
+    files = list_files(project_dir=str(tmp_path), flow=flow, generate=generate)
+    assert [(Path(file["path"]).name, file["type"]) for file in files] == [("config.pfg", "UnknownFile")]
+    tree = get_fileset_tree(project_dir=str(tmp_path), flow=flow, generate=generate)
+    assert [Path(path).name for fs in tree["filesets"] for path in fs["files"]] == ["config.pfg"]
+
+
 def test_get_fileset_tree():
     tree = get_fileset_tree(project_dir=str(ALU_SYN_DIR), order="compile")
     assert len(tree["roots"]) == 1
@@ -147,6 +198,8 @@ def test_list_flows_and_plugins():
     assert "fusersoc_parser" not in parser_names  # WIP parser (priority=0) is ignored
     assert "peakrdl_generator" in generator_names
     assert "SystemVerilogFile" in file_types
+    generator_by_name = {g["name"]: g for g in plugins["generators"]}
+    assert generator_by_name["jinja2"]["priority"] > generator_by_name["peakrdl_generator"]["priority"]
 
 
 def test_simplapi_skill_and_parser_priority_overrides(tmp_path, monkeypatch):
@@ -277,11 +330,12 @@ def test_third_party_plugins_and_custom_file_subclass(tmp_path, monkeypatch):
     (tmp_path / "design.3p_hdl").write_text("// custom hdl\n")
     (tmp_path / "custom.3p").write_text("#%Custom3P=1.0\n")
 
-    files = list_files(
+    project = load_project(
         project_dir=str(tmp_path),
         projectspec="custom.3p",
         run_generators_for_flow="custom3p",
     )
+    files = serialize_files(project)
     file_types = [f["type"] for f in files]
     assert "CustomThirdPartyFile" in file_types
     assert "SystemVerilogFile" in file_types
@@ -467,13 +521,22 @@ def test_missing_mcp_dependency_has_install_message(monkeypatch, capsys):
     assert 'MCP SDK 2.x is required. Install it with: pip install "simplhdl[mcp]"' in capsys.readouterr().err
 
 
-def test_real_mcp_stdio_session(tmp_path):
+def test_real_mcp_stdio_session(tmp_path, monkeypatch):
     pytest.importorskip("mcp.server.mcpserver")
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    (tmp_path / "project.yml").write_text("#%SimplAPI=1.0\nproject: mcp_test\ntop: top\nfiles:\n  - top.sv\n")
+    (tmp_path / "project.yml").write_text(
+        "#%SimplAPI=1.0\nproject: mcp_test\ntop: top\nfiles:\n  - top.sv\n  - build.sbt\n"
+    )
     (tmp_path / "top.sv").write_text("module top; endmodule\n")
+    (tmp_path / "build.sbt").write_text("// test generator input\n")
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    sbt = bindir / "sbt"
+    sbt.write_text("#!/bin/sh\necho 'generator output'\nprintf 'module emitted; endmodule\\n' > emitted.v\n")
+    sbt.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bindir}:{os.environ['PATH']}")
 
     async def exercise_server():
         params = StdioServerParameters(
@@ -496,6 +559,11 @@ def test_real_mcp_stdio_session(tmp_path):
                 assert info.structured_content["name"] == "mcp_test"
                 bad = await session.call_tool("get_project_info", {"project_dir": str(tmp_path / "missing")})
                 assert bad.is_error
+                generated = await session.call_tool(
+                    "list_files", {"project_dir": str(tmp_path), "flow": "icarus", "generate": True}
+                )
+                assert not generated.is_error
+                assert any("emitted.v" in content.text for content in generated.content)
                 assert (await session.list_tools()).tools
 
     asyncio.run(exercise_server())

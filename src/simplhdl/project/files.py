@@ -53,6 +53,8 @@ class File:
         self._usedin: list[str] = attributes.get("usedin", self._default_usedin)
         self._order: float = attributes.get("order", self._default_order)
         self._encrypt: bool = attributes.get("encrypt", self._default_encrypt)
+        self.generated: bool = attributes.get("generated", False)
+        self.parent_file: File | None = attributes.get("parent_file")
         self._initialized = True
 
     @classmethod

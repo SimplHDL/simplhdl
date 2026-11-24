@@ -35,6 +35,8 @@ class Flag(list):
 
 
 class QuestaSimFlow(SimulationFlow):
+    supported_file_types = (*SimulationFlow.supported_file_types, ModelsimIniFile)
+
     @classmethod
     def parse_args(self, subparsers) -> None:
         parser = subparsers.add_parser("questasim", help="QuestaSim HDL Simulation Flow")
@@ -133,6 +135,7 @@ class QuestaSimFlow(SimulationFlow):
         globals["qrunfile"] = qrunfile
         globals["wavedump"] = self.args.wavedump
         globals["filesets"] = self.project.defaultDesign.filesets(order=FilesetOrder.COMPILE)
+        globals["flow_files"] = self.get_files
         globals["vlog_args"] = self.vlog_args()
         globals["vcom_args"] = self.vcom_args()
         globals["vopt_args"] = self.vopt_args()

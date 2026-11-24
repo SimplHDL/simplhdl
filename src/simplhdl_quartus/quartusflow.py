@@ -27,6 +27,7 @@ from simplhdl.project.files import (
     SdcFile,
     SystemVerilogFile,
     TclFile,
+    UnknownFile,
     VerilogFile,
     VerilogIncludeFile,
     VhdlFile,
@@ -40,6 +41,27 @@ logger = logging.getLogger(__name__)
 
 
 class QuartusFlow(ImplementationFlow):
+    supported_file_types = (
+        HdlSearchPath,
+        VerilogIncludeFile,
+        VerilogFile,
+        SystemVerilogFile,
+        VhdlFile,
+        SdcFile,
+        TclFile,
+        QuartusSourceTclFile,
+        QuartusIpFile,
+        QuartusQipFile,
+        QuartusQsysFile,
+        MemoryInitFile,
+        MemoryHexFile,
+        QuartusQsfFile,
+        QuartusIniFile,
+        QuartusStpFile,
+        EdifFile,
+        UnknownFile,
+    )
+
     @classmethod
     def parse_args(self, subparsers) -> None:
         parser = subparsers.add_parser("quartus", help="Quartus FPGA Build Flow")
@@ -125,6 +147,7 @@ class QuartusFlow(ImplementationFlow):
             UsedIn=UsedIn,
             FileOrder=FileOrder,
             FilesetOrder=FilesetOrder,
+            files=self.get_files(),
         )
         template = environment.get_template("run.tcl.j2")
         generate_from_template(template, self.builddir, project=self.project)

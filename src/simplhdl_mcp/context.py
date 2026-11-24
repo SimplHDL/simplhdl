@@ -11,15 +11,15 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Generator, cast
 
-from simplhdl.plugin.flow import FlowBase, FlowFactory
-from simplhdl.plugin.generator import GeneratorBase, GeneratorError, GeneratorFactory
+from simplhdl.plugin.flow import FlowBase, FlowFactory, inspection_files
+from simplhdl.plugin.generator import GeneratorFactory
 from simplhdl.plugin.implementationflow import ImplementationFlow
 from simplhdl.plugin.loader import get_external_plugins, load_plugins
 from simplhdl.plugin.parser import ParserFactory
 from simplhdl.plugin.simulationflow import SimulationFlow
 from simplhdl.project.files import File, FileFactory
 from simplhdl.project.fileset import FileOrder, Fileset, FilesetOrder
-from simplhdl.project.project import Project, ProjectError
+from simplhdl.project.project import Project
 from simplhdl.simplhdl import Simplhdl
 from simplhdl.utils import chdir
 
@@ -146,6 +146,8 @@ def load_project(
     projectspec: str | Path | None = None,
     outputdir: str | Path = "_build",
     run_generators_for_flow: str | None = None,
+    flow: str | None = None,
+    generate: bool = False,
 ) -> Project:
     """
     Parse, elaborate, and validate a SimplHDL project in-process.
@@ -165,7 +167,14 @@ def load_project(
 
     raw_output = Path(outputdir)
     output_path = raw_output.resolve() if raw_output.is_absolute() else (project_dir_path / raw_output).resolve()
-    flow_name = run_generators_for_flow or "info"
+    if run_generators_for_flow and flow and run_generators_for_flow != flow:
+        raise ValueError("flow and run_generators_for_flow must name the same flow")
+    if generate and not (flow or run_generators_for_flow):
+        raise ValueError("flow is required when generate is true")
+    flow_name = flow or run_generators_for_flow or "info"
+    should_generate = generate or run_generators_for_flow is not None
+    if flow_name not in FlowFactory.get_flows():
+        raise ValueError(f"Unknown flow '{flow_name}'")
 
     with reset_project_state(), chdir(project_dir_path):
         args = build_default_flow_namespace(
@@ -175,19 +184,24 @@ def load_project(
             verbose=0,
         )
         simpl = Simplhdl(args)
-        builddir = output_path.joinpath(flow_name)
+        # New inspection requests use the same isolated location as `simpl info`.
+        # Keep the older run_generators_for_flow path for compatibility.
+        builddir = (
+            output_path.joinpath("info", flow_name)
+            if flow and not run_generators_for_flow
+            else output_path.joinpath(flow_name)
+        )
         project = simpl.create_project(builddir)
 
-        if run_generators_for_flow:
-            flow = FlowFactory.get_flow(run_generators_for_flow, args, project, builddir)
-            for generator in GeneratorFactory.get_generators(args, project, builddir):
-                generator.run(cast(Any, flow))
-                try:
-                    project.elaborate()
-                    project.validate()
-                except ProjectError as exc:
-                    raise GeneratorError(exc) from exc
-            project.elaborate()
+        if flow or run_generators_for_flow:
+            flow_instance = FlowFactory.get_flow(flow_name, args, project, builddir)
+            generators = list(GeneratorFactory.get_generators(args, project, builddir))
+            # The legacy option generated files without filtering the result.
+            project._inspection_flow = flow_instance if flow else None
+            project._inspection_generators = generators
+            project._inspection_generated = should_generate
+            if should_generate:
+                simpl.run_generators(flow_instance, generators)
 
         return project
 
@@ -259,9 +273,19 @@ def serialize_files(
 
     file_order = _resolve_order_files(order)
     all_files = design.files(order=file_order)
+    selected = set(
+        inspection_files(
+            project,
+            flow=getattr(project, "_inspection_flow", None),
+            generators=getattr(project, "_inspection_generators", []),
+            include_generator_inputs=not getattr(project, "_inspection_generated", False),
+        )
+    )
 
     results: list[dict[str, Any]] = []
     for file in all_files:
+        if file not in selected:
+            continue
         file_cls_name = file.__class__.__name__
         file_lib = getattr(file, "library", None)
         file_lib_name = file_lib.name if file_lib is not None else None
@@ -285,6 +309,9 @@ def serialize_files(
             "usedin": file_usedin,
             "encrypt": bool(file.encrypt),
             "order": float(file.order),
+            "generated": file.generated,
+            "parent_file": str(file.parent_file.path) if file.parent_file else None,
+            "selection_declared": _inspection_selection_declared(project),
         }
         if hasattr(file, "scope") and getattr(file, "scope") is not None:
             entry["scope"] = getattr(file, "scope")
@@ -295,11 +322,19 @@ def serialize_files(
     return results
 
 
+def _inspection_selection_declared(project: Project) -> bool:
+    flow = getattr(project, "_inspection_flow", None)
+    return flow is None or (
+        flow.supported_file_types is not None
+        and all(generator.supported_file_types is not None for generator in project._inspection_generators)
+    )
+
+
 def serialize_fileset_tree(project: Project, order: str = "compile") -> dict[str, Any]:
     """Serialize the fileset DAG and file memberships."""
     design = project.defaultDesign
     if design is None:
-        return {"roots": [], "filesets": []}
+        return {"roots": [], "filesets": [], "selection_declared": _inspection_selection_declared(project)}
 
     design.validate()
     fileset_order = _resolve_order_filesets(order)
@@ -308,7 +343,16 @@ def serialize_fileset_tree(project: Project, order: str = "compile") -> dict[str
     filesets_data: list[dict[str, Any]] = []
     for fs in ordered_filesets:
         fs_lib = fs.library.name if fs.library is not None else None
-        fs_files = [str(f.path) for f in fs.files(order=FileOrder.COMPILE)]
+        fs_files = [
+            str(f.path)
+            for f in inspection_files(
+                project,
+                flow=getattr(project, "_inspection_flow", None),
+                generators=getattr(project, "_inspection_generators", []),
+                fileset=fs,
+                include_generator_inputs=not getattr(project, "_inspection_generated", False),
+            )
+        ]
         parents = [p.name for p in (fs.parents or [])]
         children = [c.name for c in fs.children]
         filesets_data.append(
@@ -324,6 +368,7 @@ def serialize_fileset_tree(project: Project, order: str = "compile") -> dict[str
     return {
         "roots": [r.name for r in design.roots],
         "filesets": filesets_data,
+        "selection_declared": _inspection_selection_declared(project),
     }
 
 
@@ -433,14 +478,14 @@ def serialize_plugins() -> dict[str, Any]:
             }
         )
 
-    generators_map = cast(dict[str, type[GeneratorBase]], GeneratorFactory.registry)
     generators: list[dict[str, Any]] = []
-    for name, gen_cls in sorted(generators_map.items()):
+    for name, gen_cls, priority in GeneratorFactory.get_ordered_generators():
         generators.append(
             {
                 "name": name,
                 "class": gen_cls.__name__,
                 "module": gen_cls.__module__,
+                "priority": priority,
             }
         )
 

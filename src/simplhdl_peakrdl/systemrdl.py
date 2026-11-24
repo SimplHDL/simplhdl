@@ -26,7 +26,6 @@ from systemrdl import RDLCompileError, RDLListener, RDLWalker
 from systemrdl.node import AddrmapNode, MemNode, RegNode, RootNode
 from systemrdl.rdltypes import AccessType, OnReadType, OnWriteType
 
-from simplhdl import FileOrder
 from simplhdl.plugin import FlowBase, FlowCategory, GeneratorBase
 from simplhdl.project.files import (
     CocotbPythonFile,
@@ -261,6 +260,8 @@ def mask(node):
 
 
 class PeakRdlGenerator(GeneratorBase):
+    supported_file_types = (SystemRdlFile,)
+
     def render_template(self, template: jinja2.Template, node: AddrmapNode, outputdir: Path) -> Path | None:
         if not template.filename.endswith(".j2"):
             return None
@@ -465,7 +466,7 @@ class PeakRdlGenerator(GeneratorBase):
         )
 
     def run(self, flow: FlowBase):
-        rdlfiles = self.project.defaultDesign.files(type=SystemRdlFile, order=FileOrder.COMPILE)
+        rdlfiles = self.get_files(flow)
         output_dir = self.builddir.joinpath("systemrdl")
         config = self._load_config()
 

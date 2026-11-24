@@ -9,6 +9,7 @@ from .project.design import Design
 from .project.attributes import Library
 from .plugin.parser import ParserFactory
 from .plugin.flow import FlowFactory
+from .plugin.flow import FlowError
 from .plugin.generator import GeneratorFactory, GeneratorError
 
 logger = logging.getLogger(__name__)
@@ -37,17 +38,48 @@ class Simplhdl:
         builddir = self.builddir.joinpath(self.args.flow)
         project = self.create_project(builddir)
         flow = FlowFactory.get_flow(self.args.flow, self.args, project, builddir)
-        generators = GeneratorFactory.get_generators(self.args, project, builddir)
         try:
-            for generator in generators:
-                generator.run(flow)
-                try:
-                    project.elaborate()
-                    project.validate()
-                except ProjectError as e:
-                    raise GeneratorError(e)
-            project.elaborate()
+            if self.args.flow == "info":
+                target = getattr(self.args, "infoflow", None)
+                target_flow = flow
+                if target:
+                    from .cli.arguments import parse_arguments
+
+                    if target not in FlowFactory.get_flows() or target in ("info", "run"):
+                        raise FlowError(f"Unknown inspection flow '{target}'")
+                    try:
+                        target_args = parse_arguments([target])
+                    except SystemExit as exc:
+                        raise FlowError(f"Cannot inspect flow '{target}' without required options") from exc
+                    target_args.projectspec = self.args.projectspec
+                    target_args.outputdir = self.args.outputdir
+                    target_args.verbose = self.args.verbose
+                    target_flow = FlowFactory.get_flow(target, target_args, project, builddir / target)
+                    if target_flow.supported_file_types is None:
+                        logger.warning(
+                            "Flow '%s' has not declared file selection; the inspection may be incomplete", target
+                        )
+                flow.view_flow = target_flow if target else None
+                flow.generators = list(GeneratorFactory.get_generators(target_flow.args, project, target_flow.builddir))
+                if getattr(self.args, "generate", False):
+                    self.run_generators(target_flow, flow.generators)
+            else:
+                self.run_generators(flow)
             flow.run()
 
         except nx.NetworkXUnfeasible:
             project.defaultDesign.validate()
+
+    def run_generators(self, flow, generators=None):
+        if generators is None:
+            generators = GeneratorFactory.get_generators(flow.args, flow.project, flow.builddir)
+        for generator in generators:
+            if generator.supported_file_types is not None and not generator.get_files(flow):
+                continue
+            generator.run(flow)
+            try:
+                flow.project.elaborate()
+                flow.project.validate()
+            except ProjectError as exc:
+                raise GeneratorError(exc) from exc
+        flow.project.elaborate()

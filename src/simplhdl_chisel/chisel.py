@@ -8,8 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class ChiselGenerator(GeneratorBase):
+    supported_file_types = (ChiselBuildFile,)
+
     def run(self, flow: FlowBase):
-        sbt_files = list(self.project.defaultDesign.files(type=ChiselBuildFile))
+        sbt_files = self.get_files(flow)
         if sbt_files:
             logging.debug("Running Chisel Generator")
             chisel_dir = self.builddir.joinpath("chisel")
@@ -40,5 +42,4 @@ class ChiselGenerator(GeneratorBase):
 
             for file in output_dir.rglob("*.v"):
                 verilog_file = VerilogFile(file.resolve())
-                sbt_file.fileset.insert_file_after(sbt_file, verilog_file)
-            next(sbt_files)
+                sbt_file.parent.insert_file_after(sbt_file, verilog_file)

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -22,6 +24,19 @@ from .context import (
     serialize_project_info,
     serialize_targets,
 )
+
+
+def _generated_inspection(operation: str, project: dict[str, Any], options: dict[str, Any]) -> Any:
+    request = json.dumps({"operation": operation, "project": project, "options": options})
+    result = subprocess.run(
+        [sys.executable, "-m", "simplhdl_mcp.inspection_worker", request],
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    if result.returncode:
+        raise RuntimeError(f"Generated inspection failed: {result.stderr.strip()}")
+    return json.loads(result.stdout)
 
 
 def get_project_info(
@@ -49,6 +64,8 @@ def list_files(
     fileset: str | None = None,
     run_generators_for_flow: str | None = None,
     outputdir: str = "_build",
+    flow: str | None = None,
+    generate: bool = False,
 ) -> list[dict[str, Any]]:
     """
     List files in the SimplHDL project in 'compile' or 'hierarchy' order.
@@ -59,21 +76,22 @@ def list_files(
     - library: HDL library name (e.g., 'work')
     - fileset: exact fileset name
     - run_generators_for_flow: flow name (e.g., 'questasim' or 'vivado') to run code/IP generators before listing files
+    - flow: inspect files in the context of this flow, including generator inputs before generation
+    - generate: run generators before listing files (requires flow; may run external tools and write files)
     """
-    project = load_project(
+    project_options = dict(
         project_dir=project_dir,
         projectspec=projectspec,
         outputdir=outputdir,
         run_generators_for_flow=run_generators_for_flow,
+        flow=flow,
+        generate=generate,
     )
-    return serialize_files(
-        project,
-        order=order,
-        usedin=usedin,
-        file_type=file_type,
-        library=library,
-        fileset=fileset,
-    )
+    file_options = dict(order=order, usedin=usedin, file_type=file_type, library=library, fileset=fileset)
+    if generate or run_generators_for_flow:
+        return _generated_inspection("files", project_options, file_options)
+    project = load_project(**project_options)
+    return serialize_files(project, **file_options)
 
 
 def get_fileset_tree(
@@ -81,11 +99,18 @@ def get_fileset_tree(
     projectspec: str | None = None,
     order: str = "compile",
     outputdir: str = "_build",
+    flow: str | None = None,
+    generate: bool = False,
 ) -> dict[str, Any]:
     """
     Validate the project DAG and return the fileset hierarchy and files per fileset.
     """
-    project = load_project(project_dir=project_dir, projectspec=projectspec, outputdir=outputdir)
+    project_options = dict(
+        project_dir=project_dir, projectspec=projectspec, outputdir=outputdir, flow=flow, generate=generate
+    )
+    if generate:
+        return _generated_inspection("filesets", project_options, {"order": order})
+    project = load_project(**project_options)
     return serialize_fileset_tree(project, order=order)
 
 

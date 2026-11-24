@@ -94,6 +94,8 @@ simpl [-v] [-o OUTPUTDIR] [--projectspec FILE] <flow> [flow-options...]
 ### Built-in Utility Flows
 
 - **`simpl info`**: Inspect the elaborated project model (`--files`, `--filesets`, `--libraries`, `--hooks`) and
-  generate topological DAG visualizations (`files.png`, `filesets.png`) in `_build/info/`.
+  generate topological DAG visualizations (`files.png`, `filesets.png`) in `_build/info/`. Use `--flow <flow>` for a
+  flow-specific source view and add `--generate` to run generators before inspection. Generation can invoke external
+  tools and write files; without it, generator inputs are shown rather than generated outputs.
 - **`simpl run`**: List (`simpl run -l`) or execute (`simpl run -t <target>`) named project targets defined in the
   project specification.

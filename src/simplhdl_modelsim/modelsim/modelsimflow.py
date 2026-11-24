@@ -26,6 +26,8 @@ class Flag(list):
 
 
 class ModelSimFlow(SimulationFlow):
+    supported_file_types = (*SimulationFlow.supported_file_types, ModelsimIniFile)
+
     @classmethod
     def parse_args(self, subparsers) -> None:
         parser = subparsers.add_parser("modelsim", help="ModelSim HDL Simulation Flow")
