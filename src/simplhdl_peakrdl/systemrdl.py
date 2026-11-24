@@ -301,23 +301,34 @@ class PeakRdlGenerator(GeneratorBase):
 
         retime_external_settings = _get_retime_external_settings(config.get("retime_external", []))
 
-        RegblockExporter().export(
-            node=node,
-            output_dir=str(outputdir.resolve()),
-            cpuif_cls=cpuif_cls,
-            module_name=module_name,
-            package_name=package_name,
-            reuse_hwif_typedefs=reuse_hwif_typedefs,
-            retime_read_fanin=config.get("retime_read_fanin", False),
-            retime_read_response=config.get("retime_read_response", False),
-            **retime_external_settings,
-            generate_hwif_report=config.get("generate_hwif_report", False),
-            address_width=config.get("address_width", None),
-            default_reset_activelow=default_reset_activelow,
-            default_reset_async=default_reset_async,
-            err_if_bad_addr=config.get("err_if_bad_addr", False),
-            err_if_bad_rw=config.get("err_if_bad_rw", False),
-        )
+        # NOTE: Workaround for SystemRDL/PeakRDL-regblock#221: the exporter derives
+        # the top-level HWIF typedef names from the instance name instead of the
+        # addrmap type name. Temporarily rename the instance to its type name while
+        # exporting. Note that Node.__deepcopy__ shares `inst` by reference, so a
+        # copied node would still mutate the elaborated tree; save/restore instead.
+        # Remove once SystemRDL/PeakRDL-regblock#222 is released.
+        orig_inst_name = node.inst.inst_name
+        node.inst.inst_name = node.type_name
+        try:
+            RegblockExporter().export(
+                node=node,
+                output_dir=str(outputdir.resolve()),
+                cpuif_cls=cpuif_cls,
+                module_name=module_name,
+                package_name=package_name,
+                reuse_hwif_typedefs=reuse_hwif_typedefs,
+                retime_read_fanin=config.get("retime_read_fanin", False),
+                retime_read_response=config.get("retime_read_response", False),
+                **retime_external_settings,
+                generate_hwif_report=config.get("generate_hwif_report", False),
+                address_width=config.get("address_width", None),
+                default_reset_activelow=default_reset_activelow,
+                default_reset_async=default_reset_async,
+                err_if_bad_addr=config.get("err_if_bad_addr", False),
+                err_if_bad_rw=config.get("err_if_bad_rw", False),
+            )
+        finally:
+            node.inst.inst_name = orig_inst_name
         modulefile: Path = outputdir.joinpath(f"{module_name}.sv").resolve()
         packetfile: Path = outputdir.joinpath(f"{package_name}.sv").resolve()
         rdlfile = self.project.defaultDesign.get_file(node.inst.def_src_ref.path)
