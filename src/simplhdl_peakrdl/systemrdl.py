@@ -97,16 +97,6 @@ def unique_nodes_by_type(nodes: list[AddrmapNode]) -> list[AddrmapNode]:
     return unique
 
 
-class Environment(jinja2.Environment):
-    def find_template(self, name):
-        matches = [template_name for template_name in self.list_templates() if template_name.startswith(name)]
-        if not matches:
-            raise jinja2.TemplateNotFound(name)
-        if len(matches) > 1:
-            logger.warning(f"Multiple templates found ({matches}) for {name}")
-        return self.get_template(matches[0])
-
-
 class AddrmapCollector(RDLListener):
     def __init__(self) -> None:
         self.nodes: list[AddrmapNode] = []
@@ -144,7 +134,7 @@ def get_template_dirs() -> list[Path]:
             if not t.is_dir():
                 logger.error(f"Directory {t} does not exist")
                 raise SystemError
-        return list(templates)
+        return sorted(templates)
     else:
         logger.debug("SIMPLHDL_SYSTEMRDL_TEMPLATES is not set, no templates found")
         return []
@@ -265,9 +255,10 @@ class PeakRdlGenerator(GeneratorBase):
     def render_template(self, template: jinja2.Template, node: AddrmapNode, outputdir: Path) -> Path | None:
         if not template.filename.endswith(".j2"):
             return None
-        context = template.render(node=node)
+        output_name = Path(template.filename).name[:-3]
+        outputfile = outputdir.joinpath(f"{node.type_name}_{output_name}").resolve()
+        context = template.render(node=node, output_stem=outputfile.stem, template_basename=Path(output_name).stem)
         outputdir.mkdir(parents=True, exist_ok=True)
-        outputfile: Path = outputdir.joinpath(f"{node.type_name}__{Path(template.filename).name[:-3]}").resolve()
         with outputfile.open("w") as f:
             f.write(context)
         rdlfile = self.project.defaultDesign.get_file(node.inst.def_src_ref.path)
@@ -385,11 +376,28 @@ class PeakRdlGenerator(GeneratorBase):
         output_dir: Path,
         config: dict,
     ) -> None:
+        template_sources = []
+        output_sources: dict[Path, Path] = {}
         for template_dir in get_template_dirs():
             logger.info(f"Generate from template {template_dir}")
             sub_dir = output_dir.joinpath(template_dir.name)
+            env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir), trim_blocks=True)
+            template_names = sorted(env.list_templates(filter_func=lambda name: name.endswith(".j2")))
+            for name in template_names:
+                source = template_dir / name
+                for root, _ in root_collectors:
+                    outputfile = sub_dir.joinpath(f"{root.top.type_name}_{Path(name).name[:-3]}").resolve()
+                    if outputfile in output_sources:
+                        raise ValueError(
+                            f"SystemRDL templates {output_sources[outputfile]} and {source} "
+                            f"would both generate {outputfile}"
+                        )
+                    output_sources[outputfile] = source
+            template_sources.append((env, template_names, sub_dir))
 
-            env = Environment(loader=jinja2.FileSystemLoader(template_dir), trim_blocks=True)
+        for env, template_names, sub_dir in template_sources:
+            if not template_names:
+                continue
             env.globals["hex"] = hex
             env.globals["len"] = len
             env.globals["get_field_access"] = get_field_access
@@ -397,14 +405,14 @@ class PeakRdlGenerator(GeneratorBase):
             env.globals["is_leaf"] = is_leaf
             env.globals["mask"] = mask
 
-            template = env.find_template("hierachymap")
             for root, collector in root_collectors:
                 env.globals["nodes"] = collector.nodes
                 env.globals["leafnodes"] = collector.leafnodes
                 env.globals["hierachynodes"] = collector.hierachynodes
                 env.globals["max_access_width"] = get_max_access_width(root.top)
                 env.globals["max_addr_width"] = max(get_max_addr_width(root.top), config.get("address_width", 1))
-                self.render_template(template=template, node=root.top, outputdir=sub_dir)
+                for name in template_names:
+                    self.render_template(template=env.get_template(name), node=root.top, outputdir=sub_dir)
 
     def _generate_regblocks(self, leaf_nodes: list[AddrmapNode], output_dir: Path, config: dict) -> None:
         if not config.get("enable", True):

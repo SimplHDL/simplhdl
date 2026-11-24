@@ -70,16 +70,23 @@ To generate custom address decoders, interconnect wrappers, or headers for top-l
 export SIMPLHDL_SYSTEMRDL_TEMPLATES=/path/to/templates
 ```
 
-- Each directory is searched for a Jinja2 template whose filename starts with `hierachymap` and ends with `.j2` (for
-  example, `hierachymap.sv.j2`).
-- For each root `addrmap`, the template is rendered to
-  `_build/<flow>/systemrdl/<template_dir_name>/<root_type_name>__<template_name_without_j2>`.
+- Every template whose filename ends with `.j2` is rendered for each root `addrmap`, in sorted filename order. Other
+  files, including `.j2.disable`, are ignored. Directories with no matching templates are allowed.
+- Each template is rendered to
+  `_build/<flow>/systemrdl/<template_dir_name>/<root_type_name>_<template_name_without_j2>`.
+  For example, `interconnect.sv.j2` produces `<root_type_name>_interconnect.sv`. Nested template paths are searched,
+  but only the template's filename is used for the output; conflicting output paths cause an error.
 - If the output file ends with `.sv`, `.v`, or `.vhd`, it is automatically inserted into the project fileset right after
   the source `.rdl` file.
 
 ### Template Context Globals
 
 - `node`: The root `AddrmapNode` (`root.top`).
+- `output_stem`: The generated filename without its final extension. For package templates, use
+  `package {{ output_stem }};` and `endpackage : {{ output_stem }}` to match the package name to the output filename.
+- `template_basename`: The template filename without `.j2` or its final output-file extension. For example,
+  `nested/interconnect.sv.j2` gives `interconnect`. Use `{{ node.type_name }}_{{ template_basename }}_pkg` to form a
+  package name; this does not change the generated filename.
 - `nodes`: All `AddrmapNode` instances in the root map.
 - `leafnodes`: Leaf `AddrmapNode` instances (address maps with no child address maps).
 - `hierachynodes`: Non-leaf `AddrmapNode` instances.
